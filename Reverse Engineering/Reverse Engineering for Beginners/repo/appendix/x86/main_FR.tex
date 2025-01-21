@@ -1,0 +1,35 @@
+\mysection{x86}
+
+\subsection{Terminologie}
+
+Commun en 16-bit (8086/80286), 32-bit (80386, etc.), 64-bit.
+
+\myindex{IEEE 754}
+\myindex{MS-DOS}
+\begin{description}
+	\item[octet] 8-bit.
+		La directive d'assembleur DB est utilisée pour définir les variables et les tableaux d'octets.
+		Les octets sont passés dans les parties 8-bit des registres: \TT{AL/BL/CL/DL/AH/BH/CH/DH/SIL/DIL/R*L}.
+	\item[mot] 16-bit. 
+		directive assembleur DW \dittoclosing.
+		Les mots sont passés dans la partie 16-bit des registres:\\
+			\TT{AX/BX/CX/DX/SI/DI/R*W}.
+	\item[double mot] (\q{dword}) 32-bit.
+		directive assembleur DD \dittoclosing.
+		Les double mots sont passés dans les registres (x86) ou dans la partie 32-bit de registres (x64).
+		Dans du code 16-bit, les double mots sont passés dans une paire de registres 16-bit.
+	\item[quadruple mot] (\q{qword}) 64-bit.
+		directive assembleur DQ \dittoclosing.
+		En environnement 32-bit, les quadruple mots sont passés dans une paire de registres 32-bit.
+	\item[tbyte] (10 bytes) 80-bit ou 10 octets (utilisé pour les registres FPU IEEE 754).
+	\item[paragraph] (16 bytes)---le terme était répandu dans l'environnement MS-DOS.
+\end{description}
+
+\myindex{Windows!API}
+
+Des types de données de même taille (BYTE, WORD, DWORD) existent aussi dans l'\ac{API} Windows.
+
+\input{appendix/x86/registers_FR} % subsection
+\input{appendix/x86/instructions_FR} % subsection
+\input{appendix/x86/npad} % subsection
+

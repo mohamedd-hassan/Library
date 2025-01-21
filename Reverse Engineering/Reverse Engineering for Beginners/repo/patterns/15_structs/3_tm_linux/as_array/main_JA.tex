@@ -1,0 +1,152 @@
+﻿\subsubsection{値の集合としての構造体}
+
+構造体が1つの場所に並んでいる変数であることを説明するために、
+\emph{tm}構造体の定義を再度見ながら、この例を再作ってみましょう：\lstref{struct_tm}
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm2.c}
+
+\myindex{\CStandardLibrary!localtime\_r()}
+注意：
+\TT{tm\_sec}フィールドへのポインタは、\TT{localtime\_r}、
+すなわち\q{構造体}の最初の要素に渡されます。
+
+コンパイラは警告します。
+
+\begin{lstlisting}[caption=GCC 4.7.3]
+GCC_tm2.c: In function 'main':
+GCC_tm2.c:11:5: warning: passing argument 2 of 'localtime_r' from incompatible pointer type [enabled by default]
+In file included from GCC_tm2.c:2:0:
+/usr/include/time.h:59:12: note: expected 'struct tm *' but argument is of type 'int *'
+\end{lstlisting}
+
+それにもかかわらず、これを生成します。
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm2.asm}
+
+このコードはこれまで見てきたものと同じもので、
+元のソースコードでは構造体であったか、単なる変数の集合であったかは言えません。
+
+そしてこれは動きます。
+ただし、これを実際に行うことはお勧めしません。
+
+通常、最適化されていないコンパイラは、
+関数内で宣言されたのと同じ順序で変数をローカルスタックに割り当てます。
+
+とはいえ、何の保証もありません。
+
+ちなみに、\TT{tm\_year}、 \TT{tm\_mon}、 \TT{tm\_mday}、
+\TT{tm\_hour}、 \TT{tm\_min}変数については、
+他のコンパイラが警告することがありますが、\TT{tm\_sec}は初期化されずに使用されます。
+
+実際、コンパイラは、これらが\TT{localtime\_r()}
+関数で初期化されることを認識していません。
+
+すべての構造体フィールドが \Tint 型であるため、この例を選択しました。
+
+\TT{SYSTEMTIME}構造体の場合のように、構造体フィールドが16ビット（\TT{WORD}）の場合、これは機能しません。
+\TT{GetSystemTime()}は、（ローカル変数が32ビット境界で整列されているため）、それらを正しく入力しません。
+次のセクションでそれについてもっと読む：
+\q{\StructurePackingSectionName} (\myref{structure_packing})
+
+したがって、構造体は、1つの場所に並べて配置された単なる変数の集合です。 
+構造体はコンパイラへの命令であり、変数を1つの場所に保持するように指示することができます。 
+ところで、非常に初期のCバージョン（1972年以前）には、構造体がまったく存在しませんでした。 \RitchieDevC
+
+デバッガの例はありません。すでに見たのとまったく同じです。
+
+\subsubsection{32ビットワードの配列としての構造体}
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm3.c}
+
+構造体へのポインタを \Tint{} の配列に\emph{キャスト}します。 
+そして、それは動作します！ 
+例は2014年7月26日23:51:45に実行されます。
+
+\begin{lstlisting}[label=GCC_tm3_output]
+0x0000002D (45)
+0x00000033 (51)
+0x00000017 (23)
+0x0000001A (26)
+0x00000006 (6)
+0x00000072 (114)
+0x00000006 (6)
+0x000000CE (206)
+0x00000001 (1)
+\end{lstlisting}
+
+ここでの変数は、
+\myref{struct_tm} 構造体の定義で列挙されているのと同じ順序です。
+
+コンパイル方法は次のとおりです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm3_JA.lst}
+
+実際には、ローカルスタック内のスペースは最初に構造体として扱われ、その後で配列として扱われます。
+
+このポインタを介して構造体のフィールドを変更することも可能です。
+
+そして、この怪しいハッカーっぽいやり方は、プロダクトコードでの使用はお勧めしません。
+
+\mysubparagraph{\Exercise}
+
+練習として、構造体を配列として扱い、現在の月の番号を変更（1つ増やしてください）してみてください。
+
+\subsubsection{配列オブジェクトとしての構造体}
+
+さらに進むことができます。 ポインタをバイトの配列に\emph{キャスト}して、それをダンプしましょう。
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm4.c}
+
+\begin{lstlisting}
+0x2D 0x00 0x00 0x00 
+0x33 0x00 0x00 0x00 
+0x17 0x00 0x00 0x00 
+0x1A 0x00 0x00 0x00 
+0x06 0x00 0x00 0x00 
+0x72 0x00 0x00 0x00 
+0x06 0x00 0x00 0x00 
+0xCE 0x00 0x00 0x00 
+0x01 0x00 0x00 0x00 
+\end{lstlisting}
+
+この例は、2014年7月26日 23:51:45にも実行されています。
+\footnote{デモの目的で、日時は同じです。 バイト値は固定されています。}
+値は以前のダンプと同じですが、
+(\myref{GCC_tm3_output})もちろんこれはリトルエンディアンアーキテクチャなので、一番下のバイトが先になります。
+(\myref{sec:endianness})
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm4_JA.lst}
+
+% TBT
+\iffalse
+\subsubsection{GNU Scientific Library: Representation of complex numbers}
+\myindex{GNU Scientific Library}
+
+This is a relatively rare case when an array is used instead of a structure, on purpose:
+
+\begin{lstlisting}
+Representation of complex numbers
+=================================
+
+Complex numbers are represented using the type :code:`gsl_complex`. The
+internal representation of this type may vary across platforms and
+should not be accessed directly. The functions and macros described
+below allow complex numbers to be manipulated in a portable way.
+
+For reference, the default form of the :code:`gsl_complex` type is
+given by the following struct::
+
+    typedef struct
+    {
+      double dat[2];
+    } gsl_complex;
+
+The real and imaginary part are stored in contiguous elements of a two
+element array. This eliminates any padding between the real and
+imaginary parts, :code:`dat[0]` and :code:`dat[1]`, allowing the struct to
+be mapped correctly onto packed complex arrays.
+\end{lstlisting}
+( \href{https://www.gnu.org/software/gsl/doc/html/complex.html#representation-of-complex-numbers}{URL} )
+\fi
+
+

@@ -1,0 +1,31 @@
+\myparagraph{GCC 4.4.1 \Optimizing}
+
+\lstinputlisting[caption=GCC 4.4.1 \Optimizing,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC_O3_FR.asm}
+
+\myindex{x86!\Instructions!JA}
+
+C'est presque le même, à l'exception que \INS{JA} est utilisé après \SAHF.
+En fait, les instructions de sauts conditionnels qui vérifient \q{plus}, \q{moins} ou \q{égal} pour
+les comparaisons de nombres non signés (ce sont \INS{JA}, \JAE, \JB, \JBE, \JE/\JZ, \JNA,
+\JNAE, \JNB, \JNBE, \JNE/\JNZ) vérifient seulement les flags \CF et \ZF.\\
+\\
+Rappelons comment les bits \CThreeBits sont situés dans le registre \GTT{AH} après
+l'exécution de \INS{FSTSW}/\FNSTSW:
+
+\input{C3_in_AH}
+
+Rappelons également, comment les bits de \GTT{AH} sont stockés dans les flags du
+CPU après l'exécution de \SAHF:
+
+\input{SAHF_LAHF}
+
+Après la comparaison, les bits \Cthree et \Czero sont copiés dans \ZF et \CF, donc
+les sauts conditionnels peuvent fonctionner après. \JA est déclenché si \CF et \ZF
+sont tout les deux à zéro.
+
+Ainsi, les instructions de saut conditionnel listées ici peuvent être utilisées après
+une paire d'instructions \FNSTSW/\SAHF.
+
+Apparemment, les bits d'état du FPU \CThreeBits ont été mis ici intentionnellement,
+pour facilement les relier aux flags du CPU de base sans permutations supplémentaires?
+

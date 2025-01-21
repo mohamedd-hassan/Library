@@ -1,0 +1,23 @@
+﻿\subsection{64ビットの値を返す}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/ret/0.c}
+
+\subsubsection{x86}
+
+32ビット環境では、64ビットの値は \EDX{}:\EAX{} レジスタペアを使って関数から返されます。
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/185_64bit_in_32_env/ret/0_MSVC_2010_Ox.asm}
+
+\subsubsection{ARM}
+
+64ビットの値は \Reg{0}-\Reg{1} レジスタペアを使って返されます（\Reg{1}は高位の部分を\Reg{0}は低位の部分です）。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/ret/Keil_ARM_O3.s}
+
+\subsubsection{MIPS}
+
+64ビットの値は\TT{V0}-\TT{V1} (\$2-\$3)レジスタペアを使って返されます（\TT{V0} (\$2)は高位の部分を\TT{V1} (\$3)は低位の部分です）。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (assembly listing),style=customasmMIPS]{patterns/185_64bit_in_32_env/ret/0_MIPS.s}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/ret/0_MIPS_IDA.lst}

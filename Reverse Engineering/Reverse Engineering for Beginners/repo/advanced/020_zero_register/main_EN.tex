@@ -1,0 +1,15 @@
+\section{Zero register}
+
+x86 architecture lacks zero register, unlike MIPS and ARM.
+However, it's often a case, when a compiler assigns a zero to a register, that will hold it upon the function's exit.
+
+This is a case of Mahjong game from Windows 7 x86.
+Zeroed EBX (at 0x010281BF) is used to initialize local variables,
+to pass zero argument into other functions and to compare values against it.
+
+\lstinputlisting[caption=Mahjong.exe from Windows 7 x86, style=customasmx86]{\CURPATH/Mahjong.exe.win7x86.lst}
+
+By the way, IDA can rename a register inside a function (press \verb|n|):
+
+\lstinputlisting[caption=Mahjong.exe from Windows 7 x86, style=customasmx86]{\CURPATH/Mahjong.exe.win7x86_2.lst}
+

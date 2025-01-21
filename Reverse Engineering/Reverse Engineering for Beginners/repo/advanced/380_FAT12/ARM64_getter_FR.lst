@@ -1,0 +1,52 @@
+<get_from_array>:
+; W0 = idx
+   0:           lsr     w2, w0, #1
+; W2 = W0>>1 = idx>>1
+   4:           lsl     w1, w2, #2
+; \verb|W1 = W2<<2 = (W0>>1)<<2 = (idx&(~1))<<1|
+   8:           sub     w1, w1, w2
+; \verb|W1 = W1-W2 = (idx&(~1))<<1 - idx>>1 = idx*1.5|
+; maintenant tester le bit le plus bas d'idx et sauter s'il est présent.
+; (ARM64 a une instruction unique pour ces opérations: TBNZ (Test and Branch Not Zero)).
+   c:           tbnz    w0, #0, 30 <get_from_array+0x30>
+
+; idx est pair, continuer:
+  10:           adrp    x2, page of array
+  14:           add     w3, w1, #0x1
+; W3 = W1+1 = idx*1.5 + 1, i.e., offset de l'octet du milieu
+  18:           add     x2, x2, offset of array within page
+; charger l'octet de gauche en X2+W1 = array + idx*1.5 avec extension du signe ("sxtw")
+  1c:           ldrb    w0, [x2,w1,sxtw]
+; charger l'octet du milieu en X2+W3 = array + idx*1.5 + 1 avec extension du signe ("sxtw")
+  20:           ldrb    w1, [x2,w3,sxtw]
+; W0 = octet de gauche
+; W1 = octet du milieu
+  24:           lsl     w0, w0, #4
+; \verb|W0 = W0<<4 = left_byte << 4|
+; fusionner les parties:
+  28:           orr     w0, w0, w1, lsr #4
+; \verb!W0 = W0 | W1>>4 = left_byte << 4 | middle_byte >> 4!
+; la valeur dans W0 est renvoyée
+  2c:           ret
+
+; idx est impair, continuer:
+  30:           adrp    x2, page of array
+  34:           add     w0, w1, #0x1
+; W0 = W1+1 = idx*1.5+1, i.e., offset de l'octet du milieu
+  38:           add     x2, x2, address of array within page
+  3c:           add     w1, w1, #0x2
+; W1 = W1+2 = idx*1.5+2, i.e., offset de l'octet de droite
+; charger l'octet du milieu en X2+W0 = array+idx*1.5+1 avec extension du signe ("sxtw")
+  40:           ldrb    w0, [x2,w0,sxtw]
+; charger l'octet de droite en X2+W1 = array+idx*1.5+2 avec extension du signe ("sxtw")
+  44:           ldrb    w1, [x2,w1,sxtw]
+; W0 = octet du milieu
+; W1 = octet de droite
+  48:           ubfiz   w0, w0, #8, #4
+; \verb|W0 = middle_byte<<8|
+; maintenant fusionner les parties:
+  4c:           orr     w0, w0, w1
+; \verb!W0 = W0 | W1 = middle_byte<<8 | right_byte!
+; la valeur dans W0 est renvoyée
+  50:           ret
+

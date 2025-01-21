@@ -1,0 +1,35 @@
+﻿\subsection{32ビット値から64ビット値への変換}
+\label{subsec:sign_extending_32_to_64}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/conversion/4.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/185_64bit_in_32_env/conversion/MSVC2012_Ox.asm}
+
+ここでも、32ビットの符号付き値を64ビットの符号付き値に拡張する必要があります。 
+符号なしの値は単純に変換されます：上位部分のすべてのビットは0に設定する必要があります。
+ただし、符号付きデータ型には適していません：符号は結果の数値の上位部分にコピーする必要があります。
+\myindex{x86!\Instructions!CDQ}
+
+\INS{CDQ}命令はここでそれを行います。\EAX{}でその入力値を取り、それを64ビットに拡張しそして
+\EDX{}:\EAX{}レジスタペアに残します。
+つまり、\INS{CDQ}は（EAXの最上位ビットを取得することによって）\EAX{}から番号記号を取得し、
+それに応じて\EDX{}の32ビットすべてを0または1に設定します。
+その動作は、\MOVSX{}命令とやや似ています。
+
+\subsubsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/conversion/Keil_ARM_O3.s}
+
+ARM用Keilは異なります。入力値を算術的に右に31ビットシフトします。 
+知っての通り、符号ビットは\ac{MSB}で、算術シフトは符号ビットを\q{出現した}ビットにコピーします。 
+したがって、\q{ASR r1,r0,\#31}の後、入力値が負の場合は\Reg{1}に0xFFFFFFFFが含まれ、それ以外の場合は0が含まれます。 
+\Reg{1}には、結果の64ビット値の上位部分が含まれています。 
+つまり、このコードは\Reg{0} の入力値から結果の64ビット値の上位32ビット部分のすべてのビットに\ac{MSB}（符号ビット）をコピーするだけです。
+
+\subsubsection{MIPS}
+
+MIPS向けのGCCは、KeilがARMモードで行ったのと同じことを行います。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/conversion/MIPS_O3_IDA.lst}

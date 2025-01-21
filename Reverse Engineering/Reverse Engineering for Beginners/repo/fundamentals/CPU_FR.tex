@@ -1,0 +1,27 @@
+﻿\mysection{CPU}
+
+\subsection{Prédicteurs de branchement}
+\label{branch_predictors}
+
+Certains des derniers compilateurs essayent d'éliminer les instructions de saut.
+Il y a des exemples dans ce livre: \myref{subsec:jcc_ARM}, \myref{chap:cond}, \myref{subsec:popcnt}.
+
+C'est parce que le prédicteur de branchement n'est pas toujours parfait, donc les
+compilateurs essayent de faire sans les sauts conditionnels, si possible.
+
+\myindex{x86!\Instructions!CMOVcc}
+\myindex{ARM!\Instructions!ADRcc}
+Les instructions conditionnelles en ARM (comme ADRcc) sont une manière, une autre est
+l'instruction x86 CMOVcc.
+
+\subsection{Dépendances des données}
+
+Les CPUs modernes sont capables d'exécuter des instructions simultanément (\ac{OOE}),
+mais pour ce faire, le résultat d'une instruction dans un groupe ne doit pas influencer
+l'exécution des autres.
+Par conséquent, le compilateur s'efforce d'utiliser des instructions avec le minimum
+d'influence sur l'état du CPU.
+
+\myindex{ARM!\Instructions!LEA}
+C'est pourquoi l'instruction \LEA est si populaire, car elle ne modifie pas les flags
+du CPU, tandis que d'autres instructions arithmétiques le font.

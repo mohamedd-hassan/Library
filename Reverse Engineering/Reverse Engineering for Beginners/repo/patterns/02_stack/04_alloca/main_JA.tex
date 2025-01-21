@@ -1,0 +1,57 @@
+\subsubsection{x86: alloca()関数}
+\label{alloca}
+\myindex{\CStandardLibrary!alloca()}
+
+\newcommand{\AllocaSrcPath}{C:\textbackslash{}Program Files (x86)\textbackslash{}Microsoft Visual Studio 10.0\textbackslash{}VC\textbackslash{}crt\textbackslash{}src\textbackslash{}intel}
+
+\TT{alloca()}関数に注目することは重要です
+\footnote{MSVCでは、関数の実装は\TT{\AllocaSrcPath{}}の\TT{alloca16.asm} と \TT{chkstk.asm}にあります}
+この関数は\TT{malloc()}のように動作しますが、スタックに直接メモリを割り当てます。 
+% page break added to prevent "\vref on page boundary" error. it may be dropped in future.
+関数のエピローグ(\myref{sec:prologepilog})は \ESP を初期状態に戻し、割り当てられたメモリは単に\emph{破棄}されるため、
+割り当てられたメモリチャンクは\TT{free()}関数呼び出しで解放する必要はありません。 \TT{alloca()}がどのように実装されているかは注目に値する。
+簡単に言えば、この関数は必要なバイト数だけスタック底部に向かって \ESP を下にシフトさせ、\emph{割り当てられた}ブロックへのポインタとして \ESP を設定します。
+% to be synced
+% rephrased version:
+%In simple terms, this function just shifts \ESP downwards toward the stack bottom by the number of bytes you need,
+%making \ESP pointing to the \emph{allocated} block.
+
+やってみましょう。
+
+\lstinputlisting[style=customc]{patterns/02_stack/04_alloca/2_1.c}
+
+\TT{\_snprintf()}関数は \printf と同じように動作しますが、結果を\gls{stdout}（ターミナルやコンソールなど）
+にダンプする代わりに、\TT{buf}バッファに書き込みます。 \puts 関数は\TT{buf}の内容を\gls{stdout}にコピーします。
+もちろん、これらの2つの関数呼び出しは1つの \printf 呼び出しで置き換えることができますが、小さなバッファの使用法を説明する必要があります。
+
+\myparagraph{MSVC}
+
+コンパイルしてみましょう（MSVC 2010で）
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/02_stack/04_alloca/2_2_msvc.asm}
+
+\myindex{Compiler intrinsic}
+\TT{alloca()}の唯一の引数は \EAX 経由で（スタックにプッシュするのではなく）渡されます。
+\footnote{alloca（）はコンパイラ組み込み関数（(\myref{sec:compiler_intrinsic})）ではなく、通常の関数です。 
+\ac{MSVC}のalloca()の実装には、割り当てられたメモリから読み込むコードが含まれているため、\ac{OS}が物理メモリをVM領域にマップするために、
+コード内の命令が数個ではなく別々の関数を必要とする理由の1つです。 \TT{alloca()}呼び出しの後、ESPは600バイトのブロックを指し、\TT{buf}配列のメモリとして使用できます。}
+
+\myparagraph{GCC + \IntelSyntax}
+
+GCC 4.4.1は、外部関数を呼び出すことなく同じことを行います
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/02_stack/04_alloca/2_1_gcc_intel_O3_EN.asm}
+
+\myparagraph{GCC + \ATTSyntax}
+
+同じコードをAT\&T構文で見てみましょう
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/02_stack/04_alloca/2_1_gcc_ATT_O3.s}
+
+\myindex{\ATTSyntax}
+コードは前のリストと同じです。
+
+ちなみに、\INS{movl \$3, 20(\%esp)}は、
+Intel構文の\INS{mov DWORD PTR [esp+20], 3}に対応しています。 
+AT\&Tの構文では、アドレス指定メモリのレジスタ+オフセット形式は
+\TT{offset(\%{register})}のように見えます。

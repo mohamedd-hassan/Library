@@ -1,0 +1,95 @@
+\subsubsection{GCC}
+
+% The text states that GCC uses Intel syntax, but the footnote sounds like in needs to be activated
+% Maybe edit the text to: GCC can produce Intel syntax (like MSVC), and the footnote to: Use the \TT{-S -masm=intel}.} to activate this
+LinuxのGCC 4.4.1コンパイラと同じ \CCpp コードをコンパイルしてみましょう：\TT{gcc 1.c -o 1}
+次に、 \IDA 逆アセンブラの助けを借りて、どのように \main 関数が作成されるのかを見ていきましょう。
+\IDA は、MSVCと同様に、Intel-syntaxを使用します。\footnote{\TT{-S -masm=intel}オプションを適用することで、Intel構文でGCCのアセンブリリストを生成させることもできます}
+
+\lstinputlisting[caption=code in \IDA,style=customasmx86]{patterns/01_helloworld/IDA_x86.asm}
+
+\myindex{Function prologue}
+\myindex{x86!\Instructions!AND}
+結果はほぼ同じです。 helloのワールド文字列（データセグメントに格納されている）のアドレスは、最初にEAXレジスタにロードされ、スタックに保存されます。
+
+さらに、関数プロローグには \INS{AND ESP, 0FFFFFFF0h} があります。この命令は、 \ESP レジスタ値を16バイトの境界に揃えます。この結果、スタック内のすべての値が同じ方法で整列されます（処理中の値が4バイト境界または16バイト境界に整列したアドレスにある場合、CPUのパフォーマンスは向上します）。
+
+\myindex{x86!\Instructions!SUB}
+\INS{SUB ESP, 10h} はスタックに16バイトを割り当てます。しかし、私たちはこれから見るように、ここでは4つだけが必要です。
+
+これは、割り当てられたスタックのサイズも16バイトの境界に揃えられているためです。
+
+% TODO1: rewrite.
+\myindex{x86!\Instructions!PUSH}
+文字列アドレス（または文字列へのポインタ）は、 \PUSH 命令を使用せずにスタックに直接格納されます。 \emph{var\_10} はローカル変数であり、 \printf{} の引数でもあります。それについて下記を読んでください。
+
+\printf 関数が呼び出されます。
+
+MSVCと異なり、GCCは最適化をオンにしないでコンパイルすると、より短いオペコードの代わりに\TT{MOV EAX, 0}を発行します。
+
+\myindex{x86!\Instructions!LEAVE}
+最後の命令、 \LEAVE は、\TT{MOV ESP, EBP}、および\TT{POP EBP}命令ペアと同等です。言い換えれば、この命令は\gls{stack pointer} (\ESP)を戻し、 \EBP レジスタを初期状態に戻す。これは、これらのレジスタ値（\ESP と \EBP ）を関数の始めに（\INS{MOV EBP, ESP} / \INS{AND ESP, \ldots}を実行することによって）変更したので必要です。
+
+\subsubsection{GCC: \ATTSyntax}
+\label{ATT_syntax}
+
+これをアセンブリ言語のAT\&T構文でどのように表現できるかを見てみましょう。 この構文は
+UNIXの世界でずっと人気があります。
+
+\begin{lstlisting}[caption=let's compile in GCC 4.7.3]
+gcc -S 1_1.c
+\end{lstlisting}
+
+下記を得ます。
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/01_helloworld/GCC.s}
+
+リストには、多くのマクロ（ドットで始まる部分）が含まれています。 現時点では興味深いものではありません。
+
+今のところ、簡単にするため、無視してもかまいません（C言語の文字列のように終端文字列をエンコードする\emph{.string}マクロを除く）。 
+それからこれを見てみましょう。
+\footnote{このGCCオプションは\q{不要な}マクロを削除するために使用できます：\emph{-fno-asynchronous-unwind-tables}}
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/01_helloworld/GCC_refined.s}
+
+\myindex{\ATTSyntax}
+\myindex{\IntelSyntax}
+インテルとAT\&T構文の主な違いのいくつかは次のとおりです。
+
+\begin{itemize}
+
+\item
+ソースオペランドとデスティネーションオペランドは逆の順序で記述されます。
+
+インテル構文では：<命令> <デスティネーション・オペランド> <ソース・オペランド>
+
+AT\&T構文の場合：<命令> <ソースオペランド> <デスティネーションオペランド>
+
+\myindex{\CStandardLibrary!memcpy()}
+\myindex{\CStandardLibrary!strcpy()}
+違いを覚えるのは簡単な方法です：インテル構文を扱うとき、オペランド間に等号($=$)があり、AT＆T-syntaxを扱うときに右矢印($\rightarrow$)があると想像してください。
+\footnote{ところで、いくつかのC標準関数（例えば、memcpy()、strcpy()）では、インテル構文と同じ方法で引数がリストされています。まず、デスティネーションメモリブロックへのポインタ、次にソースメモリブロックへのポインタです}
+
+\item
+AT\&T：レジスタ名の前にはパーセント記号(\%)を、数字の前にはドル記号(\$)を書く必要があります。 角カッコのかわりに丸カッコが使用されています。
+
+\item
+AT\&T：オペランドサイズを定義する命令に接尾辞が追加されます
+
+\begin{itemize}
+\item q --- quad (64 bits)
+\item l --- long (32 bits)
+\item w --- word (16 bits)
+\item b --- byte (8 bits)
+\end{itemize}
+
+% TODO1 simple example may be? \RU{Например mov\textbf{l}, movb, movw представляют различые версии инсструкция mov} \EN {For example: movl, movb, movw are variations of the mov instruction}
+
+\end{itemize}
+
+コンパイル結果に戻るには、 \IDA が表示した結果とほぼ同じです。 微妙な違いが1つあります。\TT{0FFFFFFF0h}は\TT{\$-16}として表示されます。 これは同じことです：10進数の\TT{16}は16進数で\TT{0x10}です。 \TT{-0x10}は\TT{0xFFFFFFF0}に等しくなります（32ビットデータ型の場合）。
+
+\myindex{x86!\Instructions!MOV}
+もう1つ：戻り値は、 \XOR ではなく通常の \MOV を使用して0に設定されます。 \MOV はレジスタに値をロードするだけです。 
+誤ってつけられた名前です（データは移動せず、コピーされるため）。 他のアーキテクチャでは、この命令の名前は\q{LOAD}または\q{STORE}などと同様です。
+

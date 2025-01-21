@@ -1,0 +1,96 @@
+% TODO proof-reading
+\subsubsection{Second exemple}
+
+Un autre exemple simple de crackme:
+
+\begin{lstlisting}[style=customjava]
+public class password
+{
+	public static void main(String[] args)
+	{
+		System.out.println("Please enter the password");
+		String input = System.console().readLine();
+		if (input.equals("secret"))
+			System.out.println("password is correct");
+		else
+			System.out.println("password is not correct");
+	}
+}
+\end{lstlisting}
+
+Chargeons le dans \IDA:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{Java_and_NET/java/13_patching/2/1.png}
+\caption{IDA}
+\end{figure}
+
+Nous voyons ici l'instruction \TT{ifeq} qui effectue le travail.
+
+Son nom signifie \emph{if equal} (si égal), et c'est mal-nommé, un meilleur nom serait
+\TT{ifz} (\emph{if zero}, si zéro), i.e, si la valeur sur le \ac{TOS} est zéro, alors
+effectuer le saut.
+
+Dans notre exemple, le saut est fait si le mot de passe est incorrect (la méthode
+\TT{equals} renvoie \TT{False}, qui est 0).
+
+La toute première idée est de patcher cette instruction.
+
+Il y a deux octets dans l'opcode de \TT{ifeq}, qui encode l'offset du saut.
+
+Pour transformer cette instruction en NOP, nous devons mettre la valeur 3 dans le
+3ème octet (car ajouter 3 à l'adresse courante sautera toujours à l'instruction
+suivante, puisque la longueur de l'instruction \TT{ifeq} est de 3 octets):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{Java_and_NET/java/13_patching/2/2.png}
+\caption{IDA}
+\end{figure}
+
+Ceci ne fonctionne pas (JRE 1.7):
+
+\begin{lstlisting}
+Exception in thread "main" java.lang.VerifyError: Expecting a stackmap frame at branch target 24
+Exception Details:
+  Location:
+    password.main([Ljava/lang/String;)V @21: ifeq
+  Reason:
+    Expected stackmap frame at this location.
+  Bytecode:
+    0000000: b200 0212 03b6 0004 b800 05b6 0006 4c2b
+    0000010: 1207 b600 0899 0003 b200 0212 09b6 0004
+    0000020: a700 0bb2 0002 120a b600 04b1
+  Stackmap Table:
+    append_frame(@35,Object[#20])
+    same_frame(@43)
+
+        at java.lang.Class.getDeclaredMethods0(Native Method)
+        at java.lang.Class.privateGetDeclaredMethods(Class.java:2615)
+        at java.lang.Class.getMethod0(Class.java:2856)
+        at java.lang.Class.getMethod(Class.java:1668)
+        at sun.launcher.LauncherHelper.getMainMethod(LauncherHelper.java:494)
+        at sun.launcher.LauncherHelper.checkAndLoadMain(LauncherHelper.java:486)
+\end{lstlisting}
+
+Mais il faut mentionner que ceci fonctionnait avec le JRE 1.6.
+
+Nous pouvons aussi essayer de remplacer les 3 octets de l'opcode de \TT{ifeq} par
+des octets à zéro (\ac{NOP}), mais ça ne fonctionne toujours pas.
+
+Il semble qu'il y a plus de tests de l'état de la pile en JRE 1.7.
+
+OK, remplaçons tout l'appel à la méthode \TT{equals} avec l'instruction \TT{iconst\_1}
+et quelques \ac{NOP}s:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{Java_and_NET/java/13_patching/2/3.png}
+\caption{IDA}
+\end{figure}
+
+Il doit toujours y avoir 1 sur le \ac{TOS} lorsque l'instruction \TT{ifeq} est exécutée,
+ainsi \TT{ifeq} ne fera jamais le saut.
+
+Ceci fonctionne.

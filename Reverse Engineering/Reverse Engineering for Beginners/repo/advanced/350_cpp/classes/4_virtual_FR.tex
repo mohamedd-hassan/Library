@@ -1,0 +1,65 @@
+\subsubsection{Méthodes virtuelles}
+
+Encode un exemple simple:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes4_virtual.cpp}
+
+
+La classe \emph{object} a une méthode virtuelle \TT{dump()} qui est remplacée par celle
+de la classe héritant \emph{box} et \emph{sphere}.
+
+
+Si nous sommes dans un environnement où le type de l'objet n'est pas connu, comme
+dans la fonction \main de l'exemple, où la méthode virtuelle \TT{dump()} est appelée,
+l'information à propos de son type doit être stockée quelque part, afin d'être capable
+d'appeler la bonne méthode virtuelle.
+
+
+Compilons-le dans MSVC 2008 avec les options \Ox et \Obzero, puis regardons le code
+de \main:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/classes/classes4_1.asm}
+
+
+Un pointeur sur la fonction \TT{dump()} est pris quelque part dans l'objet.
+Où pourrions-nous stocker l'adresse de la nouvelle méthode?
+Seulement quelque part dans le constructeur: il n'y a pas d'autre endroit puisque rien
+d'autre n'est appelé dans la fonction \main.
+\footnote{Vous pouvez en lire plus sur les pointeurs sur les fonctions dans la section afférente:(\myref{sec:pointerstofunctions}).}
+
+
+Regardons le code du constructeur de la classe \emph{box}:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/classes/classes4_2.asm}
+
+
+Ici, nous avons une disposition de la mémoire légèrement différente:
+Le premier champ est un pointeur sur une table \TT{box::`vftable'} (le nom a été
+mis par le compilateur MSVC).
+
+\label{RTTI}
+\myindex{\Cpp!RTTI}
+
+Dans cette table nous voyons un lien sur une table nommée \\
+\TT{box::`RTTI Complete Object Locator'} et aussi un lien \\
+sur la méthode \TT{box::dump()}.
+
+Elles sont appelées table de méthodes virtuelles et \ac{RTTI}.
+La table de méthodes virtuelles a l'adresse des méthodes et la table \ac{RTTI} contient
+l'information à propos des types.
+
+À propos, les tables \ac{RTTI} sont utilisées lors de l'appel à \emph{dynamic\_cast}
+et \emph{typeid} en \Cpp.
+Vous pouvez également voir ici le nom de la classe en chaîne de texte pur.
+
+Ainsi, une méthode de la classe de base \emph{object} peut aussi appelé la méthode
+virtuelle \emph{object::dump()}, qui, en fait, va appeler une méthode d'une classe
+héritée, puisque cette information est présente juste dans la structure de l'objet.
+
+
+Du temps CPU additionnel est requis pour faire la recherche dans ces tables et trouver
+l'adresse de la bonne  méthode virtuelle, ainsi les méthodes virtuelles sont largement
+considérées comme légèrement plus lentes que les méthodes normales.
+
+Dans le code généré par GCC, les tables \ac{RTTI} sont construites légèrement différemment.
+% TODO: добавить...

@@ -1,0 +1,18 @@
+\subsection{Exemple de générateur de nombre pseudo-aléatoire revisité}
+\label{FPU_PRNG_SIMD}
+
+Revoyons l'exemple de \q{générateur de nombre pseudo-aléatoire} \lstref{FPU_PRNG}.
+
+Si nous compilons ceci en MSVC 2012, il va utiliser les instructions SIMD pour le
+FPU.
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/FPU_PRNG/MSVC2012_Ox_Ob0_FR.asm}
+
+% FIXME1 rewrite!
+
+Toutes les instructions ont le suffixe -SS, qui signifie \q{Scalar Single} (scalaire simple).
+
+\q{Scalar} (scalaire) implique qu'une seule valeur est stockée dans le registre.
+
+\q{Single} (simple\footnote{pour simple précision}) signifie un type de donnée \Tfloat.
+

@@ -1,0 +1,56 @@
+﻿\myparagraph{GCC 4.8.1 with \Othree optimization turned on}
+\label{gcc481_o3}
+
+いくつかの新しいFPU命令がP6インテルファミリ\footnote{Pentium Pro、Pentium-IIなどに始まる}に追加されました。 
+\myindex{x86!\Instructions!FUCOMI}
+これらは \INS{FUCOMI} （メインCPUのオペランドとフラグの比較）と
+\myindex{x86!\Instructions!FCMOVcc}
+\INS{FCMOVcc} （FPOレジスタ上の\INS{CMOVcc}のように機能します）です。
+
+どうやら、GCCのメンテナは、P6以前のインテルCPU（初期のPentium、80486など）のサポートを中止することに決めました。
+
+また、FPUはP6インテルファミリではもはや別個のユニットではなくなったので、FPUからメインCPUのフラグを変更/チェックすることが可能になりました。
+
+つまり私たちが得るものは次のとおりです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC481_O3_JA.s}
+
+\INS{FXCH} （スワップオペランド）がどうしてここにあるのかを推測するのは難しいです。
+
+最初の2つの \FLD 命令を交換するか、 \INS{FCMOVBE} （\emph{below or equal}）を \INS{FCMOVA} （\emph{above}）に
+置き換えることで、簡単に取り除くことができます。 
+おそらく、それはコンパイラが不正確なためです。
+
+そのため、 \INS{FUCOMI} は \ST{0} （ $a$ ）と \ST{1}（ $b$ ）を比較し、
+メインCPUにいくつかのフラグを設定します。 
+\INS{FCMOVBE}はフラグをチェックし、 $ST0 (a) <= ST1 (b)$ なら
+\ST{1}（ここでは $b$ ）を\ST{0}（ここでは $a$ ）にコピーします。
+そうでなければ（ $a>b$ ）、\ST{0}に $a$ を残します。
+
+最後の \FSTP は、\ST{1}の内容を破棄してスタックの上に\ST{0}を残します。
+
+GDBでこの関数をトレースしましょう：
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1 and GDB,numbers=left]{patterns/12_FPU/3_comparison/x86/gdb.txt}
+
+\q{ni}を使って、
+最初の \FLD 命令を2つ実行してみましょう。
+
+FPUレジスタを確認してみましょう。(33行目)
+
+以前書いたように、FPUレジスタのセットはスタックではなく循環バッファです。(\myref{FPU_is_rather_circular_buffer})
+そしてGDBは\GTT{STx}レジスタを表示しませんが、FPUレジスタの内部を表示します。（\GTT{Rx}）
+(35行目の)矢印は現在のスタックのトップを示しています。
+
+\emph{Status Word}(36-37行目)に\GTT{TOP}レジスタの内容を見ることができます。今は6で、
+スタックのトップは内部レジスタ6を示しています。
+
+$a$ および $b$ の値は\INS{FXCH}が実行されると交換されます。(54行目)
+
+\INS{FUCOMI}は実行されます。(83行目)
+フラグを見てみましょう： \CF がセットされます。(95行目)
+
+\INS{FCMOVBE} は $b$ の値をコピーします。(104行目)
+
+\FSTP はスタックのトップの値を1つ残します。(139行目)
+\GTT{TOP}の値は7で、FPUスタックのトップは内部レジスタ7を示しています。

@@ -1,0 +1,97 @@
+\subsection{2次元配列としての文字列のパック}
+
+月の名前を返す関数を再考してみましょう：\lstref{get_month1}
+
+月の名前の文字列へのポインタを準備するには少なくともメモリロード演算が1つ必要です。
+
+メモリロード演算を取り除くことは可能でしょうか？
+
+実際できます。文字列のリストを2次元配列として表現すれば。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/55_month_2D/month2_JA.c}
+
+このような結果を得ました。
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{patterns/13_arrays/55_month_2D/MSVC2013_x64_Ox_JA.asm}
+
+メモリアクセスは全くありません。
+
+この関数でやっていることは、月の名前の最初の文字のポインタを計算することです：
+$pointer\_to\_the\_table + month * 10$.
+
+\LEA 命令も2つあります。 いくつかの \MUL と \MOV 命令として機能します。
+
+配列の幅は10バイトです。
+
+実際、ここでの最も長い文字列、\q{September}、は9バイトで、加えて0終端して10バイトです。
+
+月の名前の残りはゼロで埋められて、月の名前は同じ領域（10バイト）を占有します。
+
+従って、関数はより早く機能します。文字列の開始アドレスが簡単に計算できるためです。
+
+\Optimizing GCC 4.9はより短くなります。
+
+\begin{lstlisting}[caption=\Optimizing GCC 4.9 x64,style=customasmx86]
+	movsx	rdi, edi
+	lea	rax, [rdi+rdi*4]
+	lea	rax, month2[rax+rax]
+	ret
+\end{lstlisting}
+
+\LEA は10倍するためにここでも使用されます。
+
+最適化されていないコンパイラは、異なる方法で乗算を行います。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9 x64,style=customasmx86]{patterns/13_arrays/55_month_2D/x64_GCC49_O0_JA.asm}
+
+\NonOptimizing MSVCは単に \IMUL 命令を使用します。
+
+\myindex{x86!\Instructions!IMUL}
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2013 x64,style=customasmx86]{patterns/13_arrays/55_month_2D/MSVC2013_x64_JA.asm}
+
+\myindex{\CompilerAnomaly}
+\label{MSVC2013_anomaly}
+
+しかし、奇妙なことが1つあります。なぜ、0で乗算し、最終結果に0を加算するのでしょうか？
+
+これはコンパイラのコードジェネレータの癖のように見えますが、コンパイラのテストでは検出されませんでした。
+（結局のところ、結果のコードは正しく動作します）
+% класс!
+%
+このようなコードを意図的に検討することで、読者がそのようなコンパイラ成果物に困惑すべきでないときが
+あることを理解するでしょう。
+
+\subsubsection{32ビットARM}
+
+\Optimizing Keil 
+Thumbモードでは、乗算命令\INS{MULS}を使用します。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/13_arrays/55_month_2D/Keil_O3_thumb_JA.asm}
+
+ARMモードでの \Optimizing Keil は加算とシフト命令を使用します。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/13_arrays/55_month_2D/Keil_O3_ARM_JA.asm}
+
+\subsubsection{ARM64}
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 ARM64,style=customasmARM]{patterns/13_arrays/55_month_2D/GCC49_ARM64_JA.asm}
+
+\myindex{ARM!\Instructions!SXTW}
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+\INS{SXTW}は32ビット入力値を64ビットにし、X0に保存する、符号拡張のために使用されます。
+
+\ADRP/\ADD の命令の組はテーブルのアドレスをロードするために使用されます。
+
+\ADD 命令には乗算に役立つ \LSL サフィックスもあります。
+
+\subsubsection{MIPS}
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/13_arrays/55_month_2D/MIPS_O3_IDA_JA.lst}
+
+\subsubsection{\Conclusion{}}
+
+これはテキスト文字列を保存するための昔ながらの技術です。
+あなたは、たとえば、 \oracle でそれを見つけることができます。
+現代のコンピュータで実行する価値があるかどうかは言い難いですが、
+配列の良い例であるため、この本に追加されました。

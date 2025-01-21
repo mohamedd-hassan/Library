@@ -1,0 +1,36 @@
+MOV REG, input
+CMP REG, 4 ; caseの最大数
+JA default
+SHL REG, 2 ; テーブルで要素を見つける。x64では3ビットシフト
+MOV REG, jump_table[REG]
+JMP REG
+
+case1:
+    ; 何かする
+    JMP exit
+case2:
+    ; 何かする
+    JMP exit
+case3:
+    ; 何かする
+    JMP exit
+case4:
+    ; 何かする
+    JMP exit
+case5:
+    ; 何かする
+    JMP exit
+
+default:
+
+    ...
+
+exit:
+
+    ....
+
+jump_table dd case1
+           dd case2
+           dd case3
+           dd case4
+           dd case5

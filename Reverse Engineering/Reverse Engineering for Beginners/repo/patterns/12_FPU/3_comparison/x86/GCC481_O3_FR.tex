@@ -1,0 +1,61 @@
+\myparagraph{GCC 4.8.1 avec l'option d'optimisation \Othree}
+\label{gcc481_o3}
+
+De nouvelles instructions FPU ont été ajoutées avec la famille Intel P6\footnote{À partir du Pentium Pro, Pentium-II, etc.}.
+\myindex{x86!\Instructions!FUCOMI}
+Ce sont \INS{FUCOMI} (comparer les opérandes et positionner les flags du CPU principal)
+et \myindex{x86!\Instructions!FCMOVcc}
+\INS{FCMOVcc} (fonctionne comme \INS{CMOVcc}, mais avec les registres du FPU).
+
+Apparemment, les mainteneurs de GCC ont décidé de supprimer le support des CPUs Intel
+pré-P6 (premier Pentium, 80486, etc.).
+
+Et donc, le FPU n'est plus une unité séparée dans la famille Intel P6, ainsi il est
+possible de modifier/vérifier un flag du CPU principal depuis le FPU.
+
+Voici ce que nous obtenons:
+
+\lstinputlisting[caption=GCC 4.8.1 \Optimizing,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC481_O3_FR.s}
+
+Difficile de deviner pourquoi \INS{FXCH} (échange les opérandes) est ici.
+
+Il est possible de s'en débarrasser facilement en échangeant les deux premières instructions
+\FLD ou en remplaçant \INS{FCMOVBE} (\emph{below or equal} inférieur ou égal) par
+\INS{FCMOVA} (\emph{above}).
+Il s'agit probablement d'une imprécision du compilateur.
+
+Donc \INS{FUCOMI} compare \ST{0} ($a$) et \ST{1} ($b$) et met certains flags
+dans le CPU principal.
+\INS{FCMOVBE} vérifie les flags et copie \ST{1} ($b$ ici à ce moment) dans \ST{0}
+($a$ ici) si $ST0 (a) <= ST1 (b)$.
+Autrement ($a>b$), $a$ est laissé dans \ST{0}.
+
+Le dernier \FSTP laisse \ST{0} sur le sommet de la pile, supprimant le contenu de \ST{1}.
+
+Exécutons pas à pas cette fonction dans GDB:
+
+\lstinputlisting[caption=GCC 4.8.1 \Optimizing and GDB,numbers=left]{patterns/12_FPU/3_comparison/x86/gdb.txt}
+
+En utilisant \q{ni}, exécutons les deux premières instructions \FLD.
+
+Examinons les registres du FPU (ligne 33).
+
+Comme cela a déjà été mentionné, l'ensemble des registres FPU est un buffeur
+circulaire plutôt qu'une pile (\myref{FPU_is_rather_circular_buffer}).
+Et GDB ne montre pas les registres \GTT{STx}, mais les registre internes du FPU (\GTT{Rx}).
+La flèche (à la ligne 35) pointe sur le haut courant de la pile.
+
+Vous pouvez voir le contenu du registre \GTT{TOP} dans le \emph{Status Word} (ligne 36-37)---c'est
+6 maintenant, donc le haut de la pile pointe maintenant sur le registre interne 6.
+
+Les valeurs de $a$ et $b$ sont échangées après l'exécution de \INS{FXCH} (ligne 54).
+
+\INS{FUCOMI} est exécuté (ilgne 83).
+Regardons les flags: \CF est mis (ligne 95).
+
+\INS{FCMOVBE} a copié la valeur de $b$ (voir ligne 104).
+
+\FSTP dépose une valeur au sommet de la pile (ligne 139).
+La valeur de \GTT{TOP} est maintenant 7, donc le sommet de la pile du FPU pointe
+sur le registre interne 7.
+

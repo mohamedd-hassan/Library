@@ -1,0 +1,47 @@
+\myparagraph{MSVC}
+
+Compilons-le avec MSVC 2010:
+
+\lstinputlisting[caption=MSVC 2010: \ttf{},style=customasmx86]{patterns/12_FPU/1_simple/MSVC_FR.asm}
+
+\FLD prend 8 octets depuis la pile et charge le nombre dans le registre \ST{0}, en
+le convertissant automatiquement dans le format interne sur 80-bit (\emph{précision
+étendue}):
+
+\myindex{x86!\Instructions!FDIV}
+
+\FDIV divise la valeur dans \ST{0} par le nombre stocké à l'adresse \\
+\GTT{\_\_real@40091eb851eb851f}~---la valeur 3.14 est encodée ici.
+La syntaxe assembleur ne supporte pas les nombres à virgule flottante, donc ce que
+l'on voit ici est la représentation hexadécimale de 3.14 au format 64-bit IEEE 754.
+
+Après l'exécution de \FDIV, \ST{0} contient le \gls{quotient}.
+
+\myindex{x86!\Instructions!FDIVP}
+
+À propos, il y a aussi l'instruction \FDIVP, qui divise \ST{1} par \ST{0}, prenant
+ces deux valeurs dans la pile et poussant le résultant.
+Si vous connaissez le langage Forth, vous pouvez comprendre rapidement
+que ceci est une machine à pile.
+
+L'instruction \FLD subséquente pousse la valeur de $b$ sur la pile.
+
+Après cela, le quotient est placé dans \ST{1}, et \ST{0} a la valeur de $b$.
+
+\myindex{x86!\Instructions!FMUL}
+
+L'instruction suivante effectue la multiplication: $b$ de \ST{0} est multiplié par
+la valeur en\\
+\GTT{\_\_real@4010666666666666} (le nombre 4.1 est là) et met le résultat
+dans le registre \ST{0}.
+
+\myindex{x86!\Instructions!FADDP}
+
+La dernière instruction \FADDP ajoute les deux valeurs au sommet de la pile, stockant
+le résultat dans \ST{1} et supprimant la valeur de \ST{0}, laissant ainsi le résultat
+au sommet de la pile, dans \ST{0}.
+
+La fonction doit renvoyer son résultat dans le registre \ST{0}, donc il n'y a aucune
+autre instruction après \FADDP, excepté l'épilogue de la fonction.
+
+\input{patterns/12_FPU/1_simple/olly_FR.tex}

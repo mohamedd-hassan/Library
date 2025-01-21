@@ -1,0 +1,32 @@
+﻿my_strlen:
+; 関数プロローグ
+	sub	sp, sp, #32
+; 最初の引数(str)が[sp,8]に保存される
+	str	x0, [sp,8]
+	ldr	x0, [sp,8]
+; "str"が"eos"変数にコピー
+	str	x0, [sp,24]
+	nop
+.L62:
+; eos++
+	ldr	x0, [sp,24]  ; load "eos" to X0
+	add	x1, x0, 1    ; X0をインクリメント
+	str	x1, [sp,24]  ; save X0 to "eos"
+; X0のアドレスのメモリからバイトをW0にロード
+	ldrb	w0, [x0]
+; ゼロか？(WZRは32ビットレジスタで常にゼロを含む)
+	cmp	w0, wzr
+; ゼロでなければジャンプ(一致しなければ分岐)
+	bne	.L62
+; ゼロバイトが見つかる。差分を計算
+; "eos"をX1にロード
+	ldr	x1, [sp,24]
+; "str"をX0にロード
+	ldr	x0, [sp,8]
+; 差分を計算
+	sub	x0, x1, x0
+; 結果をデクリメント
+	sub	w0, w0, #1
+; 関数エピローグ
+	add	sp, sp, 32
+	ret

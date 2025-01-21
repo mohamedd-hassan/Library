@@ -1,0 +1,81 @@
+\subsection{Autre optimisation de boucle}
+
+Si vous traitez tous les éléments d'un tableau qui est situé dans la mémoire globale,
+le compilateur peut l'optimiser.
+Par exemple, calculons la somme de tous les éléments du tableau de 128 \emph{int}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int a[128];
+
+int sum_of_a()
+{
+	int rt=0;
+	
+	for (int i=0; i<128; i++)
+		rt=rt+a[i];
+
+	return rt;
+};
+
+int main()
+{
+	// initialize
+	for (int i=0; i<128; i++)
+		a[i]=i;
+	
+	// calculate the sum
+	printf ("%d\n", sum_of_a());
+};
+\end{lstlisting}
+
+GCC 5.3.1 (x86) \Optimizing peut produire ceci (\IDA):
+
+\lstinputlisting[style=customasmx86]{advanced/500_loop_optimizations/tmp1.lst}
+
+Qu'est-ce que c'est que \TT{\_\_libc\_start\_main@@GLIBC\_2\_0} en \TT{0x080484C5}?
+Ceci est un label situé juste après la fin du tableau \TT{a[]}.
+Cette fonction peut être récrite comme ceci:
+
+\begin{lstlisting}[style=customc]
+int sum_of_a_v2()
+{
+	int *tmp=a;
+	int rt=0;
+	
+	do
+	{
+		rt=rt+(*tmp);
+		tmp++;
+	}
+	while (tmp<(a+128));
+
+	return rt;
+};
+\end{lstlisting}
+
+La première version a le compteur \emph{i}, et l'adresse de chaque élément du tableau
+est calculée à chaque itération.
+La seconde version est plus optimisée: le pointeur sur chaque élément du tableau
+est toujours prêt et est déplacé de 4 octets à chaque itération.
+Comment vérifier si la boucle est terminée?
+Il suffit de comparer le pointeur avec l'adresse juste après la fin du tableau, qui
+est dans notre cas l'adresse de la fonction \TT{\_\_libc\_start\_main()} importée de la Glibc 2.0.
+Parfois ce genre de code est perturbant, et ceci est une astuce d'optimisation très
+répandue, c'est pourquoi j'ai mis cet exemple.
+
+Ma seconde version est très proche de ce que fait GCC, et lorsque je la compile,
+le code est presque le même que dans la première version, mais les deux première
+instructions sont échangées:
+
+\lstinputlisting[style=customasmx86]{advanced/500_loop_optimizations/tmp2.lst}
+
+Inutile de dire que cette optimisation n'est possible que si le compilateur peut
+calculer l'adresse de la fin du tableau pendant la compilation.
+Ceci se produit si le tableau est global et sa taille fixée.
+
+Toutefois, si l'adresse du tableau est inconnue lors de la compilation, mais que la
+taille est fixée, l'adresse du label juste après la fin du tableau peut être calculée.
+% FIXME <!-- \ref{} to example -->
+

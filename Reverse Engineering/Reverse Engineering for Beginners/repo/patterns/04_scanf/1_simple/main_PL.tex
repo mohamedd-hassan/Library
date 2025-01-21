@@ -1,0 +1,39 @@
+\subsection{Prosty przykład}
+
+\lstinputlisting[style=customc]{patterns/04_scanf/1_simple/ex1.c}
+
+Używanie \scanf do interakcji z użytkownikiem nie jest dobrym pomysłem w dzisiejszych czasach, jednak mimo wszystko funkcja ta jest dobrym przykładem użycia wskaźnika na zmienną typu  \Tint.
+
+\subsubsection{O wskaźnikach}
+\myindex{\CLanguageElements!\Pointers}
+
+Wskaźniki są jednym z podstawowych pojęć informatycznych. Często przekazywanie dużej tablicy, struktury lub obiektu do innej funkcji jest pamięciożerne, podczas gdy przekazanie samego adresu jest znacznie tańsze.
+
+Kiedy chcesz wypisać tekst w konsoli, najprościej będzie wskazać jego adres w pamięci.
+
+W dodatku, jeśli wywoływana funkcja potrzebuje zmodyfikować cokolwiek w dużej tablicy lub strukturze danych przekazanej jako parametr a następnie ją zwrócić, kopiowanie tylu danych byłoby prawie absurdalne. Dlatego najprościej będzie przekazać adres tej tablicy/struktury do wywoływanej funkcji i wtedy zmodyfikować to, co wymaga modyfikacji.
+
+Wskaźnik w \CCpp---jest adresem pewnego miejsca w pamięci.
+
+\myindex{x86-64}
+W x86 adresy są reprezentowane przy pomocy 32-bitowych liczb (czyli 4 bajtowych), a w x86-64 jako liczby 64-bitowe (czyli 8 bajtowe). Przy okazji jest to powód dlaczego niektórych ludzi oburza przeskok na x86-64---wszystkie wskaźniki w architekturze x64 wymagają dwa razy więcej miejsca, włączając pamięć cache, która jest bardzo "kosztowna".
+
+% TODO ... а делать разные версии memcpy для разных типов - абсурд
+\myindex{\CStandardLibrary!memcpy()}
+Można pracować jedynie z nietypowanymi wskaźnikami, wymaga to jednak nieco wysiłku, np. użycia funkcji z biblioteki standardowej C \TT{memcpy()}, która kopiuje blok z jednego miejsca w pamięci do drugiego. \TT{memcpy()} jako argumenty przyjmuje 2 wskaźniki typu \TT{void*}, co umożliwia kopiowanie dowolnych typów danych. Typy danych nie są istotne, znaczenie mają tylko rozmiary bloków pamięci.
+
+Wskaźniki są także często używane kiedy funkcja potrzebuje zwrócić więcej niż jedną wartość (wrócę do tego później
+~(\myref{label_pointers})
+).
+
+Funkcja \emph{scanf()} jest takim przypadkiem. Poza tym, że funkcja \scanf zwraca liczbę wczytanych wartości, to musi jeszcze je jakoś przekazać.
+
+W \CCpp typ wskaźnika jest potrzebny tylko do sprawdzania typów podczas kompilacji.
+
+W skompilowanym kodzie nie ma żadnej informacji jakiego typu są wskaźniki.
+% TODO это сильно затрудняет декомпиляцию
+
+\input{patterns/04_scanf/1_simple/x86}
+\input{patterns/04_scanf/1_simple/x64}
+\input{patterns/04_scanf/1_simple/ARM}
+\input{patterns/04_scanf/1_simple/MIPS/main}

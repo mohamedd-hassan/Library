@@ -1,0 +1,104 @@
+\subsubsection{MSVC}
+
+MSVC 2010でコンパイルしてみましょう。
+
+\begin{lstlisting}
+cl 1.cpp /Fa1.asm
+\end{lstlisting}
+
+(\TT{/Fa} オプションは、アセンブリリストファイルを生成するようにコンパイラに指示します)
+
+\begin{lstlisting}[caption=MSVC 2010,style=customasmx86]
+CONST	SEGMENT
+$SG3830	DB	'hello, world', 0AH, 00H
+CONST	ENDS
+PUBLIC	_main
+EXTRN	_printf:PROC
+; Function compile flags: /Odtp
+_TEXT	SEGMENT
+_main	PROC
+	push	ebp
+	mov	ebp, esp
+	push	OFFSET $SG3830
+	call	_printf
+	add	esp, 4
+	xor	eax, eax
+	pop	ebp
+	ret	0
+_main	ENDP
+_TEXT	ENDS
+\end{lstlisting}
+
+MSVCは、Intel構文でアセンブリリストを生成します。 Intel構文とAT\&T構文の違いについては、\myref{ATT_syntax}で説明します。
+
+コンパイラは、\TT{1.exe}にリンクされる\TT{1.obj}というファイルを生成しました。 
+私たちの場合、ファイルには\TT{CONST}（データ定数用）と\TT{\_TEXT}（コード用）の2つのセグメントが含まれています。
+
+\myindex{\CLanguageElements!const}
+\label{string_is_const_char}
+C/C++の文字列\TT{hello, world}には、\TT{const char[]}\InSqBrackets{\TCPPPL p176, 7.3.2}型がありますが、独自の名前はありません。
+コンパイラは何らかの形で文字列を処理する必要があるため、内部名\TT{\$SG3830}を定義します。
+
+そのため、この例は次のように書き換えられます。
+
+\lstinputlisting[style=customc]{patterns/01_helloworld/hw_2.c}
+
+アセンブリリストに戻りましょう。わかるように、文字列は \CCpp 文字列の標準であるNULLバイトで終了します。 \CCpp 文字列の詳細は： \myref{C_strings}
+
+\TT{\_TEXT}というコードセグメントでは、\main{} 関数が1つしかありません。関数 \main は、プロローグコードで始まり、エピローグコードで終わります（ほぼすべての関数のように）
+\footnote{プロローグとエピローグ関数についてのセクションでは、詳細を見ていきます~(\myref{sec:prologepilog})}
+
+関数のプロローグの後に、\printf{} 関数の呼び出しがあります。
+\INS{CALL \_printf}.
+\myindex{x86!\Instructions!PUSH}
+呼び出しの前に、\PUSH 命令の助けを借りて、挨拶を含む文字列アドレス（またはそのポインタ）がスタックに置かれます。
+
+\printf 関数が \main 関数に制御を返すと、文字列アドレス（またはそのポインタ）はまだスタック上にあります。もはや必要がないので、スタックポインタ（ESPレジスタ）を修正する必要があります。
+
+\myindex{x86!\Instructions!ADD}
+\INS{ADD ESP, 4}は \ESP レジスタ値に4を加算することを意味します。
+
+なぜ4？これは32ビットプログラムなので、スタックを通過するアドレスには正確に4バイトが必要です。 x64コードの場合は8バイト必要です。
+\INS{ADD ESP, 4} は \INS{POP register} と事実上同等ですが、レジスタを使用しません\footnote{CPU flags, however, are modified}
+
+\myindex{Intel C++}
+\myindex{\oracle}
+\myindex{x86!\Instructions!POP}
+
+同じ目的のために、インテルC++コンパイラのようなコンパイラの中には、\ADD の代わりに\TT{POP ECX}を発行するものもある
+（例えば、インテルC++コンパイラでコンパイルされているので、このようなパターンは \oracle{} コードで見ることができる）。この命令はほとんど同じ効果を持ちますが、\ECX レジスタの内容は上書きされます。インテルC++コンパイラは、この命令命令コードが\TT{ADD ESP, x}（\TT{POP}の場合は1バイト、\TT{ADD}の場合は3バイト）よりも短いため、\TT{POP ECX}を使用すると思われます。
+
+\oracle{} から \ADD の代わりに \POP を使用する例を次に示します。
+
+\begin{lstlisting}[caption=\oracle 10.2 Linux (app.o file),style=customasmx86]
+.text:0800029A                 push    ebx
+.text:0800029B                 call    qksfroChild
+.text:080002A0                 pop     ecx
+\end{lstlisting}
+
+% TBT
+% However, MSVC can do the same.
+
+%\begin{lstlisting}[caption=MineSweeper from Windows 7 32-bit]
+%.text:0102106F                 push    0
+%.text:01021071                 call    ds:time
+%.text:01021077                 pop     ecx
+%\end{lstlisting}
+
+%Read more about the stack in section
+% ~(\myref{sec:stack}).
+\myindex{\CLanguageElements!return}
+\printf を呼び出した後、元の \CCpp コードには、\main 関数の結果として\TT{return 0}というステートメントが含まれています。
+
+\myindex{x86!\Instructions!XOR}
+生成されたコードでは、これは命令\INS{XOR EAX, EAX}によって実装されます。
+
+\myindex{x86!\Instructions!MOV}
+
+\XOR は実際には\q{eXclusive OR}\footnote{\href{http://en.wikipedia.org/wiki/Exclusive_or}{Wikipedia}}ですが、コンパイラでは\INS{MOV EAX, 0}の代わりに使用されることがよくあります。 もう少し短いオペコード（ \MOV の場合は5に対して \XOR の場合は2バイト）であるからです。
+
+\myindex{x86!\Instructions!SUB}
+一部のコンパイラは\INS{SUB EAX, EAX}を出力します。これは、 \EAX の値を \EAX \emph{の値から} \emph{差し引くこと}を意味します。それはどんな場合でもゼロになります。
+
+\myindex{x86!\Instructions!RET}
+最後の命令RETは、\gls{caller}に制御を返します。 通常、これは \CCpp \ac{CRT}コードであり、これは\ac{OS}に制御を戻します。

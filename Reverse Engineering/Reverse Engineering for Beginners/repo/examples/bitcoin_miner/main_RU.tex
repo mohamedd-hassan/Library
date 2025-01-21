@@ -1,0 +1,285 @@
+\mysection{Разгон майнера биткоинов Cointerra}
+\myindex{Bitcoin}
+\myindex{BeagleBone}
+
+Был такой майнер биткоинов Cointerra, выглядящий так:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/bitcoin_miner/board.jpg}
+\caption{Board}
+\end{figure}
+
+И была также (возможно утекшая) утилита\footnote{Можно скачать здесь: \url{\RepoURL/examples/bitcoin_miner/files/cointool-overclock}}
+которая могла выставлять тактовую частоту платы.
+Она запускается на дополнительной плате BeagleBone на ARM с Linux (маленькая плата внизу фотографии).
+
+И у автора (этих строк) однажды спросили, можно ли хакнуть эту утилиту и посмотреть, какие частоты можно выставлять, и какие нет.
+И можно ли твикнуть её?
+
+Утилиту нужно запускать так: \TT{./cointool-overclock 0 0 900}, где 900 это частота в МГц.
+Если частота слишком большая, утилита выведет ошибку \q{Error with arguments} и закончит работу.
+
+Вот фрагмент кода вокруг ссылки на текстовую строку \q{Error with arguments}:
+
+\begin{lstlisting}[style=customasmARM]
+
+...
+
+.text:0000ABC4         STR      R3, [R11,#var_28]
+.text:0000ABC8         MOV      R3, #optind
+.text:0000ABD0         LDR      R3, [R3]
+.text:0000ABD4         ADD      R3, R3, #1
+.text:0000ABD8         MOV      R3, R3,LSL#2
+.text:0000ABDC         LDR      R2, [R11,#argv]
+.text:0000ABE0         ADD      R3, R2, R3
+.text:0000ABE4         LDR      R3, [R3]
+.text:0000ABE8         MOV      R0, R3  ; nptr
+.text:0000ABEC         MOV      R1, #0  ; endptr
+.text:0000ABF0         MOV      R2, #0  ; base
+.text:0000ABF4         BL       strtoll
+.text:0000ABF8         MOV      R2, R0
+.text:0000ABFC         MOV      R3, R1
+.text:0000AC00         MOV      R3, R2
+.text:0000AC04         STR      R3, [R11,#var_2C]
+.text:0000AC08         MOV      R3, #optind
+.text:0000AC10         LDR      R3, [R3]
+.text:0000AC14         ADD      R3, R3, #2
+.text:0000AC18         MOV      R3, R3,LSL#2
+.text:0000AC1C         LDR      R2, [R11,#argv]
+.text:0000AC20         ADD      R3, R2, R3
+.text:0000AC24         LDR      R3, [R3]
+.text:0000AC28         MOV      R0, R3  ; nptr
+.text:0000AC2C         MOV      R1, #0  ; endptr
+.text:0000AC30         MOV      R2, #0  ; base
+.text:0000AC34         BL       strtoll
+.text:0000AC38         MOV      R2, R0
+.text:0000AC3C         MOV      R3, R1
+.text:0000AC40         MOV      R3, R2
+.text:0000AC44         STR      R3, [R11,#third_argument]
+.text:0000AC48         LDR      R3, [R11,#var_28]
+.text:0000AC4C         CMP      R3, #0
+.text:0000AC50         BLT      errors_with_arguments
+.text:0000AC54         LDR      R3, [R11,#var_28]
+.text:0000AC58         CMP      R3, #1
+.text:0000AC5C         BGT      errors_with_arguments
+.text:0000AC60         LDR      R3, [R11,#var_2C]
+.text:0000AC64         CMP      R3, #0
+.text:0000AC68         BLT      errors_with_arguments
+.text:0000AC6C         LDR      R3, [R11,#var_2C]
+.text:0000AC70         CMP      R3, #3
+.text:0000AC74         BGT      errors_with_arguments
+.text:0000AC78         LDR      R3, [R11,#third_argument]
+.text:0000AC7C         CMP      R3, #0x31
+.text:0000AC80         BLE      errors_with_arguments
+.text:0000AC84         LDR      R2, [R11,#third_argument]
+.text:0000AC88         MOV      R3, #950
+.text:0000AC8C         CMP      R2, R3
+.text:0000AC90         BGT      errors_with_arguments
+.text:0000AC94         LDR      R2, [R11,#third_argument]
+.text:0000AC98         MOV      R3, #0x51EB851F
+.text:0000ACA0         SMULL    R1, R3, R3, R2
+.text:0000ACA4         MOV      R1, R3,ASR#4
+.text:0000ACA8         MOV      R3, R2,ASR#31
+.text:0000ACAC         RSB      R3, R3, R1
+.text:0000ACB0         MOV      R1, #50
+.text:0000ACB4         MUL      R3, R1, R3
+.text:0000ACB8         RSB      R3, R3, R2
+.text:0000ACBC         CMP      R3, #0
+.text:0000ACC0         BEQ      loc_ACEC
+.text:0000ACC4
+.text:0000ACC4 errors_with_arguments
+.text:0000ACC4                                         
+.text:0000ACC4         LDR      R3, [R11,#argv]
+.text:0000ACC8         LDR      R3, [R3]
+.text:0000ACCC         MOV      R0, R3  ; path
+.text:0000ACD0         BL       __xpg_basename
+.text:0000ACD4         MOV      R3, R0
+.text:0000ACD8         MOV      R0, #aSErrorWithArgu ; format
+.text:0000ACE0         MOV      R1, R3
+.text:0000ACE4         BL       printf
+.text:0000ACE8         B        loc_ADD4
+.text:0000ACEC ; ------------------------------------------------------------
+.text:0000ACEC
+.text:0000ACEC loc_ACEC                 ; CODE XREF: main+66C
+.text:0000ACEC         LDR      R2, [R11,#third_argument]
+.text:0000ACF0         MOV      R3, #499
+.text:0000ACF4         CMP      R2, R3
+.text:0000ACF8         BGT      loc_AD08
+.text:0000ACFC         MOV      R3, #0x64
+.text:0000AD00         STR      R3, [R11,#unk_constant]
+.text:0000AD04         B        jump_to_write_power
+.text:0000AD08 ; ------------------------------------------------------------
+.text:0000AD08
+.text:0000AD08 loc_AD08                 ; CODE XREF: main+6A4
+.text:0000AD08         LDR      R2, [R11,#third_argument]
+.text:0000AD0C         MOV      R3, #799
+.text:0000AD10         CMP      R2, R3
+.text:0000AD14         BGT      loc_AD24
+.text:0000AD18         MOV      R3, #0x5F
+.text:0000AD1C         STR      R3, [R11,#unk_constant]
+.text:0000AD20         B        jump_to_write_power
+.text:0000AD24 ; ------------------------------------------------------------
+.text:0000AD24
+.text:0000AD24 loc_AD24                 ; CODE XREF: main+6C0
+.text:0000AD24         LDR      R2, [R11,#third_argument]
+.text:0000AD28         MOV      R3, #899
+.text:0000AD2C         CMP      R2, R3
+.text:0000AD30         BGT      loc_AD40
+.text:0000AD34         MOV      R3, #0x5A
+.text:0000AD38         STR      R3, [R11,#unk_constant]
+.text:0000AD3C         B        jump_to_write_power
+.text:0000AD40 ; ------------------------------------------------------------
+.text:0000AD40
+.text:0000AD40 loc_AD40                 ; CODE XREF: main+6DC
+.text:0000AD40         LDR      R2, [R11,#third_argument]
+.text:0000AD44         MOV      R3, #999
+.text:0000AD48         CMP      R2, R3
+.text:0000AD4C         BGT      loc_AD5C
+.text:0000AD50         MOV      R3, #0x55
+.text:0000AD54         STR      R3, [R11,#unk_constant]
+.text:0000AD58         B        jump_to_write_power
+.text:0000AD5C ; ------------------------------------------------------------
+.text:0000AD5C
+.text:0000AD5C loc_AD5C                 ; CODE XREF: main+6F8
+.text:0000AD5C         LDR      R2, [R11,#third_argument]
+.text:0000AD60         MOV      R3, #1099
+.text:0000AD64         CMP      R2, R3
+.text:0000AD68         BGT      jump_to_write_power
+.text:0000AD6C         MOV      R3, #0x50
+.text:0000AD70         STR      R3, [R11,#unk_constant]
+.text:0000AD74
+.text:0000AD74 jump_to_write_power                     ; CODE XREF: main+6B0
+.text:0000AD74                                         ; main+6CC ...
+.text:0000AD74         LDR      R3, [R11,#var_28]
+.text:0000AD78         UXTB     R1, R3
+.text:0000AD7C         LDR      R3, [R11,#var_2C]
+.text:0000AD80         UXTB     R2, R3
+.text:0000AD84         LDR      R3, [R11,#unk_constant]
+.text:0000AD88         UXTB     R3, R3
+.text:0000AD8C         LDR      R0, [R11,#third_argument]
+.text:0000AD90         UXTH     R0, R0
+.text:0000AD94         STR      R0, [SP,#0x44+var_44]
+.text:0000AD98         LDR      R0, [R11,#var_24]
+.text:0000AD9C         BL       write_power
+.text:0000ADA0         LDR      R0, [R11,#var_24]
+.text:0000ADA4         MOV      R1, #0x5A
+.text:0000ADA8         BL       read_loop
+.text:0000ADAC         B        loc_ADD4
+
+...
+
+.rodata:0000B378 aSErrorWithArgu DCB "%s: Error with arguments",0xA,0 ; DATA XREF: main+684
+
+...
+
+\end{lstlisting}
+
+Имена ф-ций присутствовали в отладочной информации в оригинальном исполняемом файле,
+такие как \TT{write\_power}, \TT{read\_loop}.
+Но имена меткам внутри ф-ции дал я.
+
+\myindex{UNIX!getopt}
+\myindex{strtoll()}
+Имя \TT{optind} звучит знакомо. Это библиотека \emph{getopt} из *NIX предназначенная для парсинга командной строки ---
+и это то, что внутри и происходит.
+Затем, третий аргумент (где передается значение частоты) конвертируется из строку в число используя вызов ф-ции \emph{strtoll()}.
+
+Значение затем сравнивается с разными константами.
+На 0xACEC есть проверка, меньше ли оно или равно 499, и если это так, то 0x64 будет передано в ф-цию
+\TT{write\_power()} (которая посылает команду через USB используя \TT{send\_msg()}).
+Если значение больше 499, происходит переход на 0xAD08.
+
+На 0xAD08 есть проверка, меньше ли оно или равно 799. Если это так, то 0x5F передается в ф-цию \TT{write\_power()}.
+
+Есть еще проверки: на 899 на 0xAD24, на 0x999 на 0xAD40, и наконец, на 1099 на 0xAD5C.
+Если входная частота меньше или равна 1099, 0x50 (на 0xAD6C) будет передано в ф-цию \TT{write\_power()}.
+И тут что-то вроде баги.
+Если значение все еще больше 1099, само значение будет передано в ф-цию \TT{write\_power()}.
+Но с другой стороны это не бага, потому что мы не можем попасть сюда: значение в начале проверяется с 950 на 0xAC88,
+и если оно больше, выводится сообщение об ошибке и утилита заканчивает работу.
+
+Вот таблица между частотами в МГц и значениями передаваемыми в ф-цию \TT{write\_power()}:
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor МГц & \HeaderColor шестнадцатеричное представление & \HeaderColor десятичное \\
+\hline
+499MHz & 0x64 & 100 \\
+\hline
+799MHz & 0x5f & 95 \\
+\hline
+899MHz & 0x5a & 90 \\
+\hline
+999MHz & 0x55 & 85 \\
+\hline
+1099MHz & 0x50 & 80 \\
+\hline
+\end{longtable}
+\end{center}
+
+Как видно, значение передаваемое в плату постепенно уменьшается с ростом частоты.
+
+Видно что значение в 950МГц это жесткий предел, по крайней мере в этой утилите. Можно ли её обмануть?
+
+Вернемся к этому фрагменту кода:
+
+\begin{lstlisting}[style=customasmARM]
+.text:0000AC84      LDR     R2, [R11,#third_argument]
+.text:0000AC88      MOV     R3, #950
+.text:0000AC8C      CMP     R2, R3
+.text:0000AC90      BGT     errors_with_arguments ; Я пропатчил здесь на 00 00 00 00
+\end{lstlisting}
+
+Нам нужно как-то запретить инструкцию перехода \INS{BGT} на 0xAC90. И это ARM в режиме ARM, потому что, как мы видим,
+все адреса увеличиваются на 4, т.е., длина каждой инструкции это 4 байта.
+Инструкция \TT{NOP} (нет операции) в режиме ARM это просто 4 нулевых байта: \TT{00 00 00 00}.
+Так что, записывая 4 нуля по адресу 0xAC90 (или по физическому смещению в файле: 0x2C90) мы можем выключить
+эту проверку.
+
+Теперь можно выставлять частоты вплоть до 1050МГц. И даже больше, но из-за ошибки, если входное значение больше 1099,
+значение в МГц, \emph{как есть}, будет передано в плату, что неправильно.
+
+Дальше я не разбирался, но если бы продолжил, я бы уменьшал значение передаваемое в ф-цию \TT{write\_power()}.
+
+Теперь страшный фрагмент кода, который я в начале пропустил:
+
+\lstinputlisting[style=customasmARM]{examples/bitcoin_miner/tmp1.lst}
+
+Здесь используется деление через умножение, и константа 0x51EB851F.
+Я написал для себя простой программистский калькулятор\footnote{\ProgCalcURL}
+И там есть возможность вычислять обратное число по модулю.
+
+\begin{lstlisting}
+modinv32(0x51EB851F)
+Warning, result is not integer: 3.125000
+(unsigned) dec: 3 hex: 0x3 bin: 11
+\end{lstlisting}
+
+Это значит что инструкция \INS{SMULL} на 0xACA0 просто делит 3-й аргумент на 3.125.
+На самом деле, все что делает ф-ция \TT{modinv32()} в моем калькуляторе, это:
+
+\[
+\frac{1}{\frac{input}{2^{32}}} = \frac{2^{32}}{input}
+\]
+
+Потом там есть дополнительные сдвиги и теперь мы видим что 3-й аргумент просто делится на 50.
+И затем умножается снова на 50.
+Зачем?
+Это простейшая проверка, можно ли делить входное значение на 50 без остатка.
+Если значение этого выражения ненулевое, $x$ не может быть разделено на 50 без остатка:
+
+\[
+x-((\frac{x}{50}) \cdot 50)
+\]
+
+На самом деле, это простой способ вычисления остатка от деления.
+
+И затем, если остаток ненулевой, выводится сообщение об ошибке.
+Так что эта утилита берет значения частотв вроде 850, 900, 950, 1000, итд, но не 855 или 911.
+
+Вот и всё! Если вы делаете что-то такое, имейте ввиду, что это может испортить вашу плату, как и в случае разгона
+чипов вроде \ac{CPU}, \ac{GPU}, итд.
+Если у вас есть плата Cointerra, делайте всё это на свой собственный риск!
+

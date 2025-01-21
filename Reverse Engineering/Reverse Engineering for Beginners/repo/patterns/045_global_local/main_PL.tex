@@ -1,0 +1,8 @@
+\mysection{Warto zauważyć: zmienne globalne vs zmienne lokalne }
+
+Teraz już wiesz, że zmienne globalne są wypełniane zerami przez \ac{OS} przy starcie programu
+(\myref{BSSClearedByCStd}, \InSqBrackets{\CNineNineStd 6.7.8p10}), a zmienne lokalne nie (\myref{noise_in_stack}).
+
+Czasami możesz zapomnieć zainicjalizować zmienną globalną, a program polega na tym, że jej wartość na starcie wynosi 0.
+Następnie zmieniasz program i przenosisz zmienną do funkcji, zmieniając ją na lokalną.
+Jednak tym razem jej wartość nie będzie wynosiła 0, co może prowadzić do nieprzyjemnych błędów.

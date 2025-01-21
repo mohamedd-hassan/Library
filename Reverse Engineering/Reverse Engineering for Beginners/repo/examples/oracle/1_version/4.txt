@@ -1,0 +1,9 @@
+SQL> select * from V$FIXED_VIEW_DEFINITION where view_name='GV$VERSION';
+
+VIEW_NAME
+------------------------------
+VIEW_DEFINITION
+------------------------------
+
+GV$VERSION
+select inst_id, banner from x$version

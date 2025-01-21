@@ -1,0 +1,58 @@
+﻿\subsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/145_LCG/MIPS_O3_IDA_JA.lst}
+
+おっと、ここでは1つの定数（0x3C6EF35Fまたは1013904223）しか表示されません。 
+もう1つはどこでしょうか（1664525）？
+
+1664525による乗算は、シフトと加算だけを使用して実行されるようです！ 
+この仮定を確認してみましょう：
+
+\lstinputlisting[style=customc]{patterns/145_LCG/test.c}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/145_LCG/test_O3_MIPS.lst}
+
+本当に！
+
+\subsubsection{MIPSの再配置}
+
+また、メモリやストアから実際にメモリにロードする操作がどのように機能するかにも焦点を当てます。
+
+ここのリストはIDAによって作成され、IDAはいくつかの詳細を隠しています。
+
+objdumpを2回実行します：逆アセンブルされたリストと再配置リストを取得します。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (objdump)]{patterns/145_LCG/MIPS_O3_objdump.txt}
+
+\TT{my\_srand()}関数の2つの再配置を考えてみましょう。
+
+最初のアドレス0は\TT{R\_MIPS\_HI16}のタイプを持ち、
+アドレス8の2番目のアドレスは\TT{R\_MIPS\_LO16}のタイプです。
+
+つまり、.bssセグメントの先頭のアドレスは、0（アドレスの上位部分）および
+8（アドレスの下位部分）のアドレスに書き込まれることを意味します。
+
+\TT{rand\_state}変数は、.bssセグメントの先頭にあります。
+
+したがって、命令 \LUI と \SW のオペランドにはゼロがあります。何もまだ存在しないからです。
+コンパイラは何をそこに書き込んだらいいかわかりません。
+
+リンカがこれを修正し、アドレスの上位部分が \LUI のオペランドに書き込まれ、
+アドレスの下位部分が \SW のオペランドに書き込まれます。
+
+\SW はアドレスの下位部分とレジスタ \$V0 にあるものを合計します（上位部分はそこにあります）。
+
+これは my\_rand() 関数の場合と同じです。 R\_MIPS\_HI16 再配置は、リンカに.bssセグメントアドレスの上位部分を 
+\LUI 命令に書き込むように指示します。
+
+したがって、rand\_state 変数アドレスの上位部分はレジスタ \$V1 に存在します。
+
+アドレス0x10にある \LW 命令は、上位部分と下位部分を合計し、rand\_state
+変数の値を \$V0 にロードします。
+
+アドレス0x54にある \SW 命令は、加算を再度行い、新しい値をrand\_stateグローバル変数に
+格納します。
+
+IDAは、ロード中に再配置を処理するため、これらの詳細は隠していますが、それらを念頭に置いておく必要があります。
+
+% TODO add example of compiled binary, GDB example, etc...

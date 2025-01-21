@@ -1,0 +1,41 @@
+\subsection{\RU{Функции работы со строками и памятью}\EN{Strings and memory functions}\FR{Fonctions de chaînes et de mémoire}}
+
+\RU{Другая очень частая оптимизация это вставка кода строковых функций таких как}
+\EN{Another very common automatic optimization tactic is the inlining of string functions like}
+\FR{Une autre tactique courante d'optimisation automatique est la mise en ligne des fonctions de chaînes comme}
+\emph{strcpy()}, \emph{strcmp()}, \emph{strlen()}, \emph{memset()}, \emph{memcmp()}, \emph{memcpy()}, \RU{итд}\EN{etc.}\FR{etc.}.
+
+\RU{Иногда это быстрее, чем вызывать отдельную функцию.}\EN{Sometimes it's faster than to call a separate function.}%
+\FR{Parfois, c'est plus rapide que d'appeler une fonction séparée.}
+
+\RU{Это очень часто встречающиеся шаблонные вставки, которые желательно распознавать 
+reverse engineer-ам \q{на глаз}.}
+\EN{These are very frequent patterns and it is highly advisable for reverse engineers 
+to learn to detect automatically.}
+\FR{Ce sont des patterns très fréquents et il est hautement recommandé aux rétro-ingénieurs
+d'apprendre à les détecter automatiquement.}
+
+% subsections
+\input{\CURPATH/str_mem/strcmp}
+\input{\CURPATH/str_mem/strlen}
+\input{\CURPATH/str_mem/strcpy}
+
+\EN{\input{\CURPATH/str_mem/memset_EN}}
+\RU{\input{\CURPATH/str_mem/memset_RU}}
+\FR{\input{\CURPATH/str_mem/memset_FR}}
+
+\EN{\input{\CURPATH/str_mem/memcpy_EN}}
+\RU{\input{\CURPATH/str_mem/memcpy_RU}}
+\FR{\input{\CURPATH/str_mem/memcpy_FR}}
+
+\input{\CURPATH/str_mem/memcmp}
+\input{\CURPATH/str_mem/strcat}
+
+\subsubsection{\RU{Скрипт для IDA}\EN{IDA script}\FR{Script IDA}}
+
+\myindex{IDA}
+\RU{Есть также небольшой скрипт для \IDA для поиска и сворачивания таких очень часто попадающихся inline-функций:}
+\EN{There is also a small \IDA script for searching and folding such very frequently seen pieces of inline code:}
+\FR{Il y a aussi un petit script \IDA pour chercher et suivre de tels morceaux de
+code inline, que l'on rencontre fréquemment:}
+\par \href{\YurichevIDAIDCScripts}{GitHub}.

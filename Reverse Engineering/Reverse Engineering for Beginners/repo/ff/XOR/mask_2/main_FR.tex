@@ -1,0 +1,391 @@
+% TODO translate
+\subsection{Chiffrement simple utilisant un masque XOR, cas II}
+\label{XOR_mask_2}
+
+J'ai un autre fichier chiffré, qui est clairement chiffré avec quelque chose de simple,
+comme un XOR:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/mask_2/cipher.png}
+\caption{Fichier chiffré dans Midnight Commander}
+\end{figure}
+
+Le fichier chiffré peut être téléchargé
+\href{\RepoURL/ff/XOR/mask_2/files/cipher.txt}{ici}.
+
+L'utilitaire Linux \emph{ent} indique environ $\textasciitilde{}7.5$ bits par octet,
+et ceci est un haut niveau d'entropie (\myref{entropy}), proche de celui de fichiers
+compressés ou chiffrés correctement.
+Mais encore, nous distinguons clairement quelques patterns, il y a quelques blocs
+avec une taille de 17 octets, et nous pouvons voir des sortes d'échelles, se décalant
+d'un octet à chaque ligne de 16 octets.
+
+On sait aussi que le texte clair est en anglais.
+
+Maintenant, supposons que ce morceau de texte est chiffré par un simple XOR avec une
+clef de 17 octets.
+
+J'ai essayé de repérer des blocs de 17 octets se répétant avec Mathematica, comme
+je l'ai fait dans l'exemple précédant (\myref{XOR_mask_1}):
+
+\begin{lstlisting}[caption=Mathematica,style=custommath]
+In[]:=input = BinaryReadList["/home/dennis/tmp/cipher.txt"];
+
+In[]:=blocks = Partition[input, 17];
+
+In[]:=Sort[Tally[blocks], #1[[2]] > #2[[2]] &]
+
+Out[]:={{{248,128,88,63,58,175,159,154,232,226,161,50,97,127,3,217,80},1},
+{{226,207,67,60,42,226,219,150,246,163,166,56,97,101,18,144,82},1},
+{{228,128,79,49,59,250,137,154,165,236,169,118,53,122,31,217,65},1},
+{{252,217,1,39,39,238,143,223,241,235,170,91,75,119,2,152,82},1},
+{{244,204,88,112,59,234,151,147,165,238,170,118,49,126,27,144,95},1},
+{{241,196,78,112,54,224,142,223,242,236,186,58,37,50,17,144,95},1},
+{{176,201,71,112,56,230,143,151,234,246,187,118,44,125,8,156,17},1},
+...
+{{255,206,82,112,56,231,158,145,165,235,170,118,54,115,9,217,68},1},
+{{249,206,71,34,42,254,142,154,235,247,239,57,34,113,27,138,88},1},
+{{157,170,84,32,32,225,219,139,237,236,188,51,97,124,21,141,17},1},
+{{248,197,1,61,32,253,149,150,235,228,188,122,97,97,27,143,84},1},
+{{252,217,1,38,42,253,130,223,233,226,187,51,97,123,20,217,69},1},
+{{245,211,13,112,56,231,148,223,242,226,188,118,52,97,15,152,93},1},
+{{221,210,15,112,28,231,158,141,233,236,172,61,97,90,21,149,92},1}}
+\end{lstlisting}
+
+Pas de chance, chaque bloc de 17 octets est unique dans le fichier, et n'apparaît
+donc qu'une fois.
+Peut-être n'y a-t-il pas de zone de 17 octets à zéro, ou de zone contenant seulement
+des espaces.
+C'est possible toutefois: de telles séries d'espace peuvent être absentes dans des
+textes composés rigoureusement.
+
+La première idée est d'essayer toutes les clefs de 17 octets possible et trouver
+celles qui donnent un résultat lisible après déchiffrement.
+La force brute n'est pas une option, car il y a $256^{17}$ clefs possible ($\textasciitilde{}10^{40}$),
+c'est beaucoup trop.
+Mais il y a une bonne nouvelle: qui a dit que nous devons tester la clef de 17 octets
+en entier, pourquoi ne pas teste chaque octet séparémment?
+C'est possible en effet.
+
+Maintenant, l'algorithme est:
+
+\begin{itemize}
+\item essayer chacun des 25 octets pour le premier octet de la clef;
+\item déchiffrer le 1er octet de chaque bloc de 17 octets du fichier;
+\item est-ce que tous les octets déchiffrés sont imprimable? garder un \oe{}il dessus;
+\item faire de même pour chacun des 17 octets de la clef.
+\end{itemize}
+
+J'ai écrit le script Python suivant pour essayer cette idée:
+
+\begin{lstlisting}[caption=Python script,style=custompy]
+each_Nth_byte=[""]*KEY_LEN
+
+content=read_file(sys.argv[1])
+# split input by 17-byte chunks:
+all_chunks=chunks(content, KEY_LEN)
+for c in all_chunks:
+    for i in range(KEY_LEN):
+        each_Nth_byte[i]=each_Nth_byte[i] + c[i]
+
+# try each byte of key
+for N in range(KEY_LEN):
+    print "N=", N
+    possible_keys=[]
+    for i in range(256):
+        tmp_key=chr(i)*len(each_Nth_byte[N])
+        tmp=xor_strings(tmp_key,each_Nth_byte[N])
+        # are all characters in tmp[] are printable?
+        if is_string_printable(tmp)==False:
+	    continue
+	possible_keys.append(i)
+    print possible_keys, "len=", len(possible_keys)
+\end{lstlisting}
+
+(La version complète du code source est
+ \href{\RepoURL/ff/XOR/mask_2/files/decrypt2.py}{ici}.)
+
+Voici sa sortie:
+
+\begin{lstlisting}
+N= 0
+[144, 145, 151] len= 3
+N= 1
+[160, 161] len= 2
+N= 2
+[32, 33, 38] len= 3
+N= 3
+[80, 81, 87] len= 3
+N= 4
+[78, 79] len= 2
+N= 5
+[142, 143] len= 2
+N= 6
+[250, 251] len= 2
+N= 7
+[254, 255] len= 2
+N= 8
+[130, 132, 133] len= 3
+N= 9
+[130, 131] len= 2
+N= 10
+[206, 207] len= 2
+N= 11
+[81, 86, 87] len= 3
+N= 12
+[64, 65] len= 2
+N= 13
+[18, 19] len= 2
+N= 14
+[122, 123] len= 2
+N= 15
+[248, 249] len= 2
+N= 16
+[48, 49] len= 2
+\end{lstlisting}
+
+Donc, il y a 2 ou 3 octets possible pour chaque octet de l clef de 17 octets.
+C'est mieux que 256 octets pour chaque octet, mais encore beaucoup trop.
+Il y a environ 1 million de clefs possible:
+
+\begin{lstlisting}[caption=Mathematica,style=custommath]
+In[]:= 3*2*3*3*2*2*2*2*3*2*2*3*2*2*2*2*2
+Out[]= 995328
+\end{lstlisting}
+
+Il est possible de les vérifier toutes, mais alors nous devons vérifier visuellement
+si le texte déchiffré à l'air d'un texte en anglais.
+
+Prenons en compte le fait que nous avons à faire avec 1) un langage naturel 2) de l'anglais.
+Les langages naturels ont quelques caractéristiques statistiques importantes.
+Tout d'abord, le ponctuation et la longueur des mots.
+Quelle est la longueur moyenne des mots en anglais?
+Comptons les espaces dans quelques textes bien connus en anglais avec Mathematica.
+
+Voici le fichier texte de \href{http://www.gutenberg.org/cache/epub/100/pg100.txt}{\q{The Complete Works of William Shakespeare}}
+provenant de la bibliothèque Gutenberg.
+
+\begin{lstlisting}[caption=Mathematica,style=custommath]
+In[]:= input = BinaryReadList["/home/dennis/tmp/pg100.txt"];
+
+In[]:= Tally[input]
+Out[]= {{239, 1}, {187, 1}, {191, 1}, {84, 39878}, {104, 
+  218875}, {101, 406157}, {32, 1285884}, {80, 12038}, {114, 
+  209907}, {111, 282560}, {106, 2788}, {99, 67194}, {116, 
+  291243}, {71, 11261}, {117, 115225}, {110, 216805}, {98, 
+  46768}, {103, 57328}, {69, 42703}, {66, 15450}, {107, 29345}, {102, 
+  69103}, {67, 21526}, {109, 95890}, {112, 46849}, {108, 146532}, {87,
+   16508}, {115, 215605}, {105, 199130}, {97, 245509}, {83, 
+  34082}, {44, 83315}, {121, 85549}, {13, 124787}, {10, 124787}, {119,
+   73155}, {100, 134216}, {118, 34077}, {46, 78216}, {89, 9128}, {45, 
+  8150}, {76, 23919}, {42, 73}, {79, 33268}, {82, 29040}, {73, 
+  55893}, {72, 18486}, {68, 15726}, {58, 1843}, {65, 44560}, {49, 
+  982}, {50, 373}, {48, 325}, {91, 2076}, {35, 3}, {93, 2068}, {74, 
+  2071}, {57, 966}, {52, 107}, {70, 11770}, {85, 14169}, {78, 
+  27393}, {75, 6206}, {77, 15887}, {120, 4681}, {33, 8840}, {60, 
+  468}, {86, 3587}, {51, 343}, {88, 608}, {40, 643}, {41, 644}, {62, 
+  440}, {39, 31077}, {34, 488}, {59, 17199}, {126, 1}, {95, 71}, {113,
+   2414}, {81, 1179}, {63, 10476}, {47, 48}, {55, 45}, {54, 73}, {64, 
+  3}, {53, 94}, {56, 47}, {122, 1098}, {90, 532}, {124, 33}, {38, 
+  21}, {96, 1}, {125, 2}, {37, 1}, {36, 2}}
+
+In[]:= Length[input]/1285884 // N
+Out[]= 4.34712
+\end{lstlisting}
+
+Il y a 1285884 espaces dans l'ensemble du fichier, et la fréquence de l'occurrence
+des espaces est de 1 par $\textasciitilde{}4.3$ caractères.
+
+Maintenant voici \href{http://www.gutenberg.org/ebooks/11}{Alice's Adventures in Wonderland, par Lewis Carroll}
+de la même bibliothèque:
+
+\begin{lstlisting}[caption=Mathematica,style=custommath]
+In[]:= input = BinaryReadList["/home/dennis/tmp/pg11.txt"];
+
+In[]:= Tally[input]
+Out[]= {{239, 1}, {187, 1}, {191, 1}, {80, 172}, {114, 6398}, {111, 
+  9243}, {106, 222}, {101, 15082}, {99, 2815}, {116, 11629}, {32, 
+  27964}, {71, 193}, {117, 3867}, {110, 7869}, {98, 1621}, {103, 
+  2750}, {39, 2885}, {115, 6980}, {65, 721}, {108, 5053}, {105, 
+  7802}, {100, 5227}, {118, 911}, {87, 256}, {97, 9081}, {44, 
+  2566}, {121, 2442}, {76, 158}, {119, 2696}, {67, 185}, {13, 
+  3735}, {10, 3735}, {84, 571}, {104, 7580}, {66, 125}, {107, 
+  1202}, {102, 2248}, {109, 2245}, {46, 1206}, {89, 142}, {112, 
+  1796}, {45, 744}, {58, 255}, {68, 242}, {74, 13}, {50, 12}, {53, 
+  13}, {48, 22}, {56, 10}, {91, 4}, {69, 313}, {35, 1}, {49, 68}, {93,
+   4}, {82, 212}, {77, 222}, {57, 11}, {52, 10}, {42, 88}, {83, 
+  288}, {79, 234}, {70, 134}, {72, 309}, {73, 831}, {85, 111}, {78, 
+  182}, {75, 88}, {86, 52}, {51, 13}, {63, 202}, {40, 76}, {41, 
+  76}, {59, 194}, {33, 451}, {113, 135}, {120, 170}, {90, 1}, {122, 
+  79}, {34, 135}, {95, 4}, {81, 85}, {88, 6}, {47, 24}, {55, 6}, {54, 
+  7}, {37, 1}, {64, 2}, {36, 2}}
+
+In[]:= Length[input]/27964 // N
+Out[]= 5.99049
+\end{lstlisting}
+
+Le résultat est différent, sans soute à cause d'un formatage des textes différents
+(indentation ou remplissage).
+
+Ok, donc supposons que la fréquence moyenne de l'espace en anglais est de 1 espace
+tous les 4..7 caractères.
+
+Maintenant, encore une bonne nouvelle: nous pouvons mesurer la fréquence des espaces
+au fur et à mesure du déchiffrement de notre fichier.
+Maintenant je compte les espaces dans chaque \emph{slice} et jette les clefs de 1 octets
+qui produise un résultat avec un nombre d'espaces trop petit (ou trop grand, mais
+c'est presque impossible avec une si petite clef):
+
+\begin{lstlisting}[caption=Python script,style=custompy]
+each_Nth_byte=[""]*KEY_LEN
+
+content=read_file(sys.argv[1])
+# split input by 17-byte chunks:
+all_chunks=chunks(content, KEY_LEN)
+for c in all_chunks:
+    for i in range(KEY_LEN):
+        each_Nth_byte[i]=each_Nth_byte[i] + c[i]
+
+# try each byte of key
+for N in range(KEY_LEN):
+    print "N=", N
+    possible_keys=[]
+    for i in range(256):
+        tmp_key=chr(i)*len(each_Nth_byte[N])
+        tmp=xor_strings(tmp_key,each_Nth_byte[N])
+        # are all characters in tmp[] are printable?
+        if is_string_printable(tmp)==False:
+	    continue
+        # count spaces in decrypted buffer:
+	spaces=tmp.count(' ')
+	if spaces==0:
+            continue
+	spaces_ratio=len(tmp)/spaces
+	if spaces_ratio<4:
+	    continue
+	if spaces_ratio>7:
+	    continue
+	possible_keys.append(i)
+    print possible_keys, "len=", len(possible_keys)
+\end{lstlisting}
+
+(La version complète du code source se trouve
+\href{\RepoURL/ff/XOR/mask_2/files/decrypt3.py}{ici}.)
+
+Ceci nous donne un seul octet possible pour chaque octet de la clef:
+
+\begin{lstlisting}
+N= 0
+[144] len= 1
+N= 1
+[160] len= 1
+N= 2
+[33] len= 1
+N= 3
+[80] len= 1
+N= 4
+[79] len= 1
+N= 5
+[143] len= 1
+N= 6
+[251] len= 1
+N= 7
+[255] len= 1
+N= 8
+[133] len= 1
+N= 9
+[131] len= 1
+N= 10
+[207] len= 1
+N= 11
+[86] len= 1
+N= 12
+[65] len= 1
+N= 13
+[18] len= 1
+N= 14
+[122] len= 1
+N= 15
+[249] len= 1
+N= 16
+[49] len= 1
+\end{lstlisting}
+
+Vérifions cette clef dans Mathematica:
+
+\begin{lstlisting}[caption=Mathematica,style=custommath]
+In[]:= input = BinaryReadList["/home/dennis/tmp/cipher.txt"];
+
+In[]:= blocks = Partition[input, 17];
+
+In[]:= key = {144, 160, 33, 80, 79, 143, 251, 255, 133, 131, 207, 86, 65, 18, 122, 249, 49};
+
+In[]:= EncryptBlock[blk_] := BitXor[key, blk]
+
+In[]:= encrypted = Map[EncryptBlock[#] &, blocks];
+
+In[]:= BinaryWrite["/home/dennis/tmp/plain2.txt", Flatten[encrypted]]
+
+In[]:= Close["/home/dennis/tmp/plain2.txt"]
+\end{lstlisting}
+
+Et le texte brut est:
+
+\begin{lstlisting}
+Mr. Sherlock Holmes, who was usually very late in the mornings, save
+upon those not infrequent occasions when he was up all night, was seated
+at the breakfast table. I stood upon the hearth-rug and picked up the
+stick which our visitor had left behind him the night before. It was a
+fine, thick piece of wood, bulbous-headed, of the sort which is known as
+a "Penang lawyer." Just under the head was a broad silver band nearly
+an inch across. "To James Mortimer, M.R.C.S., from his friends of the
+C.C.H.," was engraved upon it, with the date "1884." It was just such a
+stick as the old-fashioned family practitioner used to carry--dignified,
+solid, and reassuring.
+
+"Well, Watson, what do you make of it?"
+
+Holmes was sitting with his back to me, and I had given him no sign of
+my occupation.
+
+...
+\end{lstlisting}
+
+(La version complète de ce texte se trouve
+\href{\RepoURL/ff/XOR/mask_2/files/plain.txt}{ici}.)
+
+Le texte semble correct.
+Oui, j'ai créé cet exemple de toutes pièces et j'ai choisi un texte très connu de
+Conan Doyle, mais c'est très proche de ce que j'ai eu à faire il y a quelques temps.
+
+\subsubsection{Autres idées à envisager}
+
+Si nous échouions avec le comptage des espaces, il y a d'autres idées à essayer:
+
+\begin{itemize}
+
+\item Prenons en considération le fait que les lettres minuscules sont plus fréquentes
+que celles en majuscule.
+
+\item Analyse des fréquences.
+
+\item Il y a aussi une bonne technique pour détecter le langage d'un texte: les trigrammes.
+Chaque langage possède des triplets de lettres fréquences, qui peuvent être \q{the}
+et \q{tha} en anglais.
+En lire plus à ce sujet:
+\href{http://odur.let.rug.nl/~vannoord/TextCat/textcat.pdf}{N-Gram-Based Text Categorization},
+\url{http://code.activestate.com/recipes/326576/}.
+Fait suffisamment intéressant, la détection des trigrammes peut être utilisée lorsque
+vous décryptez un texte chiffré progressivement, comme dans cet exemple (yous devez
+juste tester les 3 caractères décryptez adjacents).
+
+Pour les systèmes non-latin encodés en UTF-8, les choses peuvent être plus simples.
+Par exemple, les textes en russe encodés en UTF-8 ont chaque octet intercalé avec
+des octets 0xD0/0xD1.
+C'est parce que les caractères cyrilliques sont situés dans le 4ème bloc de la table
+Unicode.
+D'autres systèmes d'écriture on leurs propres blocs.
+
+\end{itemize}
+

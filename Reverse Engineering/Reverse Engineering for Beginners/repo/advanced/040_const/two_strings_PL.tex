@@ -1,0 +1,48 @@
+% TBT \subsection{Overlapping const strings}
+\subsection{GCC --- jeszcze co nieco}
+\label{use_parts_of_C_strings}
+
+To, że \emph{anonimowa} linia w C ma typ \emph{const} (\myref{string_is_const_char}), 
+i to, że zaznaczone w segmencie stałych C-linie są gwarantowanie nie do zmiany (immutable), 
+prowadzi do ciekawych konsekwencji: kompilator może korzystać tylko z pewnej części linii.
+
+Prosty przykład:
+
+\begin{lstlisting}[style=customc]
+
+#include <stdio.h>
+
+int f1()
+{
+	printf ("world\n");
+}
+
+int f2()
+{
+	printf ("hello world\n");
+}
+
+int main()
+{
+	f1();
+	f2();
+}
+\end{lstlisting}
+
+Typowy kompilator \CCpp (w tym MSVC) przydzieli miejsce dla 2 linii, ale oto jest to co robi GCC 4.8.1:
+
+\lstinputlisting[caption=GCC 4.8.1 + listing w IDA,style=customasmx86]{\CURPATH/two_strings.asm}
+
+Naprawdę, kiedy printujemy linię \q{hello world}, 
+te dwa słowa są usytuowane w pamięci tuż obok siebie i \puts, będąc wywołane z funkcji \GTT{f2()}, w ogóle nie wie,
+że te linię są rozdzielone. Tak naprawdę to one i nie są rozdzielone, są rozdzielone 
+tylko \emph{wirtualnie}, w naszym listingu.
+
+Kiedy \puts zostaje wywołane z \GTT{f1()}, ono wykorzystuje linię \q{world} + zerowy bajt. \puts w ogóle nie wie, że tam jest jeszcze jakaś linia przed tą!
+
+Ten trik jest często wykorzystywany (przynajmniej w GCC) i może zaoszczędzić trochę pamięci.
+Jest to podobny mechanizm do mechanizmu \emph{internowania łańcuchów}.
+
+Jeszcze jeden przykład można znaleźć tutaj: \myref{strstr_example}.
+
+

@@ -1,0 +1,141 @@
+﻿\subsection{Multiplication}
+
+\subsubsection{Multiplication en utilisant l'addition}
+
+Voici un exemple simple:
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*8;
+};
+\end{lstlisting}
+
+La multiplication par 8 a été remplacée par 3 instructions d'addition, qui font la
+même chose.
+Il semble que l'optimiseur de MSVC a décidé que ce code peut être plus rapide.
+
+\begin{lstlisting}[caption=MSVC 2010 \Optimizing,style=customasmx86]
+_TEXT	SEGMENT
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	add	eax, eax
+	add	eax, eax
+	add	eax, eax
+	ret	0
+_f	ENDP
+_TEXT	ENDS
+END
+\end{lstlisting}
+
+\subsubsection{Multiplication en utilisant le décalage}
+\label{subsec:mult_using_shifts}
+
+Les instructions de multiplication et de division par un nombre qui est une puissance
+de 2 sont souvent remplacées par des instructions de décalage.
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*4;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=MSVC 2010 \NonOptimizing,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	push	ebp
+	mov	ebp, esp
+	mov	eax, DWORD PTR _a$[ebp]
+	shl	eax, 2
+	pop	ebp
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+
+La multiplication par 4 consiste en un décalage du nombre de 2 bits vers la gauche
+et l'insertion de deux bits à zéro sur la droite (les deux derniers bits).
+C'est comme multiplier 3 par 100~---nous devons juste ajouter deux zéros sur la droite.
+
+C'est ainsi que fonctionne l'instruction de décalage vers la gauche:
+
+\myindex{x86!\Instructions!SHL}
+\input{shift_left}
+
+Les bits ajoutés à droite sont toujours des zéros.
+
+Multiplication par 4 en ARM:
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSL      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+Multiplication par 4 en MIPS:
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/MIPS_SLL.lst}
+
+\myindex{MIPS!\Instructions!SLL}
+\INS{SLL} signifie \q{Shift Left Logical} (décalage logique à gauche).
+
+\subsubsection{Multiplication en utilisant le décalage, la soustraction, et l'addition}
+\label{multiplication_using_shifts_adds_subs}
+
+Il est aussi possible de se passer des opérations de multiplication lorsque l'on
+multiplie par des nombres comme 7 ou 17, toujours en utilisant le décalage.
+Les mathématiques utilisées ici sont assez faciles.
+
+\myparagraph{32-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts.c}
+
+\mysubparagraph{x86}
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_MSVC_2012_Ox.asm}
+
+\mysubparagraph{ARM}
+
+Keil pour le mode ARM tire partie du décalage de registre du second opérande:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_ARM_O3.s}
+
+Mais ce n'est pas disponible en mode Thumb.
+Il ne peut donc pas l'optimiser:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_thumb_O3.s}
+
+\mysubparagraph{MIPS}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/mult_shifts_MIPS_O3_IDA.lst}
+
+\myparagraph{64-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts_64.c}
+
+\mysubparagraph{x64}
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_x64_O3.s}
+
+\mysubparagraph{ARM64}
+
+GCC 4.9 pour ARM64 est aussi concis, grâce au modificateur de décalage:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 \Optimizing ARM64,style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_ARM64.s}
+
+\myparagraph{Algorithme de multiplication de Booth}
+
+\myindex{Data general Nova}
+\myindex{Booth's multiplication algorithm}
+Il fût un temps où les ordinateurs étaient si gros et chers, que certains d'entre
+eux ne disposaient pas de la multiplication dans le \ac{CPU}, comme le Data General Nova.
+Et lorsque l'on avait besoin de l'opérateur de multiplication, il pouvait être fourni
+au niveau logiciel, par exemple, en utilisant l'algorithme de multiplication de Booth.
+C'est un algorithme de multiplication qui utilise seulement des opérations d'addition
+et de décalage.
+
+Ce que les optimiseurs des compilateurs modernes font n'est pas la même chose, mais
+le but (multiplication) et les ressources (des opérations plus rapides) sont les mêmes.

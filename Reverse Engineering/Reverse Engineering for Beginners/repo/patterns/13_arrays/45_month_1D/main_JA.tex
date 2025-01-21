@@ -1,0 +1,215 @@
+﻿\subsection{文字列へのポインタの配列}
+\label{array_of_pointers_to_strings}
+
+ここでは、ポインタの配列の例を示します。
+
+\lstinputlisting[caption=Get month name,label=get_month1,style=customc]{patterns/13_arrays/45_month_1D/month1_JA.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{patterns/13_arrays/45_month_1D/month1_MSVC_2013_x64_Ox.asm}
+
+コードはとても単純です。
+
+\begin{itemize}
+
+\item
+\myindex{x86!\Instructions!MOVSXD}
+
+最初の\INS{MOVSXD}命令は、 \ECX （ $month$ 引数が渡される）から32ビットの値を
+符号拡張付きの \RAX （ $month$ 引数は \Tint 型なので）にコピーします。
+
+符号拡張の理由は、この32ビット値が他の64ビット値との計算に使用されるためです。
+
+したがって、64ビット142に昇格させる必要があります。%
+\footnote{やや奇妙ですが、負の配列インデックスはここで $month$ として渡すことができます
+（負の配列インデックスは後で説明します：\ref{negative_array_indices}）。 % FIXME should be \myref{} here, but varioref package complains...
+これが起こると、 \Tint 型の負の入力値が正しく符号拡張され、
+テーブルの前の対応する要素が選択されます。 符号拡張なしでは正しく動作しません。}
+
+\item
+次にポインタテーブルのアドレスが \RCX にロードされます。
+
+\item
+最後に、入力値（$month$）に8を掛けてアドレスに加算します。 
+確かに：私たちは64ビット環境にあり、すべてのアドレス（またはポインタ）は正確に64ビット（または8バイト）の
+記憶域を必要とします。 
+したがって、各テーブル要素は8バイト幅です。 
+それで、なぜ特定の要素 $month*8$ をスキップする必要があるのでしょうか。
+これが \MOV が行うことです。 
+さらに、この命令はこのアドレスの要素もロードします。 
+1の場合、要素は\q{February}などを含む文字列へのポインタになります。
+
+\end{itemize}
+
+\Optimizing GCC 4.9はもっとよく仕事をこなします。
+\footnote{GCCアセンブラ出力が排除するのに十分なほど整っていないので、\q{0+}がリストに残っていました。 
+それは\emph{変位}であり、ここではゼロです。}
+
+\begin{lstlisting}[caption=\Optimizing GCC 4.9 x64,style=customasmx86]
+	movsx	rdi, edi
+	mov	rax, QWORD PTR month1[0+rdi*8]
+	ret
+\end{lstlisting}
+
+\myparagraph{32ビットMSVC}
+
+32ビットMSVCコンパイラでもコンパイルしてみましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x86,style=customasmx86]{patterns/13_arrays/45_month_1D/month1_MSVC_2013_x86_Ox.asm}
+
+入力値は64ビットに拡張する必要がないので、そのまま使われます。
+
+そして4倍されます。テーブル要素が32ビット（または4バイト）幅だからです。
+
+% FIXME1 move to another file
+\subsubsection{32ビット ARM}
+
+\myparagraph{ARMモードでのARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/13_arrays/45_month_1D/month1_Keil_ARM_O3.s}
+
+% TODO Fix R1s
+
+テーブルのアドレスはR1にロードされます。
+\myindex{ARM!\Instructions!LDR}
+
+残りのすべては \LDR 命令1つだけを使って行われます。
+
+入力値 $month$ は2ビット左シフトします（4倍するのと同じです）。それから
+R1に加えらえます（テーブルのアドレスの場所）。そしてテーブル要素はこのアドレスからロードされます。
+
+32ビットテーブル要素はテーブルからR0にロードされます。
+
+\myparagraph{ThumbモードでのARM}
+
+コードはほとんど同じですが、より密度が低いです。 \LSL サフィックスは \LDR 命令では特定できないからです。
+
+\begin{lstlisting}[style=customasmARM]
+get_month1 PROC
+        LSLS     r0,r0,#2
+        LDR      r1,|L0.64|
+        LDR      r0,[r1,r0]
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+\subsubsection{ARM64}
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 ARM64,style=customasmARM]{patterns/13_arrays/45_month_1D/month1_GCC49_ARM64_O3.s}
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+テーブルのアドレスは \ADRP/\ADD 命令の組を使ってX1にロードされます。
+
+それから付随する要素 \LDR を使って選ばれて、W0を取ります（入力引数 $month$ の場所のレジスタ）。
+左に3ビットシフトします（8倍するのと同じです）。
+符号拡張し（\q{sxtw}サフィックスが暗示しています）、X0に加算します。
+それから64ビット値がテーブルからX0にロードされます。
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/13_arrays/45_month_1D/MIPS_O3_IDA_JA.lst}
+
+\subsubsection{配列オーバーフロー}
+
+関数は0～11の範囲の値を受け付けますが、12は通すでしょうか？
+テーブルにはその場所の要素はありません。
+
+なので関数はそこにたまたまある値をロードしてリターンします。
+
+すぐ後で、他の関数がこのアドレスからテキスト文字列を取得しようとしてクラッシュするかもしれません。
+
+例をwin64用としてMSVCでコンパイルして、テーブルの後にリンカーが何を配置したのかを \IDA で見てみましょう。
+
+\lstinputlisting[caption=IDAでの実行可能ファイル,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2012_win64_1.lst}
+
+月の名前がそのあとに来ています。
+
+プログラムは小さいので、データセグメントにパックされるデータは多くありません。
+だから単に次の名前が来ています。
+しかし注意すべきはリンカーが配置するように決定するのは\emph{どんなものも}ありえます。
+
+だからもし12が関数に渡されたら？
+13番目の要素がリターンされます。
+
+CPUがそこにあるバイトを64ビットの値としてどのように扱うかをみてみましょう。
+
+\lstinputlisting[caption=IDAでの実行可能ファイル,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2012_win64_2.lst}
+
+0x797261756E614Aです。
+
+すぐ後で、他の関数（おそらく文字列を扱う関数）がこのアドレスでバイトを読み込もうとすると、
+C言語の文字列を期待します。
+
+十中八九、クラッシュします。この値は有効なアドレスのようには見えないからです。
+
+\myparagraph{配列オーバーフロー保護}
+
+\epigraph{失敗する可能性のあるものは、失敗する。}{マーフィーの法則}
+
+あなたの関数を使用するプログラマはみな11より大きな値を引数として渡さないと
+期待するのはちょっとナイーブです。
+
+問題をできるだけ早く報告し停止することを意味する\q{fail early and fail loudly}
+または\q{早く失敗する}という哲学があります。
+
+\myindex{\CStandardLibrary!assert()}
+
+そのような方法の1つに \CCpp のassertionがあります。
+
+不正な値が通ってきたら、失敗するようにプログラムを変更できます。
+
+\lstinputlisting[caption=assert()を追加,style=customc]{patterns/13_arrays/45_month_1D/month1_assert.c}
+
+アサーションマクロは関数の開始時に妥当な値かチェックし、式が偽の場合に失敗します。
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2013_x64_Ox_checked.asm}
+
+実際、assert() は関数ではなくマクロです。条件をチェックし、
+行数とファイル名を他の関数に渡してユーザに情報を報告します。
+
+ファイル名と条件の両方がUTF-16でエンコードされています。
+行数も渡されます（29です）。
+
+このメカニズムはおそらくすべてのコンパイラで同じです。
+GCCはこのようにします。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 x64,style=customasmx86]{patterns/13_arrays/45_month_1D/GCC491_x64_O3_checked.s}
+
+GCCのマクロは利便性のために関数名も渡します。
+
+何事もただではできませんが、サニタイズチェックもこれと同様です。
+
+それはプログラムを遅くしますが、特にassert()マクロが小さなタイムクリティカルな関数で使用されると遅くなります。
+
+なのでMSVCでは、例えばデバッグビルドではチェックを残し、リリースビルドでは取り除いたりします。
+ 
+マイクロソフト\gls{Windows NT}カーネルは\q{チェックされた}と\q{フリー}ビルドです。
+\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/hardware/ff543450(v=vs.85).aspx}{msdn.microsoft.com/en-us/library/windows/hardware/ff543450(v=vs.85).aspx}}.
+
+最初のものは妥当性チェック（\q{チェックされた}なので）があり、もう一つはチェックしていません（チェックが\q{フリー}なので）。
+
+もちろん、 \q{チェックされた}カーネルはこれらのチェックのために遅く動作するので、通常はデバッグセッションでのみ使用されます。
+
+% FIXME: ARM? MIPS?
+
+\subsubsection{特定の文字へのアクセス}
+
+文字列へのポインタの配列はこのようにアクセスできます。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/45_month_1D/month2_JA.c}
+
+\dots \emph{month[3]}式は\emph{const char*}型をもつので、
+5番目の文字列はこのアドレスに4バイトを足した式から取得します。
+
+さて、\emph{main()}関数に渡された引数リストは同じデータ型を持ちます。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/45_month_1D/argv_JA.c}
+
+似た構文ですが、2次元配列とは異なることを理解することが非常に重要です。
+これについては後で検討します。
+
+もう1つの重要なことに注意してください。アドレス指定される文字列は、各文字が\ac{ASCII}や拡張\ac{ASCII}のように1バイトを占めるシステムで
+エンコードされなければなりません。 
+UTF-8はここでは動作しません。

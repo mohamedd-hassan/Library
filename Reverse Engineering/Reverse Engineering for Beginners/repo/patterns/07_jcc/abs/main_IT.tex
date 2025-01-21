@@ -1,0 +1,54 @@
+\subsection{Calcolo del valore assoluto}
+\label{sec:abs}
+
+Una funzione semplice:
+
+\lstinputlisting[style=customc]{abs.c}
+
+\subsubsection{\Optimizing MSVC}
+
+Il codice solitamente generato è questo:
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/07_jcc/abs/abs_MSVC2012_Ox_x64_IT.asm}
+
+GCC 4.9 fa più o meno lo stesso.
+
+\subsubsection{\OptimizingKeilVI: \ThumbMode}
+
+\lstinputlisting[caption=\OptimizingKeilVI: \ThumbMode,style=customasmARM]{patterns/07_jcc/abs/abs_Keil_thumb_O3_IT.s}
+
+\myindex{ARM!\Instructions!RSB}
+
+In ARM manca l'istruzione di negazione, quindi il compilatore Keil usa l'istruzione \q{Reverse Subtract}, che semplicemente sottrae gli operandi in modo inverso.
+
+\subsubsection{\OptimizingKeilVI: \ARMMode}
+
+In modalità ARM è possibile aggiungere codice condizionale ad alcune istruzioni, e questo è ciò che fa il compilatore keil:
+
+\lstinputlisting[caption=\OptimizingKeilVI: \ARMMode,style=customasmARM]{patterns/07_jcc/abs/abs_Keil_ARM_O3_IT.s}
+
+Adesso non ci sono più jump condizionali, e ciò è bene: \myref{branch_predictors}.
+
+\subsubsection{\NonOptimizing GCC 4.9 (ARM64)}
+
+\myindex{ARM!\Instructions!XOR}
+
+ARM64 ha un'istruzione \INS{NEG} per la negazione:
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 (ARM64),style=customasmARM]{patterns/07_jcc/abs/abs_GCC49_ARM64_O0_IT.s}
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/abs/MIPS_O3_IDA_IT.lst}
+
+\myindex{MIPS!\Instructions!BLTZ}
+Qui vediamo una nuova istruzione: \INS{BLTZ} (\q{Branch if Less Than Zero}).
+\myindex{MIPS!\Instructions!SUBU}
+\myindex{MIPS!\Pseudoinstructions!NEGU}
+
+C'è anche la pseudoistruzione \INS{NEGU} , che semplicemente fa la sottrazione da zero.
+Il suffisso \q{U} suffix in entrambe \INS{SUBU} e \INS{NEGU} implica che non verrà sollevata nessuna eccezione in caso di integer overflow.
+
+\subsubsection{Branchless version?}
+
+C'è anche una versione senza diramazioni (branchless) di questo codice. Ne riparleremo più avanti: \myref{chap:branchless_abs}.

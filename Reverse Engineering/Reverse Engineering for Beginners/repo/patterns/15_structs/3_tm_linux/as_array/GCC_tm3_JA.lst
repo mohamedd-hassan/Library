@@ -1,0 +1,37 @@
+﻿main proc near
+     push    ebp
+     mov     ebp, esp
+     push    esi
+     push    ebx
+     and     esp, 0FFFFFFF0h
+     sub     esp, 40h
+     mov     dword ptr [esp], 0 ; タイマー
+     lea     ebx, [esp+14h]
+     call    _time
+     lea     esi, [esp+38h]
+     mov     [esp+4], ebx    ; tp
+     mov     [esp+10h], eax
+     lea     eax, [esp+10h]
+     mov     [esp], eax      ; タイマー
+     call    _localtime_r
+     nop
+     lea     esi, [esi+0]	; NOP
+loc_80483D8:
+; EBXは構造体へのポインタで、
+; ESIは構造体の終わりへのポインタです。
+     mov     eax, [ebx]	; get 配列から32ビットwordを取得
+     add     ebx, 4          ; 構造体の次のフィールド
+     mov     dword ptr [esp+4], offset a0x08xD ; \verb|"0x%08X (%d)\n"|
+     mov     dword ptr [esp], 1
+     mov     [esp+0Ch], eax	; printf()に値を渡す
+     mov     [esp+8], eax	; printf()に値を渡す
+     call    ___printf_chk
+     cmp     ebx, esi        ; 構造体の最後？
+     jnz     short loc_80483D8	; いいえ - 次の値をロードする
+     lea     esp, [ebp-8]
+     pop     ebx
+     pop     esi
+     pop     ebp
+     retn
+main endp
+

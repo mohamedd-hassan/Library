@@ -1,0 +1,157 @@
+﻿\subsubsection{Structure comme un ensemble de valeurs}
+
+Afin d'illustrer le fait qu'une structure n'est qu'une collection de variables située côte-à-côte, 
+retravaillons notre exemple sur la base de la définition de la structure \emph{tm}: \lstref{struct_tm}.
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm2.c}
+
+\myindex{\CStandardLibrary!localtime\_r()}
+N.B. Le pointeur vers le champ \TT{tm\_sec} est passé comme argument de la fonction 
+\TT{localtime\_r}, en tant que premier élément de la \q{structure}.
+
+Le compilateur nous alerte:
+
+\begin{lstlisting}[caption=GCC 4.7.3]
+GCC_tm2.c: In function 'main':
+GCC_tm2.c:11:5: warning: passing argument 2 of 'localtime_r' from incompatible pointer type [enabled by default]
+In file included from GCC_tm2.c:2:0:
+/usr/include/time.h:59:12: note: expected 'struct tm *' but argument is of type 'int *'
+\end{lstlisting}
+
+Mais il génère cependant un fragment exécutable correspondant au code assembleur suivant:
+
+\lstinputlisting[caption=GCC 4.7.3,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm2.asm}
+
+Ce code est similaire à ce que nous avons déjà vue et il n'est pas possible de dire si le code 
+source original contenait une structure ou un groupe de variables.
+
+Et cela fonctionne. Mais encore une fois ce n'est pas une bonne pratique. 
+
+En règle générale les compilateurs en l'absence d'optimisation allouent les variables sur la pile 
+dans le même ordre que celui dans lequel elles ont été déclarées dans le code source. Pour autant, 
+ce n'est pas une garantie.
+
+Par ailleurs certains compilateurs peuvent vous avertir que les variables \TT{tm\_year}, 
+\TT{tm\_mon}, \TT{tm\_mday}, \TT{tm\_hour}, \TT{tm\_min} n'ont pas été initialisées avant leur 
+utilisation, mais resteront muets au sujet de \TT{tm\_sec}
+
+Le compilateur lui non plus ne sait pas qu'ils sont appelés à être initialisés par la fonction 
+\TT{localtime\_r()}.
+
+Nous avons chois cet exemple car tous les champs de la structure sont de type \Tint.%
+
+Tout ceci ne fonctionnerait pas sir les champs de la structure étaient des \TT{WORD} de 16 bits, tel 
+que dans le cas de la structure \TT{SYSTEMTIME} structure---\TT{GetSystemTime()} les initialiserait 
+de manière erronée (puisque les variables locales sont alignées sur des frontières de 32bits).
+Vous en saurez plus à ce sujet dans la prochaine section: 
+\q{\StructurePackingSectionName} (\myref{structure_packing}).
+
+Une structure n'est donc qu'un groupe de variables disposées côte-à-côte en mémoire. Nous pouvons 
+dire que la structure est une instruction adressée au compilateur et l'obligeant à conserver le 
+groupement des variables.
+Cela étant dans les toutes premières versions du langage C (avant 1972), la notion de structure 
+n'existait pas encore \RitchieDevC.
+
+Pas d'exemple de débogage ici. Le comportement est toujours le même.
+
+\subsubsection{Une structure sous forme de table de 32 bits}
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm3.c}
+
+Nous n'avons qu'à utiliser l'opérateur \emph{cast} pour transformer notre pointeur vers une structure 
+en un tableau de \Tint{}'s. Et cela fonctionne !
+Nous avons exécuté l'exemple à 23h51m45s le 26 juillet 2014.
+
+\begin{lstlisting}[label=GCC_tm3_output]
+0x0000002D (45)
+0x00000033 (51)
+0x00000017 (23)
+0x0000001A (26)
+0x00000006 (6)
+0x00000072 (114)
+0x00000006 (6)
+0x000000CE (206)
+0x00000001 (1)
+\end{lstlisting}
+
+Les variables sont dans le même ordre que celui dans lequel elles apparaissent dans la définition 
+de la structure: \myref{struct_tm}.
+
+Nous avons effectué la compilation avec:
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm3_FR.lst}
+
+En fait, l'espace dans la pile est tout d'abord traité comme une structure, puis ensuite comme un 
+tableau.
+
+Le pointeur sur le tableau permet même de modifier les champs de la structure.
+
+Et encore une fois cette manière de procéder est extrêmement douteuse et pas du tout recommandée 
+pour l'écriture d'un code qui atterrira en production.
+
+\mysubparagraph{\Exercise}
+
+Tentez de modifier (en l'augmentant de 1) le numéro du mois, en traitant la structure comme s'il 
+s'agissait d'un tableau.
+
+\subsubsection{Une structure sous forme d'un tableau d'octets}
+
+Nous pouvons aller plus loin.
+Utilisons l'opérateur \emph{cast} pour transformer le pointeur en un tableau d'octets, puis affichons 
+son contenu:
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/as_array/GCC_tm4.c}
+
+\begin{lstlisting}
+0x2D 0x00 0x00 0x00 
+0x33 0x00 0x00 0x00 
+0x17 0x00 0x00 0x00 
+0x1A 0x00 0x00 0x00 
+0x06 0x00 0x00 0x00 
+0x72 0x00 0x00 0x00 
+0x06 0x00 0x00 0x00 
+0xCE 0x00 0x00 0x00 
+0x01 0x00 0x00 0x00 
+\end{lstlisting}
+
+Cet exemple a été exécuté à 23h51m45s le 26 juillet 2014
+\footnote{Les dates et heures sont les mêmes dans tous les exemples. Elles ont été éditées 
+pour la clarté de la démonstration.}.
+Les valeurs sont identiques à celles du précédent affichage (\myref{GCC_tm3_output}), et bien 
+entendu l'octet de poids faible figure en premier puisque nous sommes sur une architecture de type 
+little-endian (\myref{sec:endianness}).
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1,style=customasmx86]{patterns/15_structs/3_tm_linux/as_array/GCC_tm4_FR.lst}
+
+\iffalse
+\subsubsection{GNU Scientific Library: Représentation des nombres complexes}
+\myindex{GNU Scientific Library}
+
+Ceci est un cas relativement rare où un tableau est utilisé au lieu d'une structure,
+à dessein:
+
+\begin{lstlisting}
+Representation of complex numbers
+=================================
+
+Complex numbers are represented using the type :code:`gsl_complex`. The
+internal representation of this type may vary across platforms and
+should not be accessed directly. The functions and macros described
+below allow complex numbers to be manipulated in a portable way.
+
+For reference, the default form of the :code:`gsl_complex` type is
+given by the following struct::
+
+    typedef struct
+    {
+      double dat[2];
+    } gsl_complex;
+
+The real and imaginary part are stored in contiguous elements of a two
+element array. This eliminates any padding between the real and
+imaginary parts, :code:`dat[0]` and :code:`dat[1]`, allowing the struct to
+be mapped correctly onto packed complex arrays.
+\end{lstlisting}
+( \href{https://www.gnu.org/software/gsl/doc/html/complex.html#representation-of-complex-numbers}{URL} )
+\fi
+

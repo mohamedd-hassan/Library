@@ -1,0 +1,109 @@
+\subsubsection{Héritage de classe}
+\label{cpp_inheritance}
+
+Les classes héritées sont similaires aux simples structures dont nous avons déjà
+discuté, mais étendues aux classes héritables.
+
+Prenons ce simple exemple:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes1_inheritance.cpp}
+
+Investiguons le code généré de la fonction/méthode \TT{dump()} et aussi \\
+\TT{object::print\_color()},
+et regardons la disposition de la mémoire pour les structures-objets (pour du code
+32-bit).
+
+\myindex{Inline code}
+
+Donc, voici les méthodes \TT{dump()} pour quelques classes, générées par
+MSVC 2008 avec les options \Ox et \Obzero
+\footnote{L'option \Obzero signifie la désactivation de l'expension inline, puisque
+la mise en ligne de fonctions peut rendre notre expérience plus difficile.}.
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes1_1.asm}
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes1_2.asm}
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes1_3.asm}
+
+Donc, voici la disposition de la mémoire:
+
+(classe de base \emph{object})
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & int color \\
+\hline
+\end{tabular}
+\end{center}
+
+(classes héritées)
+
+\emph{box}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & int color \\
+\hline
+  +0x4 & int width \\
+\hline
+  +0x8 & int height \\
+\hline
+  +0xC & int depth \\
+\hline
+\end{tabular}
+\end{center}
+
+\emph{sphere}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & int color \\
+\hline
+  +0x4 & int radius \\
+\hline
+\end{tabular}
+\end{center}
+
+Regardons le corps de la fonction \main:
+
+\lstinputlisting[caption=MSVC 2008\Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes1_4.asm}
+
+
+Les classes héritées doivent toujours ajouter leurs champs après les champs de la
+classe de base, afin que les méthodes de la classe de base puissent travailler avec
+ses propres champs.
+
+
+Lorsque la méthode \TT{object::print\_color()} est appelée, un pointeur sur les deux
+objets \emph{box} et \emph{sphere} est passé en \TT{this}, et il peut travailler facilement
+avec ces objets puisque le champ \emph{color} dans ces objets est toujours à l'adresse
+épinglée (à l'offset \emph{+0x0}).
+%TODO better translation of "pinned"
+
+On peut dire que la méthode \TT{object::print\_color()} est agnostique en relation
+avec le type d'objet en entrée tant que les champs sont \emph{épinglés} à la même adresse
+et cette condition est toujours vraie.
+
+
+Et si vous créez une classe héritée de la classe \emph{box}, le compilateur ajoutera
+les nouveaux champs après le champ \emph{depth}, laissant les champs de la classe
+\emph{box} à l'adresse épinglée.
+
+
+Ainsi, la méthode \TT{box::dump()} fonctionnera correctement pour accéder aux champs
+\emph{color}, \emph{width}, \emph{height} et \emph{depth}, qui sont toujours positionnés
+à l'adresse connue.
+
+Le code généré par GCC est presque le même, avec la seule exception du passage du
+pointeur \TT{this} (comme il a déjà été expliqué plus haut, il est passé en premier
+argument au lieu d'utiliser le registre \ECX).

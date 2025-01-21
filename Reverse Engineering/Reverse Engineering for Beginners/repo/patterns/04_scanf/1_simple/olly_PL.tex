@@ -1,0 +1,53 @@
+\clearpage
+\subsubsection{MSVC + \olly}
+\myindex{\olly}
+
+Otwórzmy przykład w \olly.
+Po załadowaniu wciskamy kilka razy F8, aż dotrzemy do naszego pliku wykonywalnego, zamiast \TT{ntdll.dll}.
+Scrollujemy na górę, aż pojawi się funkcja \main.
+
+Kliknij na pierwszą instrukcję (\TT{PUSH EBP}) i naciśnij F2 (\emph{ustaw breakpoint}), a następnie F9 (\emph{Run}).
+Zatrzymamy się na początku funkcji main.
+
+Przejdźmy do miejsca, w którym wyliczany jest adres zmiennej $x$:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/1_simple/ex1_olly_1.png}
+\caption{\olly: wyliczanie adresu zmiennej lokalnej}
+\label{fig:scanf_ex1_olly_1}
+\end{figure}
+
+Kliknij prawym przyciskiem na rejestr \EAX w oknie z rejestrami i wybierz \q{Follow in stack}.
+
+Adres z \EAX pojawi się w oknie z widokiem stosu.
+Czerwona strzałka pokazuje na zmienną lokalną na stosie.
+W tej chwili są tam śmieci ~--- (\TT{0x6E494714}).
+Za pomocą instrukcji \PUSH adres tego elementu na stosie również trafi na stos, jako kolejny element.
+Wciskając F8, przejdźmy za wywołanie funkcji \scanf. W trakcie wykonywania funkcji musimy podać jakiś wejściowy ciąg znaków w oknie konsoli, np. \q{123}.
+
+\lstinputlisting{patterns/04_scanf/1_simple/console.txt}
+
+\clearpage
+Funkcja \scanf zakończyła swoje wykonanie.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/1_simple/ex1_olly_3.png}
+\caption{\olly: stan po zakończeniu funkcji \scanf}
+\label{fig:scanf_ex1_olly_3}
+\end{figure}
+
+Funkcja \scanf zwróciła 1 w \EAX, co oznacza, że wczytała jedną wartość.
+Jeśli ponownie spojrzymy na element na stosie odpowiadający zmiennej lokalnej, zobaczymy, że ma on teraz wartość \TT{0x7B} (123).
+
+\clearpage
+
+Później wartość zostanie skopiowana ze stosu do rejestru \ECX i przekazana do funkcji \printf:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/1_simple/ex1_olly_4.png}
+\caption{\olly: przygotowanie argumentu funkcji \printf}
+\label{fig:scanf_ex1_olly_4}
+\end{figure}

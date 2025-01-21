@@ -1,0 +1,20 @@
+\subsection{Pointer to a function: copy protection}
+\myindex{\SoftwareCracking}
+
+A software cracker can find a function that checks protection and return \emph{true} or \emph{false}.
+He/she then can put \TT{XOR EAX,EAX / RETN} or \TT{MOV EAX, 1 / RETN} there.
+
+Can you check integrity of the function?
+As it turns out, this can be done easily.
+
+According to objdump, the first 3 bytes of \verb|check_protection()| are 0x55 0x89 0xE5 (given the fact this is non-optimizing GCC):
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/61.c}
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/61_objdump.txt}
+
+If someone would patch the beginning of the \verb|check_protection()| function,
+your program can do something mean, maybe exit suddenly.
+To find such a trick, a cracker can set a memory read breakpoint on the address of the function's beginning.
+(\tracer has BPMx options for that.)
+

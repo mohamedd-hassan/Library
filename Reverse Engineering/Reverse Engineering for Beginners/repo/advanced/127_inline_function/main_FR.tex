@@ -1,0 +1,29 @@
+\mysection{Fonctions inline}
+\myindex{Inline code}
+\label{inline_code}
+
+Le code inline, c'est lorsque le compilateur, au lieu de mettre une instruction
+d'appel à une petite ou à une minuscule fonction, copie son corps à la place.
+
+\lstinputlisting[caption=Un exemple simple,style=customc]{\CURPATH/1.c}
+
+\dots est compilée de façon très prédictive, toutefois, si nous utilisons l'option
+d'optimisation de GCC (\Othree), nous voyons:
+
+\lstinputlisting[caption=GCC 4.8.1 \Optimizing,style=customasmx86]{\CURPATH/1.s}
+
+(Ici la division est effectuée avec une multiplication(\myref{sec:divisionbymult}).)
+
+Oui, notre petite fonction \TT{celsius\_to\_fahrenheit()} a été placée juste avant
+l'appel à \printf.
+
+Pourquoi? C'est plus rapide que d'exécuter la code de cette fonction plus le surcoût
+de l'appel/retour.
+
+Les optimiseurs des compilateurs modernes choisissent de mettre en ligne les petites
+fonctions automatiquement.
+Mais il est possible de forcer le compilateur à mettre en ligne automatiquement certaines
+fonctions, en les marquants avec le mot clef \q{inline} dans sa déclaration.
+
+% sections
+\input{\CURPATH/str_mem/main}

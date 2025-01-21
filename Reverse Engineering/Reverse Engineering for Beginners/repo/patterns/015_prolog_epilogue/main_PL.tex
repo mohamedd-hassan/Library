@@ -1,0 +1,38 @@
+\mysection{Prolog i epilog funkcji}
+\label{sec:prologepilog}
+\myindex{Function epilogue}
+\myindex{Function prologue}
+
+Prolog funkcji to sekwencja instrukcji rozpoczynająca funkcję. Zwykle przypomina poniższy fragment kodu:
+
+\begin{lstlisting}[style=customasmx86]
+    push    ebp
+    mov     ebp, esp
+    sub     esp, X
+\end{lstlisting}
+
+Co te instrukcje robią: zapisują wartość rejestru  \EBP na stosie,
+ustawiają wartość w rejestrze \EBP na wartość z \ESP a następnie alokuję miejsce na stosie na zmienne lokalne
+
+Wartość w \EBP pozostaje niezmieniona przez całą funkcję i używana jest przy dostępie do zmiennych lokalnych i argumentów.
+Do tego samego celu można by użyć \ESP, ale byłoby to niewygodne, gdyż wartość \ESP zmienia się w czasie wykonywania funkcji.
+
+Epilog funkcji zwalnia zaalokowane miejsce na stosie, przywraca wartość rejestru \EBP do jego pierwotnego stanu
+i zwraca sterowanie do \glslink{caller}{funkcji wywołującej}:
+
+\begin{lstlisting}[style=customasmx86]
+    mov    esp, ebp
+    pop    ebp
+    ret    0
+\end{lstlisting}
+
+% what about calling convention?
+Prolog i epilog zwykle jest wykrywany przez deasemblery i używany do wyodrębnienia pojedynczych funkcji.
+
+\subsection{\Recursion}
+
+\myindex{\Recursion}
+Prolog i epilog funkcji mają negatywny wpływ na wywołania rekurencyjne.
+
+Więcej o rekurencji: \myref{Recursion_and_tail_call}.
+

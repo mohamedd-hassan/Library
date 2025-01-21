@@ -1,0 +1,147 @@
+\subsubsection{MSVC: x86}
+
+アセンブリ出力（MSVC 2010）の内容は次のとおりです。
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3_MSVC_x86.asm}
+
+\myindex{x86!\Registers!EAX}
+\gls{caller} 関数（ \main ）は \gls{callee} 関数（ \scanf ）の結果を必要とするため、
+呼び出し先は \EAX レジスタに返します。
+
+\myindex{x86!\Instructions!CMP}
+我々は、\TT{CMP EAX, 1} (\emph{CoMPare})の指示によりそれをチェックします。つまり、 \EAX レジスタの値と1を比較します。
+
+\myindex{x86!\Instructions!JNE}
+\JNE 条件ジャンプが \CMP 命令の後に続きます。  \JNE は\emph{Jump if Not Equal}の略です。
+
+したがって、 \EAX レジスタの値が1に等しくない場合、\ac{CPU}は \JNE オペランドに記述されているアドレス（この場合は\TT{\$LN2@main}）に実行を渡します。
+このアドレスに制御を渡すと、\ac{CPU}は \printf を引数\TT{What you entered? Huh?} で実行します 。
+しかし、すべてがうまくいけば、条件付きジャンプは取られず、別の \printf 呼び出しが\TT{'You entered \%d...'}と\TT{x}の値を引数にとって実行されます。
+
+\myindex{x86!\Instructions!XOR}
+\myindex{\CLanguageElements!return}
+この場合、2番目の \printf は実行されないため、その前に \JMP があります（無条件ジャンプ）。
+2番目の \printf の後、\TT{戻り値0}を実装する\TT{XOR EAX, EAX}命令の直前に制御を渡します。
+
+% FIXME internal \ref{} to x86 flags instead of wikipedia
+\myindex{x86!\Registers!\Flags}
+したがって、ある値を別の値と比較することは、\TT{通常}、 \CMP/\Jcc 命令ペアによって実装されると言えます\emph{cc}は\emph{条件コード}です。 
+\CMP は2つの値を比較し、プロセッサフラグ\footnote{x86フラグは以下を参照: \href{http://en.wikipedia.org/wiki/FLAGS_register_(computing)}{wikipedia}}を設定します。 
+\Jcc はこれらのフラグをチェックし、指定されたアドレスに制御を渡すかどうかを決定します。
+
+\myindex{x86!\Instructions!CMP}
+\myindex{x86!\Instructions!SUB}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Registers!ZF}
+\label{CMPandSUB}
+これは逆説的に聞こえるかもしれませんが、 \CMP 命令は実際には \SUB （減算）です。
+すべての算術命令は、 \CMP だけでなくプロセッサフラグを設定します。 1と1を比較し、$1-1$が0であるため、ZFフラグが設定されます（最後の結果が0であることを意味します）。
+オペランドが等しい場合を除いて、 \ZF は設定できません。  \JNE は \ZF フラグのみをチェックし、設定されていない場合にジャンプします。 
+JNEは実際にはJNZ（\emph{Jump if Not Zero}）の同義語です。アセンブラは、JNE命令とJNZ命令の両方を同じオペコードに変換します。
+したがって、 \CMP 命令は \SUB 命令で置き換えることができ、 \SUB が最初のオペランドの値を変更するという違いを除けば、ほとんどすべてが問題ありません。 
+\CMP \emph{は結果を保存しない \SUB ですが、フラグに影響}します。
+
+\subsubsection{MSVC: x86: IDA}
+
+\myindex{IDA}
+IDAを実行してIDAを実行しようとします。 
+ところで、初心者の方は、MSVCで\TT{/MD}オプションを使用することをお勧めします。つまり、
+これらの標準関数はすべて実行可能ファイルにリンクされず、
+代わりに\TT{MSVCR*.DLL}ファイルからインポートされます。 
+したがって、どの標準関数が使用され、どこでどこが使用されているのかが分かりやすくなります。
+
+\IDA のコードを分析する際には、自分自身（と他者）のためにノートを残すことが非常に役に立ちます。 
+例えば、この例を分析すると、
+エラーが発生した場合に \JNZ がトリガーされることがわかります。 
+カーソルをラベルに移動して\q{n}を押し、\q{エラー}に名前を変更することができます。 
+別のラベルを作成し、\q{終了}にします。 
+以下が私の環境での結果です。
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3.lst}
+
+これで、コードを少し理解しやすくなりました。 
+しかし、すべての命令についてコメントするのは良い考えではありません。
+
+% FIXME draw button?
+また、 \IDA の関数の一部を隠すこともできます。 
+ブロックをマークするには、 Ctrl-\q{--} を数値パッドに入力し、代わりに表示するテキストを入力します。
+
+2つのブロックを隠して名前を付けましょう。
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3_2.lst}
+
+% FIXME draw button?
+以前に折りたたまれた部分を展開するには、数値パッドでCtrl-\q{+}を使用します。
+
+\clearpage
+\q{スペース}を押すと、 \IDA が関数をグラフとして表示するのを見ることができます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/IDA.png}
+\caption{Graph mode in IDA}
+\label{fig:ex3_IDA_1}
+\end{figure}
+
+各条件ジャンプの後、緑と赤の2つの矢印があります。 
+緑の矢印は、ジャンプがトリガされた場合に実行されるブロックを指し、そうでない場合は赤を指します。
+
+\clearpage
+このモードでノードを折りたたみ、名前を付けることもできます（[q{グループノード}）。
+3つのブロックでやってみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/IDA2.png}
+\caption{Graph mode in IDA with 3 nodes folded}
+\label{fig:ex3_IDA_2}
+\end{figure}
+
+それは非常に便利です。
+リバースエンジニアの仕事（および他の研究者の仕事）の非常に重要な部分は、彼らが扱う情報の量を減らすことであると言えます。
+
+\input{patterns/04_scanf/3_checking_retval/olly_JA.tex}
+
+\clearpage
+\subsubsection{MSVC: x86 + Hiew}
+\myindex{Hiew}
+
+これは、実行可能ファイルのパッチ適用の簡単な例としても使用できます。 
+実行可能ファイルにパッチを適用して、入力内容にかかわらずプログラムが常に入力を出力するようにすることがあります。
+
+実行可能ファイルが外部の\TT{MSVCR*.DLL}（つまり\TT{/MD}オプション付き）
+\footnote{\q{ダイナミックリンク}とも呼ばれる}
+に対してコンパイルされていると仮定すると、\TT{.text}セクションの先頭に \main 関数があります。 
+Hiewで実行可能ファイルを開き、\TT{.text}セクションの先頭を見つけましょう（Enter、F8、F6、Enter、Enter）。 
+
+以下のように見えます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/hiew_1.png}
+\caption{Hiew: \main function}
+\label{fig:scanf_ex3_hiew_1}
+\end{figure}
+
+Hiewは\ac{ASCIIZ}文字列を検索し、インポートされた関数の名前と同様に表示します。
+
+\clearpage
+カーソルを\TT{.00401027}番地（ここでバイパスする \JNZ 命令がある場所）に移動し、F3を押し、\q{9090}（2つの\ac{NOP}を意味する）と入力します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/hiew_2.png}
+\caption{Hiew: replacing \TT{JNZ} with two \ac{NOP}s}
+\label{fig:scanf_ex3_hiew_2}
+\end{figure}
+
+その後、F9（更新）を押します。 これで、実行可能ファイルがディスクに保存されます。 私たちが望むように動作します。
+
+2つの\ac{NOP}はおそらく最も美しいアプローチではありません。 
+この命令をパッチする別の方法は、第2オペコードバイトに0を書き込むことであり（ \gls{jump offset} ）、 
+\JNZ は常に次の命令にジャンプします。
+% to be sync: Another way to patch this instruction is to write just 0 to the second byte of opcode (\gls{jump offset}), so that \TT{JNZ} will always jump to the next instruction.
+
+また、最初のバイトを\TT{EB}で置き換え、2番目のバイト（ \gls{jump offset} ）には触れないでください。 
+私たちは常に無条件のジャンプを得るでしょう。 
+この場合、エラーメッセージは入力に関係なく毎回表示されます。

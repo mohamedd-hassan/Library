@@ -1,0 +1,30 @@
+\mysection{Almost empty function}
+\label{Boolector}
+\myindex{Boolector}
+\myindex{x86!\Instructions!JMP}
+
+This is a real piece of code I found in Boolector\footnote{\url{https://boolector.github.io/}}:
+
+\lstinputlisting[style=customc]{patterns/025_almost_empty/boolectormain.c}
+
+Why would anyone do so?
+It's unclear, but we can guess that \verb|boolector_main()| may be compiled in some kind of DLL or dynamic library,
+and be called from a test suite.
+Surely, a test suite can prepare \verb|argc/argv| variables as \ac{CRT} would do it.
+
+Interestingly enough, how this compiles:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O0.s}
+
+We've got here: prologue, unnecessary (not optimized) shuffling of two arguments, \INS{CALL}, epilogue, \INS{RET}.
+But let's see optimizing version:
+
+\lstinputlisting[caption=\Optimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O3.s}
+
+As simple as that: stack/registers are untouched and \verb|boolector_main()| has the same arguments set.
+So all we need to do is pass execution to another address.
+
+This is close to \gls{thunk function}.
+
+We will see something more advanced later: \myref{ARM_B_to_printf}, \myref{JMP_instead_of_RET}.
+

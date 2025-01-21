@@ -1,0 +1,20 @@
+\subsection{Pointeur sur une fonction: protection contre la copie}
+\myindex{\SoftwareCracking}
+
+Un pirate de logiciel peut trouver une fonction qui vérifie la protection et renvoie
+\emph{vrai} ou \emph{faux}.
+
+Peut-on vérifier son intégrité?
+Il s'avère que cela peut être fait facilement.
+
+D'après objdump, les 3 premiers octets de \verb|check_protection()| sont 0x55 0x89 0xE5
+(compte tenu du fait qu'il s'agit de GCC sans optimisation):
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/61.c}
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/61_objdump.txt}
+
+Si quelqu'un patchait \verb|check_protection()|, votre programme peut faire quelque
+chose de méchant, peut-être se terminer brusquement.
+(\tracer possède l'option BPMx pour ça.)
+

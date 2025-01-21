@@ -1,0 +1,78 @@
+\subsection{三項条件演算子}
+\label{chap:cond}
+
+\CCpp の三項条件演算子の構文は次のとおりです。
+
+\begin{lstlisting}
+expression ? expression : expression
+\end{lstlisting}
+
+次に例を示します。
+
+\lstinputlisting[style=customc]{patterns/07_jcc/cond_operator/cond.c}
+
+\subsubsection{x86}
+
+古いコンパイラと最適化していないコンパイラは、\TT{if/else}文が使用されたかのようにアセンブリコードを生成します。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2008,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2008_JA.asm}
+
+\lstinputlisting[caption=\Optimizing MSVC 2008,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2008_Ox_JA.asm}
+
+新しいコンパイラはより簡潔です。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2012_Ox_x64_JA.asm}
+
+\myindex{x86!\Instructions!CMOVcc}
+x86用の\Optimizing GCC 4.8も\TT{CMOVcc}命令を使用し、非最適化GCC 4.8は条件付きジャンプを使用します。
+
+\subsubsection{ARM}
+
+\myindex{x86!\Instructions!ADRcc}
+ARMモード用の \Optimizing Keilでは、条件付き命令\TT{ADRcc}を使います。
+
+\lstinputlisting[label=cond_Keil_ARM_O3,caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/cond_operator/Keil_ARM_O3_JA.s}
+
+手動で介入しなければ、2つの命令\TT{ADREQ} と \TT{ADRNE}を同じときにで実行することはできません。
+
+Thumbモードでは、 \Optimizing Keilは、条件付きフラグをサポートするロード命令がないため、
+条件付きジャンプ命令を使用する必要があります。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/cond_operator/Keil_thumb_O3_JA.s}
+
+\subsubsection{ARM64}
+
+ARM64の \Optimizing GCC（Linaro）4.9でも、条件付きジャンプが使用されます。
+
+\lstinputlisting[label=cond_ARM64,caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/07_jcc/cond_operator/ARM64_GCC_O3_JA.s}
+
+これは、ARM64には32ビットARMモードの\TT{ADRcc}やx86の\INS{CMOVcc}などの
+条件フラグを伴った単純なロード命令がないためです。
+
+\myindex{ARM!\Instructions!CSEL}
+しかし、\q{Conditional SELect}命令（\TT{CSEL}）\InSqBrackets{\ARMSixFourRef p390, C5.5}を使用していますが、
+GCC 4.9ではこのようなコードの中で使用するには十分スマートではないようです。
+
+\subsubsection{MIPS}
+
+残念ながら、MIPS用のGCC 4.4.5はそれほどスマートではありません。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/07_jcc/cond_operator/MIPS_O3_JA.s}
+
+\subsubsection{\TT{if/else}の方法で書き直しましょう}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/cond_operator/cond2.c}
+
+\myindex{x86!\Instructions!CMOVcc}
+
+興味深いことに、x86用のGCC 4.8の最適化は、この場合に\TT{CMOVcc}を使用することもできました。
+
+\lstinputlisting[caption=\Optimizing GCC 4.8,style=customasmx86]{patterns/07_jcc/cond_operator/cond2_GCC_O3_JA.s}
+
+ARMモードの \Optimizing Keilでは、\lstref{cond_Keil_ARM_O3}と同じコードが生成されます。
+
+しかし、MSVC 2012の最適化は（まだ）あまり良くありません。
+
+\subsubsection{\Conclusion{}}
+
+コンパイラを最適化するとどうして条件付きジャンプを取り除こうとするのでしょうか？以下を読んでください：\myref{branch_predictors}

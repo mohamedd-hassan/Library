@@ -1,0 +1,20 @@
+\chapter{Dynamic binary instrumentation}
+
+Les outils \ac{DBI} peuvent être vus comme des débogueurs très avancés et rapide.
+
+% sections
+\input{DBI/XOR/main_FR}
+\input{DBI/minesweeper/main_FR}
+\input{DBI/build_Pin_FR}
+
+\section{Pourquoi ``instrumentation''?}
+
+Peut-être que c'est un terme de profilage de code.
+Il y a au moins deux méthodes:
+1) "échantillonnage": vous rentrez dans le code se déroulant autant de fois que possible
+(des centaines par seconde), et regardez, où en est l'exécution à ce moment;
+2) "instrumentation": le code compilé est intercalé avec de l'autre code, qui peut
+incrémenter des compteurs, etc.
+
+Peut-être que les outils \ac{DBI} ont hérités du terme?
+

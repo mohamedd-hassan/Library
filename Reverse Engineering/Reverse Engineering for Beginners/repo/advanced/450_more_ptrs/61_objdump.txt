@@ -1,0 +1,9 @@
+0000054d <check_protection>:
+ 54d:   55                      push   %ebp
+ 54e:   89 e5                   mov    %esp,%ebp
+ 550:   e8 b7 00 00 00          call   60c <__x86.get_pc_thunk.ax>
+ 555:   05 7f 1a 00 00          add    $0x1a7f,%eax
+ 55a:   b8 00 00 00 00          mov    $0x0,%eax
+ 55f:   5d                      pop    %ebp
+ 560:   c3                      ret
+

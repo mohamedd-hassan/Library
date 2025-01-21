@@ -1,0 +1,27 @@
+\subsubsection{Obtenir la dimension d'un tableau multidimensionnel}
+\myindex{Hex-Rays}
+
+Toute fonction de traitement de chaîne, à laquelle un tableau de caractère lui est passée,
+ne peut pas en déduire la taille de ce tableau en entrée.
+
+Par exemple:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2.c}
+
+\dots si compilé (par n'importe quel compilateur) et ensuite décompilé par Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2_hexrays.c}
+
+Il n'y a pas moyen de trouver la taille de la première dimension.
+Si la valeur $x$ passée est trop grosse, un dépassement de tampon peut se produire,
+un élément d'un endroit aléatoire en mémoire sera lu.
+
+Et un tableau 3D:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3.c}
+
+Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3_hexrays.c}
+
+À nouveau, seules deux des 3 dimensions peuvent être déduites.

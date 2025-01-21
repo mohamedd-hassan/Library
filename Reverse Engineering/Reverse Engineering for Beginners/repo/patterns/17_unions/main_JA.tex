@@ -1,0 +1,48 @@
+\mysection{共用体}
+
+\CCpp \emph{共用体}は、あるデータ型の変数（またはメモリブロック）を別のデータ型の変数として解釈するために使用されます。
+
+% sections
+\input{patterns/17_unions/FPU_PRNG/main}
+\input{patterns/17_unions/epsilon/main}
+\input{patterns/17_unions/FSCALE_JA}
+
+\subsection{高速平方根計算}
+
+\Tfloat が整数として解釈される別のよく知られたアルゴリズムは平方根の高速計算です。
+
+\begin{lstlisting}[caption=ソースコードはウィキペディアから取りました: \url{https://en.wikipedia.org/wiki/Methods_of_computing_square_root},style=customc]
+/* floatはIEEE 754形式の単精度浮動小数点数で、
+ * intは32ビットです。 */
+float sqrt_approx(float z)
+{
+    int val_int = *(int*)&z; /* 同じビットだが、intとして扱われる */
+    /*
+     * 次のコードを正当化するため、以下を証明せよ
+     *
+     * ((((val_int / 2^m) - b) / 2) + b) * 2^m = ((val_int - 2^m) / 2) + ((b + 1) / 2) * 2^m)
+     *
+     * 以下の条件において
+     *
+     * b = 指数バイアス
+     * m = 仮数ビットの数
+     *
+     * .
+     */
+ 
+    val_int -= 1 << 23; /* 2^m を除算 */
+    val_int >>= 1; /* 2で除算 */
+    val_int += 1 << 29; /* ((b + 1) / 2) * 2^m を加算 */
+ 
+    return *(float*)&val_int; /* float型として再び解釈 */
+}
+\end{lstlisting}
+
+演習として、この関数をコンパイルして、その機能を理解することを試みることができます。\\
+\\
+$\frac{1}{\sqrt{x}}$の高速計算のよく知られたアルゴリズムもあります。
+\myindex{Quake III Arena}
+Quake III Arenaで使用されていたため、アルゴリズムが普及したと考えられます。
+
+アルゴリズムの説明はWikipediaにあります：\url{http://en.wikipedia.org/wiki/Fast_inverse_square_root}
+

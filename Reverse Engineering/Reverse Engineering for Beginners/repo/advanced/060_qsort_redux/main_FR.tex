@@ -1,0 +1,38 @@
+\section{qsort() revisité}
+
+(Revenons au fait que l'instruction \INS{CMP} fonctionne comme \INS{SUB}: \myref{CMPandSUB}.)
+
+\myindex{\CStandardLibrary!qsort()}
+\myindex{x86!\Instructions!CMP}
+\myindex{x86!\Instructions!SUB}
+Maintenant que vous êtes déjà familier avec la fonction qsort() (\myref{qsort}),
+voici un bel exemple où l'opération de comparaison (\INS{CMP}) peut être remplacée
+par l'opération de soustraction (\INS{SUB}).
+
+\begin{lstlisting}[style=customc]
+/* fonction de comparaison qsort int */ 
+int int_cmp(const void *a, const void *b) 
+{ 
+    const int *ia = (const int *)a; // casting de types de pointeur
+    const int *ib = (const int *)b;
+    return *ia  - *ib; 
+	/* comparaison d'entier: renvoie négatif si if b > a 
+	et positif si a > b */ 
+} 
+\end{lstlisting}
+
+( \url{http://www.anyexample.com/programming/c/qsort__sorting_array_of_strings__integers_and_structs.xml} \url{http://archive.is/Hh3jz} )
+
+\myindex{\CStandardLibrary!strcmp()}
+Aussi, une implémentation typique de \verb|strcmp()| (tiré d'OpenBSD):
+
+\begin{lstlisting}[style=customc]
+int
+strcmp(const char *s1, const char *s2)
+{
+	while (*s1 == *s2++)
+		if (*s1++ == 0)
+			return (0);
+	return (*(unsigned char *)s1 - *(unsigned char *)--s2);
+}
+\end{lstlisting}

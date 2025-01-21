@@ -1,0 +1,9 @@
+\mysection{Zwracanie wartości raz jeszcze}
+
+Znając pojęcie prologu i epilogu, skompilujmy raz jeszcze przykład z wartością zwracaną
+(\myref{ret_val_func}, \myref{lst:ret_val_func}) za pomocą GCC z wyłączoną optymalizacją:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/017_ret_redux/1.s}
+
+Instrukcje realizujące działanie programu to \INS{MOV} i \INS{RET} -- pozostałe to prolog i epilog.
+

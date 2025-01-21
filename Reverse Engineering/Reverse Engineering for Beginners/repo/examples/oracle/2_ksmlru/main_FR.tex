@@ -1,0 +1,119 @@
+﻿\subsection{Table \TT{X\$KSMLRU} dans \oracle}
+\myindex{\oracle}
+
+Il y a une mention d'une table spéciale dans la note \emph{Diagnosing and Resolving
+Error ORA-04031 on the Shared Pool or Other Memory Pools [Video] [ID 146599.1]}:
+
+\begin{framed}
+\begin{quotation}
+Il y a une table fixée appelée X\$KSMLRU qui suit les différentes allocations dans
+le pool partagé qui force les autres objets du pool partagé à vieillir. Cette table
+fixée peut être utilisée pour identifier ce qui cause une grosse allocation.
+
+Si plusieurs objets sont supprimés périodiquement du pool partagé, alors ceci va poser des problèmes de temps de réponse
+et va probablement provoquer des problèmes de contention du verrou de cache de bibliothèque lorsque
+les objets seront rechargés dans le pool partagé.
+
+Une chose inhabituelle à propos de la table fixée X\$KSMLRU est que le contenu de la table fixée est écrasé à chaque fois que
+quelqu'uni effectue requête dans la table fixée. Ceci est fait puisque la table fixée ne contient que l'allocation la plus large
+qui s'est produite. Les valeurs sont réinitialisées après avoir été sélectionnées, de sorte que les allocations importantes
+suivantes puissent ête inscrites, même si elles ne sont pas aussi laarges que celles qui se sont produites précédemment.
+À cause de cette réinitialisation, la sortie produite par la sélection de cette table doit être soigneusement conservée
+puisqu'elle ne peut plus être récupérée après que la requête a été faite.
+\end{quotation}
+\end{framed}
+
+Toutefois, comme on peut le vérifier facilement, le contenu de cette table est effacé à chaque fois qu'on l'interroge.
+Pouvons-nous trouver pourquoi?
+Retournons aux tables que nous connaissons déjà: \TT{kqftab} et \TT{kqftap} qui
+sont générées avec l'aide d'\oracletables, qui a toutes les informations concernant les table X\$-.
+Nous pouvons voir ici que la fonction \TT{ksmlrs()} est appelée pour préparer les éléments de cette table:
+
+\begin{lstlisting}[caption=Résultat de \OracleTablesName]
+kqftab_element.name: [X$KSMLRU] ?: [ksmlr] 0x4 0x64 0x11 0xc 0xffffc0bb 0x5
+kqftap_param.name=[ADDR] ?: 0x917 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[INDX] ?: 0xb02 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[INST_ID] ?: 0xb02 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[KSMLRIDX] ?: 0xb02 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[KSMLRDUR] ?: 0xb02 0x0 0x0 0x0 0x4 0x4 0x0
+kqftap_param.name=[KSMLRSHRPOOL] ?: 0xb02 0x0 0x0 0x0 0x4 0x8 0x0
+kqftap_param.name=[KSMLRCOM] ?: 0x501 0x0 0x0 0x0 0x14 0xc 0x0
+kqftap_param.name=[KSMLRSIZ] ?: 0x2 0x0 0x0 0x0 0x4 0x20 0x0
+kqftap_param.name=[KSMLRNUM] ?: 0x2 0x0 0x0 0x0 0x4 0x24 0x0
+kqftap_param.name=[KSMLRHON] ?: 0x501 0x0 0x0 0x0 0x20 0x28 0x0
+kqftap_param.name=[KSMLROHV] ?: 0xb02 0x0 0x0 0x0 0x4 0x48 0x0
+kqftap_param.name=[KSMLRSES] ?: 0x17 0x0 0x0 0x0 0x4 0x4c 0x0
+kqftap_param.name=[KSMLRADU] ?: 0x2 0x0 0x0 0x0 0x4 0x50 0x0
+kqftap_param.name=[KSMLRNID] ?: 0x2 0x0 0x0 0x0 0x4 0x54 0x0
+kqftap_param.name=[KSMLRNSD] ?: 0x2 0x0 0x0 0x0 0x4 0x58 0x0
+kqftap_param.name=[KSMLRNCD] ?: 0x2 0x0 0x0 0x0 0x4 0x5c 0x0
+kqftap_param.name=[KSMLRNED] ?: 0x2 0x0 0x0 0x0 0x4 0x60 0x0
+kqftap_element.fn1=ksmlrs
+kqftap_element.fn2=NULL
+\end{lstlisting}
+
+\myindex{tracer}
+En effet, avec l'aide de \tracer, il est facile de voir que cette fonction est appelée
+à chaque fois que nous interrogeons la table \TT{X\$KSMLRU}.
+
+\myindex{\CStandardLibrary!memset()}
+Ici nous voyons une référence aux fonctions \TT{ksmsplu\_sp()} et \TT{ksmsplu\_jp()},
+chacune d'elles appelle \TT{ksmsplu()} à la fin.
+À la fin de la fonction \TT{ksmsplu()} nous voyons un appel à \TT{memset()}:
+
+\begin{lstlisting}[caption=ksm.o,style=customasmx86]
+...
+
+.text:00434C50 loc_434C50:    ; DATA XREF: .rdata:off\_5E50EA8
+.text:00434C50         mov     edx, [ebp-4]
+.text:00434C53         mov     [eax], esi
+.text:00434C55         mov     esi, [edi]
+.text:00434C57         mov     [eax+4], esi
+.text:00434C5A         mov     [edi], eax
+.text:00434C5C         add     edx, 1
+.text:00434C5F         mov     [ebp-4], edx
+.text:00434C62         jnz     loc_434B7D
+.text:00434C68         mov     ecx, [ebp+14h]
+.text:00434C6B         mov     ebx, [ebp-10h]
+.text:00434C6E         mov     esi, [ebp-0Ch]
+.text:00434C71         mov     edi, [ebp-8]
+.text:00434C74         lea     eax, [ecx+8Ch]
+.text:00434C7A         push    370h            ; Size
+.text:00434C7F         push    0               ; Val
+.text:00434C81         push    eax             ; Dst
+.text:00434C82         call    __intel_fast_memset
+.text:00434C87         add     esp, 0Ch
+.text:00434C8A         mov     esp, ebp
+.text:00434C8C         pop     ebp
+.text:00434C8D         retn
+.text:00434C8D _ksmsplu  endp
+\end{lstlisting}
+
+Des constructions comme \TT{memset (block, 0, size)} sont souvent utilisées pour
+mettre à zéro un bloc de mémoire.
+Que se passe-t-il si nous prenons le risque de bloquer l'appel à \TT{memset (block, 0, size)}
+et regardons ce qui se produit?
+
+\myindex{tracer}
+
+Lançons \tracer avec les options suivantes: mettre un point d'arrêt en \TT{0x434C7A}
+(le point où les arguments sont passés à \TT{memset()}), afin que \tracer mette le compteur de programme \TT{EIP} au point
+où les arguments passés à \TT{memset()} sont éffacés (en \TT{0x434C8A}).
+On peut dire que nous simulons juste un saut inconditionnel de l'adresse \TT{0x434C7A} à \TT{0x434C8A}.
+
+\begin{lstlisting}
+tracer -a:oracle.exe bpx=oracle.exe!0x00434C7A,set(eip,0x00434C8A)
+\end{lstlisting}
+
+(Important: toutes ces adresses sont valides seulement pour la version win32 de \oracle 11.2)
+
+En effet, nous pouvons maintenant interroger la table \TT{X\$KSMLRU} autant de fois
+que nous voulons et elle n'est plus du tout effacée!
+
+% \sout{Do not try this at home ("MythBusters")}
+Au cas où, n'essayez pas ceci sur vos serveurs de production.
+
+Ce n'est probablement pas un comportement très utile ou souhaité, mais comme une
+expérience pour déterminer l'emplacement d'un bout de code dont nous avons besoin,
+ça remplit parfaitement notre besoin!
+

@@ -1,0 +1,41 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/15_structs/4_packing/packing_Keil_thumb.asm}
+
+思い出されるように、ここでは1つのポインタの代わりに構造体が渡されます。
+ARMの最初の4つの関数引数はレジスタを介して渡されるので、
+構造体のフィールドは\TT{R0-R3}を介して渡されます。
+
+\myindex{ARM!\Instructions!LDRB}
+\myindex{x86!\Instructions!MOVSX}
+\TT{LDRB}はメモリから1バイトをロードし、その符号を考慮して32ビットに拡張します。 
+これはx86の \MOVSX に似ています。 
+ここでは、構造体からフィールド $a$ および $c$ をロードするために使用されます。
+
+\myindex{Function epilogue}
+
+私たちが簡単に見つけたもう1つのことは、関数エピローグの代わりに、別の関数のエピローグにジャンプすることです！ 
+確かに、これはまったく異なる機能であり、私たちとは何ら関係がありませんでしたが、まったく同じ
+エピローグを持っています
+（おそらく、ローカル変数を5つ含んでいるからです
+（$5*4=0x14$））。
+
+また近くに位置しています（アドレスを見てください）。
+
+実際、私たちが必要としているように動作すれば、
+どのエピローグが実行されるかは問題ではありません。
+
+どうやら、Keilは別の関数の一部を再利用して節約するように決めているようです。
+
+エピローグはジャンプに4バイト取ります。
+
+\myparagraph{ARM + \OptimizingXcodeIV (\ThumbTwoMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]{patterns/15_structs/4_packing/packing_Xcode_thumb_EN.asm}
+
+\myindex{ARM!\Instructions!SXTB}
+\myindex{x86!\Instructions!MOVSX}
+\TT{SXTB} (\emph{Signed Extend Byte}) はx86の \MOVSX に似ています。
+残りの部分はすべて同じです。

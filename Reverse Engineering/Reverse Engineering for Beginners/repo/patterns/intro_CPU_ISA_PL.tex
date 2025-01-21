@@ -1,0 +1,61 @@
+\subsection{Krótkie wprowadzenie do CPU}
+
+\ac{CPU} (procesor) jest urządzeniem, które wykonuje bezpośrednio kod maszynowy programu.
+
+\textbf{Terminologia:}
+
+\begin{description}
+\item[Instrukcja]: prymitywny rozkaz \ac{CPU}.
+Najprostsze przykłady: przenoszenie (kopiowanie) danych między rejestrami, korzystanie z pamięci (zapis/odczyt), proste operacje arytmetyczne.
+
+Z reguły każdy \ac{CPU} ma swój zestaw instrukcji (\ac{ISA}).
+
+\item[Kod maszynowy]: kod wykonywany bezpośrednio przez \ac{CPU}. 
+Każda instrukcja kodu maszynowego zwykle jest kodowana za pomocą kilku bajtów.
+\item[Język asemblera]: kod maszynowy plus niektóre rozszerzenia (np. makra), stworzone po to, żeby ułatwić pracę programiście.
+\item[Rejestr CPU]: Każdy \ac{CPU} ma swój zestaw rejestrów ogólnego przeznaczenia (\ac{GPR}).
+$\approx 8$ w x86, $\approx 16$ w x86-64 i $\approx 16$ w ARM.
+Najłatwiej myśleć o rejestrze jak o zmiennej tymczasowej bez określonego typu.
+Wyobraź sobie, że pisząc w języku wyższego poziomu, masz dostępnych tylko 8 zmiennych o szerokości 32 (lub 64) bitów.
+Te 8 zmiennych to właśnie rejestry. Wbrew pozorom można z nimi naprawdę wiele zrobić!
+\end{description}
+
+Dlaczego występują języki niższego i wyższego poziomu? Odpowiedź jest prosta: ludzie i procesory różnią się między sobą - dla człowieka jest o wiele łatwiej pisać w wysokopoziomowym języku programowania typu \CCpp, Java czy Python, а dla procesora łatwiej jest pracować na niższym poziomie abstrakcji.
+Zapewne można by zbudować procesor, który wykonywałby kod wysokiego poziomu, ale jego budowa byłaby dużo bardziej skomplikowana niż  budowa procesorów jakie obecnie znamy.
+I odwrotnie, pisanie w języku asemblera jest dla ludzi bardzo niewygodne, z uwagi na jego niski poziom i trudność kodowania bez popełniania całej masy drobnych błędów.
+Program, który potrafi konwertować język wysokiego poziomu na kod asemblera, nazywamy \emph{kompilatorem}.
+
+\myindex{ARM!\ARMMode}%
+\myindex{ARM!\ThumbMode}%
+\myindex{ARM!\ThumbTwoMode}%
+
+\subsubsection{Kilka słów o różnicy między \ac{ISA}}
+x86 od zawsze zawierało instrukcje o różnej długości, więc kiedy nadeszła era 64-bitowej architektury, rozszerzenia x64 nie wpłynęły znacząco na \ac{ISA}.
+
+ARM to procesor \ac{RISC} zaprojektowany tak, żeby zawierał wszystkie instrukcje tej samej długości, co miało sporo zalet w przeszłosci.
+Na samym początku wszystkie instrukcje ARM były kodowane na czterech bajtach (obecnie \q{tryb ARM})%
+\footnote{
+Instrukcje o stałym rozmiarze są wygodne, bo dzięki temu można łatwo znaleźć adres następnej (lub poprzedniej) instrukcji. Dokładniejsze wyjaśnienie znajduje się w sekcji o operatorze switch()~(\myref{sec:SwitchARMLot}).
+}.
+
+Później się okazało, że nie jest to zbyt ekonomiczne, bo najczęściej używane przez procesor instrukcje\footnote{Są nimi MOV/PUSH/CALL/Jcc} mogą być zakodowane z wykorzystaniem mniejszej ilości informacji.
+Więc dodano inną \ac{ISA} o nazwie "Thumb", gdzie każda instrukcja jest kodowana za pomocą tylko 2 bajtów.
+Jednak nie \emph{wszystkie} instrukcje ARM mogą być zakodowane na 2 bajtach, więc zestaw instrukcji Thumb jest ograniczony.
+Kod skompilowany dla trybu ARM i Thumb może współdziałać w jednym programie.
+
+Później twórcy ARM stwierdzili, że Thumb można rozszerzyć: tak pojawił się Thumb-2 (w ARMv7).
+Thumb-2 to wciąż dwubajtowe instrukcje, ale niektóre nowe instrukcje mają długość 4 bajtów.
+Szeroko rozpowszechnioną i błędną opinią jest to, że Thumb-2 to mieszanina ARM i Thumb.
+Tryb Thumb-2 został rozszerzony w celu wsparcia dla wszystkich możliwości procesora, by mógł
+konkurować z trybem ARM---co zostało w pełni osiągnięte, gdyż większość aplikacji na urządzenia \idevices są skompilowane dla
+zestawu instrukcji Thumb-2, (trzeba przyznać, że w dużej mierze jest to zasługa Xcode, który robi to domyślnie).
+
+Później pojawił się 64-bitowy ARM. Jest to \ac{ISA} znowu z 4-bajtowymi instrukcjami, bez dodatkowego trybu Thumb.
+Jednak nowe 64-bitowe wymagania wpłyneły na \ac{ISA} tak, że obecnie mamy 3 zestawy instrukcji ARM: tryb ARM, tryb Thumb/Thumb-2 i ARM64.
+Te zestawy instrukcji częściowo się pokrywają, ale można powiedzieć, że są to różne zestawy a nie wariacje tego samego \ac{ISA}.
+W tej książce postaramy się zaprezentować fragmenty kodu we wszystkich trzech trybach \ac{ISA}.
+\myindex{PowerPC}%
+\myindex{MIPS}%
+\myindex{Alpha AXP}%
+Istnieje jeszcze wiele innych \ac{RISC} \ac{ISA} z instrukcjami 32-bitowej długości~--- np. MIPS, PowerPC i Alpha AXP.
+

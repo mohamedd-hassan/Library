@@ -1,0 +1,146 @@
+\subsection{Instructions}
+
+There is a \emph{-S} suffix for some instructions in ARM,
+indicating that the instruction sets the flags according to the result.
+Instructions which lacks this suffix are not modify flags.
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!ADDS}
+\myindex{ARM!\Instructions!CMP}
+For example \TT{ADD} unlike \TT{ADDS}
+will add two numbers, but the flags will not be touched.
+Such instructions are convenient to use between \CMP where the flags are set and, 
+e.g. conditional jumps, where the flags are used.
+They are also better in terms of data dependency analysis 
+(because less number of registers are modified during execution).
+
+% ADD
+% ADDAL
+% ADDCC
+% ADDS
+% ADR
+% ADREQ
+% ADRGT
+% ADRHI
+% ADRNE
+% ASRS
+% B
+% BCS
+% BEQ
+% BGE
+% BIC
+% BL
+% BLE
+% BLEQ
+% BLGT
+% BLHI
+% BLS
+% BLT
+% BLX
+% BNE
+% BX
+% CMP
+% IDIV
+% IT
+% LDMCSFD
+% LDMEA
+% LDMED
+% LDMFA
+% LDMFD
+% LDMGEFD
+% LDR.W
+% LDR
+% LDRB.W
+% LDRB
+% LDRSB
+% LSL.W
+% LSL
+% LSLS
+% MLA
+% MOV
+% MOVT.W
+% MOVT
+% MOVW
+% MULS
+% MVNS
+% ORR
+% POP
+% PUSH
+% RSB
+% SMMUL
+% STMEA
+% STMED
+% STMFA
+% STMFD
+% STMIA
+% STMIB
+% STR
+% SUB
+% SUBEQ
+% SXTB
+% TEST
+% TST
+% VADD
+% VDIV
+% VLDR
+% VMOV
+% VMOVGT
+% VMRS
+% VMUL
+%\myindex{ARM!Optional operators!ASR
+%\myindex{ARM!Optional operators!LSL
+%\myindex{ARM!Optional operators!LSR
+%\myindex{ARM!Optional operators!ROR
+%\myindex{ARM!Optional operators!RRX
+
+% AArch64
+% RET is BR X30 or BR LR but with additional hint to CPU
+
+\subsubsection{Conditional codes table}
+
+% TODO rework this!
+\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Code & 
+\HeaderColor Description & 
+\HeaderColor Flags \\
+\hline
+EQ & Equal & Z == 1 \\
+\hline
+NE & Not equal & Z == 0 \\
+\hline
+CS \ac{AKA} HS (Higher or Same) & Carry set / Unsigned, Greater than, equal & C == 1 \\
+\hline
+CC \ac{AKA} LO (LOwer) & Carry clear / Unsigned, Less than & C == 0 \\
+\hline
+MI & Minus, negative / Less than & N == 1 \\
+\hline
+PL & Plus, positive or zero / Greater than, equal & N == 0 \\
+\hline
+VS & Overflow & V == 1 \\
+\hline
+VC & No overflow & V == 0 \\
+\hline
+HI & Unsigned higher / Greater than & C == 1 and \\
+ & & Z == 0 \\
+\hline
+LS & Unsigned lower or same / Less than or equal & C == 0 or \\
+ & & Z == 1 \\
+\hline
+GE & Signed greater than or equal / Greater than or equal & N == V \\
+\hline
+LT & Signed less than / Less than & N != V \\
+\hline
+GT & Signed greater than / Greater than & Z == 0 and \\
+ & & N == V \\
+\hline
+LE & Signed less than or equal / Less than, equal & Z == 1 or \\
+ & & N != V \\
+\hline
+None / AL & Always & Any \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+

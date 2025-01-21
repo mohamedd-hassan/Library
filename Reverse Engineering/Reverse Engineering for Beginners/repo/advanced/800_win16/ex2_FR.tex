@@ -1,0 +1,53 @@
+\subsection{\Example{} \#2}
+\label{win16_messagebox}
+
+\begin{lstlisting}[style=customc]
+#include <windows.h>
+
+int PASCAL WinMain( HINSTANCE hInstance,
+                    HINSTANCE hPrevInstance,
+                    LPSTR lpCmdLine,
+                    int nCmdShow )
+{
+	MessageBox (NULL, "hello, world", "caption", MB_YESNOCANCEL);
+	return 0;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86]
+WinMain         proc near
+                push    bp
+                mov     bp, sp
+                xor     ax, ax          ; NULL
+                push    ax
+                push    ds
+                mov     ax, offset aHelloWorld ; 0x18. "hello, world"
+                push    ax
+                push    ds
+                mov     ax, offset aCaption ; 0x10. "caption"
+                push    ax
+                mov     ax, 3           ; MB\_YESNOCANCEL
+                push    ax
+                call    MESSAGEBOX
+                xor     ax, ax          ; return 0
+                pop     bp
+                retn    0Ah
+WinMain         endp
+
+dseg02:0010 aCaption        db 'caption',0
+dseg02:0018 aHelloWorld     db 'hello, world',0
+\end{lstlisting}
+
+\myindex{x86!\Instructions!RET}
+Quelques points importants ici: la convention d'appel \TT{PASCAL} impose de passer
+le premier argument en premier (\TT{MB\_YESNOCANCEL}), et le dernier argument --- en dernier (NULL).
+Cette convention demande aussi à l'\glslink{callee}{appelant} de restaurer le \glslink{stack pointer}{pointeur de pile}:
+D'où l'instruction \TT{RETN} qui a \TT{0Ah} comme argument, ce qui implique que le
+pointeur sera incrémenté de 10 octets lorsque l'on sortira de la fonction.
+C'est comme stdcall (\myref{sec:stdcall}), mais les arguments sont passés dans l'ordre
+\q{naturel}.
+
+Les pointeurs sont passés par paire: d'abord le segment de données, puis le pointeur
+dans le segment.
+Il y a seulemnt un segment dans cet exemple, donc \TT{DS} pointe toujours sur le segment
+de données de l'exécutable.

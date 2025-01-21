@@ -1,0 +1,111 @@
+﻿\subsection{x64: MSVC 2013 \Optimizing}
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{\CURPATH/MSVC2013_x64_Ox_FR.asm}
+
+Tout d'abord, MSVC a inliné le code la fonction \strlen{}, car il en a conclus que
+ceci était plus rapide que le \strlen{} habituel + le coût de l'appel et du retour.
+Ceci est appelé de l'inlining: \myref{inline_code}.
+
+\myindex{x86!\Instructions!OR}
+\myindex{\CStandardLibrary!strlen()}
+\label{using_OR_instead_of_MOV}
+La première instruction de \strlen{} mis en ligne est\\
+\TT{OR RAX, 0xFFFFFFFFFFFFFFFF}. 
+
+MSVC utilise souvent \TT{OR} au lieu de \TT{MOV RAX, 0xFFFFFFFFFFFFFFFF}, car l'opcode
+résultant est plus court.
+
+Et bien sûr, c'est équivalent: tous les bits sont mis à 1, et un nombre avec tous
+les bits mis vaut $-1$ en complément à 2.
+
+On peut se demander pourquoi le nombre $-1$ est utilisé dans \strlen{}.
+À des fins d'optimisation, bien sûr.
+Voici le code que MSVC a généré:
+
+\lstinputlisting[caption=Inlined \strlen{} by MSVC 2013 x64,style=customasmx86]{\CURPATH/strlen_MSVC_FR.asm}
+
+Essayez d'écrite plus court si vous voulez initialiser le compteur à 0!
+OK, essayons:
+
+\lstinputlisting[caption=Our version of \strlen{},style=customasmx86]{\CURPATH/my_strlen_FR.asm}
+
+Nous avons échoué. Nous devons utilisé une instruction \INS{JMP} additionnelle!
+
+Donc, ce que le compilateur de MSVC 2013 a fait, c'est de déplacer l'instruction
+\TT{INC} avant le chargement du caractère courant.
+
+Si le premier caractère est 0, c'est OK, \RAX contient 0 à ce moment, donc la longueur
+de la chaîne est 0.
+
+Le reste de cette fonction semble facile à comprendre.
+
+\subsection{x64: GCC 4.9.1 \NonOptimizing}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/GCC491_x64_O0_FR.asm}
+
+Les commentaires ont été ajoutés par l'auteur du livre.
+
+Après l'exécution de \strlen{}, le contrôle est passé au label L2, et ici deux clauses
+sont vérifiées, l'une après l'autre.
+
+\myindex{\CLanguageElements!Short-circuit}
+La seconde ne sera jamais vérifiée, si la première (\emph{str\_len==0}) est fausse
+(ceci est un \q{short-circuit} (court-circuit)).
+
+Maintenant regardons la forme courte de cette fonction:
+
+\begin{itemize}
+\item Première partie de for() (appel à \strlen{})
+\item goto L2
+\item L5: corps de for(). sauter à la fin, si besoin
+\item troisième partie de for() (décrémenter str\_len)
+\item L2: 
+deuxième partie de for(): vérifier la première clause, puis la seconde. sauter au
+début du corps de la boucle ou sortir.
+\item L4: // sortir
+\item renvoyer s
+\end{itemize}
+
+\subsection{x64: GCC 4.9.1 \Optimizing}
+\label{string_trim_GCC_x64_O3}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/GCC491_x64_O3_FR.asm}
+
+Maintenant, c'est plus complexe.
+
+Le code avant le début du corps de la boucle est exécuté une seule fois, mais il contient
+le test des caractères \CRLF{} aussi!
+À quoi sert cette duplication du code?
+
+La façon courante d'implémenter la boucle principale est sans doute ceci:
+
+\begin{itemize}
+\item (début de la boucle) tester la présence des caractères \CRLF{}, décider
+\item stocker le caractère zéro
+\end{itemize}
+
+Mais GCC a décidé d'inverser ces deux étapes.
+
+Bien sûr,  \emph{stocker le caractère zéro} ne peut pas être la première étape, donc
+un autre test est nécessaire:
+
+\begin{itemize}
+\item traiter le premier caractère. matcher avec \CRLF{}, sortir si le caractère
+n'est pas \CRLF{}
+
+\item (début de la boucle) stocker le caractère zéro
+
+\item tester la présence des caractères \CRLF{}, décider
+\end{itemize}
+
+Maintenant la boucle principale est très courte, ce qui est bon pour les derniers
+\ac{CPU}s.
+
+Le code n'utilise pas la variable str\_len, mais str\_len-1.
+Donc c'est plus comme un index dans un buffer.
+
+Apparemment, GCC a remarqué que l'expression str\_len-1 est utilisée deux fois.
+
+Donc, c'est mieux d'allouer une variable qui contient toujours une valeur qui est
+plus petite que la longueur actuelle de la chaîne de un, et la décrémente (ceci a
+le même effet que de décrémenter la variable str\_len).

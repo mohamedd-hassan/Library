@@ -1,0 +1,42 @@
+﻿\subsection{malloc()を使って構造体のための領域を割り当てよう}
+\label{struct_malloc_example}
+
+
+場合によっては、ローカルスタックではなく\gls{heap}内に構造体を配置する方が簡単な場合があります。
+
+\lstinputlisting[style=customc]{patterns/15_structs/2_using_malloc/systemtime_malloc.c}
+
+
+最適化（\Ox）でコンパイルして、必要なものを見るのは簡単です。
+
+\lstinputlisting[caption=\Optimizing MSVC,style=customasmx86]{patterns/15_structs/2_using_malloc/systemtime_malloc.asm}
+
+\myindex{\CStandardLibrary!malloc()}
+
+したがって、\TT{sizeof(SYSTEMTIME) = 16}であり、これはmalloc（）によって割り当てられる正確なバイト数です。 
+\EAX レジスタ内の新しく割り当てられたメモリブロックへのポインタを返し、
+\ESI レジスタに移動します。
+\TT{GetSystemTime()} win32関数は \ESI の値を保存するため、
+ここで保存されず、\TT{GetSystemTime()}呼び出しの後も引き続き使用されます。
+
+\myindex{x86!\Instructions!MOVZX}
+
+新しい命令~---\MOVZX (\emph{Move with Zero eXtend})。 
+ほとんどの場合、 \MOVSX として使用できますが、残りのビットは0に設定されます。
+これは \printf が32ビットの \Tint を必要とするためですが、構造体にWORDがあるためです。
+つまり、16ビットの符号なし型です。 
+そのため、WORDの値を \Tint{} にコピーすることにより、16から31までのビットをクリアする必要があります。
+ランダムノイズが存在する可能性があります。これはレジスタの前の操作から残されているためです。
+
+この例では、構造を8つのWORDの配列として表すことができます。
+
+\lstinputlisting[style=customc]{patterns/15_structs/2_using_malloc/systemtime_malloc2.c}
+
+次の結果を得ます。
+
+\lstinputlisting[caption=\Optimizing MSVC,style=customasmx86]{patterns/15_structs/2_using_malloc/systemtime_malloc2.asm}
+
+
+ここでも、前のコードと区別できないコードがあります。
+
+また、実際にあなたが何をしているのか分からない限り、実際にはこれをしないことに注意しなければなりません。

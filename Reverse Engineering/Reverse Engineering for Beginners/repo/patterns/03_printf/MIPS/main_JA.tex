@@ -1,0 +1,59 @@
+\subsection{MIPS}
+
+\subsubsection{3 arguments}
+% to be sync: \subsubsection{3 integer arguments}
+
+\myparagraph{\Optimizing GCC 4.4.5}
+
+\q{\HelloWorldSectionName} の例との主な違いは、 \puts の代わりに \printf が呼び出され、
+さらに3つの引数がレジスタ \$5\dots \$7 (または \$A0\dots \$A2 )に渡されるという点です。 
+そのため、これらのレジスタの前にA-が付いています。これは、関数引数の受け渡しに使用されることを意味します。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O3_JA.s}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O3.IDA_JA.lst}
+
+\IDA は、\INS{LUI}および\INS{ADDIU}命令のペアを1つの\INS{LA}疑似命令に統合しました。 
+だから、アドレス0x1Cに命令がないのは、\INS{LA}が8バイトを\emph{占有}しているからです。
+
+\myparagraph{\NonOptimizing GCC 4.4.5}
+
+\NonOptimizing GCC はもっと冗長です。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O0_JA.s}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O0.IDA_JA.lst}
+
+\subsubsection{8つの引数}
+% to be sync: \subsubsection{8 integer arguments}
+
+前のセクションの9つの引数を使用して、例を再度使用してみましょう：\myref{example_printf8_x64}
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{\Optimizing GCC 4.4.5}
+
+最初の4つの引数だけが \$A0 \dots \$A3 レジスタに渡され、残りはスタックを介して渡されます。
+\myindex{MIPS!O32}
+
+これはO32呼び出し規約（MIPS世界で最も一般的なもの）です。 
+他の呼び出し規則（N32のような）は、異なる目的のためにレジスタを使用するかもしれません。
+% to be sync: Other calling conventions, or manually written assembly code, may use the registers for different purposes.
+
+\myindex{MIPS!\Instructions!SW}
+
+\INS{SW}は\q{Store Word}（レジスタからメモリへ）の略語です。 
+MIPSには値をメモリに格納する命令がないため、代わりに命令ペア（\INS{LI}/\INS{SW}）を使用する必要があります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O3_JA.s}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O3.IDA_JA.lst}
+
+\myparagraph{\NonOptimizing GCC 4.4.5}
+
+\NonOptimizing GCC はもっと冗長です。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O0_JA.s}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O0.IDA_JA.lst}
+

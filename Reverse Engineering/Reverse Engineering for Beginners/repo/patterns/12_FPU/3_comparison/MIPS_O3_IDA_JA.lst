@@ -1,0 +1,15 @@
+﻿d_max:
+; \$f14<\$f12 (b<a)なら、FPU条件ビットを設定
+                c.lt.d  $f14, $f12
+                or      $at, $zero ; NOP
+; 条件ビットがセットされていたら、locret\_14にジャンプ
+                bc1t    locret_14
+; この命令は常に実行されます（戻り値に"a"を設定）
+                mov.d   $f0, $f12  ; branch delay slot
+; この命令は分岐が実行されなかったときのみ実行されます（例えばb>=aの場合）
+; 戻り値に"b"を設定
+                mov.d   $f0, $f14
+
+locret_14:
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット, NOP

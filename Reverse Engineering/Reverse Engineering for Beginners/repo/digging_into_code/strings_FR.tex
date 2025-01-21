@@ -1,0 +1,108 @@
+\mysection{Chaînes}
+\label{sec:digging_strings}
+
+\input{digging_into_code/strings/main_FR}
+
+\subsection{Trouver des chaînes dans un binaire}
+
+\epigraph{Actually, the best form of Unix documentation is frequently running the
+\textbf{strings} command over a program’s object code. Using \textbf{strings}, you can get
+a complete list of the program’s hard-coded file name, environment variables,
+undocumented options, obscure error messages, and so forth.}{The Unix-Haters Handbook}
+En fait, la meilleure forme de documentation Unix est de lancer la commande
+\textbf{strings} sur le code objet d'un programme. En utilisant \textbf{strings},
+vous obtenez une liste complète des noms de fichiers codés en dur dans le programme,
+les variables d'environnement, les options non documentées, les messages d'erreurs
+méconnus et ainsi de suite.
+
+\myindex{UNIX!strings}
+L'utilitaire standard UNIX \emph{strings} est un moyen rapide et facile de voir les
+chaînes dans un fichier.
+Par exemple, voici quelques chaînes du fichier exécutable sshd d'OpenSSH 7.2:
+
+\lstinputlisting{digging_into_code/sshd_strings.txt}
+
+Il y a des options, des messages d'erreur, des chemins de fichier, des modules et
+des fonctions importés dynamiquement, ainsi que d'autres chaînes étranges (clefs?).
+Il y a aussi du bruit illisible---le code x86 à parfois des fragments constitués de
+caractères ASCII imprimables, jusqu'à ~8 caractères.
+
+Bien sûr, OpenSSH est un programme open-source.
+Mais regarder les chaînes lisibles dans un binaire inconnu est souvent une première
+étape d'analyse.
+\myindex{UNIX!grep}
+
+\emph{grep} peut aussi être utilisé.
+
+\myindex{Hiew}
+\myindex{Sysinternals}
+Hiew a la même capacité (Alt-F6), ainsi que ProcessMonitor de Sysinternals.
+
+\subsection{Messages d'erreur/de débogage}
+
+Les messages de débogage sont très utiles s'il sont présents.
+Dans un certain sens, les messages de débogage rapportent ce qui est en train de
+se passer dans le programme. Souvent, ce sont des fonctions \printf-like, qui écrivent
+des fichiers de log, ou parfois elles n'écrivent rien du tout mais les appels sont
+toujours présents puisque le build n'est pas un de débogage mais de \emph{release}.
+\myindex{\oracle}
+
+Si des variables locales ou globales sont affichées dans les messages, ça peut être
+aussi utile, puisqu'il est possible d'obtenir au moins le nom de la variable.
+Par exemple, une telle fonction dans \oracle est \TT{ksdwrt()}.
+
+Des chaînes de texte significatives sont souvent utiles.
+Le dés-assembleur \IDA peut montrer depuis quelles fonctions et depuis quel endroit
+cette chaîne particulière est utilisée.
+Des cas drôles arrivent parfois\footnote{\href{http://blog.yurichev.com/node/32}{blog.yurichev.com}}.
+
+Le message d'erreur peut aussi nous aider.
+Dans \oracle, les erreurs sont rapportées en utilisant un groupe de fonctions.\\
+Vous pouvez en lire plus ici: \href{http://blog.yurichev.com/node/43}{blog.yurichev.com}.
+
+\myindex{Error messages}
+
+Il est possible de trouver rapidement quelle fonction signale une erreur et dans
+quelles conditions.
+
+À propos, ceci est souvent la raison pour laquelle les systèmes de protection contre
+la copie utilisent des messages d'erreur inintelligibles ou juste des numéros d'erreur.
+Personne n'est content lorsque le copieur de logiciel comprend comment fonctionne
+la protection contre la copie seulement en lisant les messages d'erreur.
+
+Un exemple de messages d'erreur chiffrés se trouve ici: \myref{examples_SCO}.
+
+\subsection{Chaînes magiques suspectes}
+
+Certaines chaînes magique sont d'habitude utilisées dans les porte dérobées semblent
+vraiment suspectes.
+
+Par exemple, il y avait une porte dérobée dans le routeur personnel TP-Link WR740%
+\footnote{\url{http://sekurak.pl/tp-link-httptftp-backdoor/}}.
+La porte dérobée était activée en utilisant l'URL suivante:\\
+\url{http://192.168.0.1/userRpmNatDebugRpm26525557/start_art.html}.\\
+
+En effet, la chaîne \q{userRpmNatDebugRpm26525557} est présente dans le firmware.
+
+Cette chaîne n'était pas googlable jusqu'à la large révélation d'information concernant
+la porte dérobée.
+
+Vous ne trouverez ceci dans aucun \ac{RFC}.
+
+Vous ne trouverez pas d'algorithme informatique qui utilise une séquence d'octets
+aussi étrange.
+
+Et elle ne ressemble pas à une erreur ou un message de débogage.
+
+Donc, c'est une bonne idée d'inspecter l'utilisation de ce genre de chaînes bizarres.\\
+\\
+\myindex{base64}
+
+Parfois, de telles chaînes sont encodées en utilisant base64.
+
+Donc, c'est une bonne idée de toutes les décoder et de les inspecter visuellement,
+même un coup d'\oe{}il doit suffire.\\
+\\
+\myindex{Sécurité par l'obscurité}
+Plus précisément, cette méthode de cacher des accès non documentés est appelée \q{sécurité par l'obscurité}.
+

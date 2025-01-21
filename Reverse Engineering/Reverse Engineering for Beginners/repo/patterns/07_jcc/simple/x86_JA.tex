@@ -1,0 +1,137 @@
+\subsubsection{x86}
+
+\myparagraph{x86 + MSVC}
+
+以下は、\TT{f\_signed()} 関数がどうなっているかを示しています。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2010,style=customasmx86]{patterns/07_jcc/simple/signed_MSVC.asm}
+
+\myindex{x86!\Instructions!JLE}
+
+最初の命令 \JLE は、\emph{Jump if Less or Equal}の場合はJumpを表します。 
+言い換えれば、第2オペランドが第1オペランドより大きいか等しい場合、
+制御フローは命令で指定されたアドレスまたはラベルに移ります。 
+第2オペランドが最初のオペランドより小さいためにこの条件がトリガされない場合、制御フローは変更されず、最初の \printf が実行されます。 
+\myindex{x86!\Instructions!JNE}
+2番目のチェックは、 \JNE ：\emph{Jump if Not Equal}です。 
+オペランドが等しい場合、制御フローは変更されません。
+
+\myindex{x86!\Instructions!JGE}
+3番目のチェックは、最初のオペランドが2番目のオペランドより大きい場合、または等しい場合は \JGE ：\emph{Jump if Greater or Equal}です。 
+したがって、3つの条件ジャンプがすべてトリガされた場合、\printf の呼び出しはまったく実行されません。 
+これは特別な介入なしには不可能です。 
+\TT{f\_unsigned()}関数を見てみましょう。 
+\TT{f\_unsigned()}関数は、次のように、 \JLE および \JGE の代わりにJBEおよびJAE命令が使用される点を除いて、
+\TT{f\_signed()}と同じです。
+
+\lstinputlisting[caption=GCC,style=customasmx86]{patterns/07_jcc/simple/unsigned_MSVC.asm}
+
+\myindex{x86!\Instructions!JBE}
+\myindex{x86!\Instructions!JAE}
+
+すでに説明したように、分岐命令は異なります。
+\JBE---\emph{Jump if Below or Equal} and \JAE---\emph{Jump if Above or Equal}
+これらの命令（\INS{JA}/\JAE/\JB/\JBE）は、 \JG/\JGE/\JL/\JLE とは、符号なしの数字で動作する点が異なります。
+
+\myindex{x86!\Instructions!JA}
+\myindex{x86!\Instructions!JB}
+\myindex{x86!\Instructions!JG}
+\myindex{x86!\Instructions!JL}
+\myindex{Signed numbers}
+
+\INS{JA}/\JB の代わりに \JG/\JL が使用されている場合や、その逆の場合は、
+変数がそれぞれ符号付きか、または符号なしなのかがほぼはっきりします。
+ここには、もう何も新しくない、 \main 関数もあります。
+
+\lstinputlisting[caption=\main,style=customasmx86]{patterns/07_jcc/simple/main_MSVC.asm}
+
+\input{patterns/07_jcc/simple/olly_JA.tex}
+
+\clearpage
+\myparagraph{x86 + MSVC + Hiew}
+\myindex{Hiew}
+
+入力値にかかわらず、\TT{f\_unsigned()}関数が常に \q{a==b}を出力するように、
+実行可能ファイルにパッチを当てることができます。 
+ここで、Hiewでどのように見えるか見てみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/hiew_unsigned1.png}
+\caption{Hiew: \TT{f\_unsigned()} 関数}
+\label{fig:jcc_hiew_1}
+\end{figure}
+
+本質的には、次の3つのタスクを実行する必要があります。
+\begin{itemize}
+\item 最初のジャンプが常に起動しなければならない
+\item 2番目のジャンプが決して起動してはならない
+\item 3番目のジャンプが常にト起動しなければならない
+\end{itemize}
+
+したがって、コードフローは常に2番目の \printf を通過し、 \q{a==b}を出力するように指示できます。 
+
+3つの命令（またはバイト）をパッチする必要があります。
+
+\begin{itemize}
+\item 最初のジャンプはJMPになりますが、\gls{jump offset}は同じままです。
+
+\item 
+2回目のジャンプがトリガされることもありますが、いずれにしても次の命令にジャンプします。
+
+なぜなら、\gls{jump offset}を0に設定しているからです。これらの命令では、ジャンプオフセットが次の命令のアドレスに追加されます。 
+オフセットが0の場合、
+ジャンプは制御を次の命令に移します。
+
+\item 
+私たちが最初のものと同様に \JMP を置き換える3番目のジャンプは、常に起動します。
+
+\end{itemize}
+
+\clearpage
+変更されたコードは次のとおりです。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/hiew_unsigned2.png}
+\caption{Hiew: let's modify the \TT{f\_unsigned()} function}
+\label{fig:jcc_hiew_2}
+\end{figure}
+
+これらのジャンプのいずれかを変更することができなければ、\printf 呼び出しを1回だけ実行したいのですが、何回か実行することになるでしょう。
+
+\myparagraph{\NonOptimizing GCC}
+
+\myindex{puts() instead of printf()}
+\NonOptimizing GCC 4.4.1 
+はほとんど同じコードを生成しますが、 \printf ではなく \puts~(\myref{puts}) が生成されます。
+
+\myparagraph{\Optimizing GCC}
+
+実行される度にフラグが同じ値を持つ場合、
+鋭い読者はなぜ \CMP が何度も実行されるのかと尋ねるかもしれません。
+
+おそらく、最適化されたMSVCではこうはできませんが、GCC 4.8.1の最適化はより深刻です。
+
+\lstinputlisting[caption=GCC 4.8.1 f\_signed(),style=customasmx86]{patterns/07_jcc/simple/GCC_O3_signed.asm}
+
+% should be here instead of 'switch' section?
+また、\TT{CALL puts / RETN}の代わりにここに\TT{JMPを入れて}います。
+
+この種のトリックは後で説明します：\myref{JMP_instead_of_RET}
+
+この種のx86コードは、まれです。
+MSVC 2012のように、そのようなコードを生成することはできません。 
+一方、アセンブリ言語プログラマは、\TT{Jcc}命令を積み重ねることができるという
+事実を十分に認識しています。
+
+だから、どこかでそのような積み重ねを見ると、コードは手書きの可能性が高いです。
+
+\TT{f\_unsigned()}関数は
+巧妙に短いものではありません：
+
+\lstinputlisting[caption=GCC 4.8.1 f\_unsigned(),style=customasmx86]{patterns/07_jcc/simple/GCC_O3_unsigned_JA.asm}
+
+それにもかかわらず、3つではなく2つの\TT{CMP}命令があります。
+
+したがって、GCC 4.8.1の最適化アルゴリズムはまだ完璧ではないでしょう。

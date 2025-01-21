@@ -1,0 +1,242 @@
+.text:64404F4F CDwsGui__PrepareInfoWindow proc near
+.text:64404F4F
+.text:64404F4F pvParam         = byte ptr -3Ch
+.text:64404F4F var_38          = dword ptr -38h
+.text:64404F4F var_34          = dword ptr -34h
+.text:64404F4F rc              = tagRECT ptr -2Ch
+.text:64404F4F cy              = dword ptr -1Ch
+.text:64404F4F h               = dword ptr -18h
+.text:64404F4F var_14          = dword ptr -14h
+.text:64404F4F var_10          = dword ptr -10h
+.text:64404F4F var_4           = dword ptr -4
+.text:64404F4F
+.text:64404F4F                 push    30h
+.text:64404F51                 mov     eax, offset loc_64438E00
+.text:64404F56                 call    __EH_prolog3
+.text:64404F5B                 mov     esi, ecx        ; ECX is pointer to object
+.text:64404F5D                 xor     ebx, ebx
+.text:64404F5F                 lea     ecx, [ebp+var_14]
+.text:64404F62                 mov     [ebp+var_10], ebx
+
+; demangled name: ATL::CStringT(void)
+.text:64404F65                 call    ds:mfc90_316    
+.text:64404F6B                 mov     [ebp+var_4], ebx
+.text:64404F6E                 lea     edi, [esi+2854h]
+.text:64404F74                 push    offset aEnvironmentInf ; \verb|"Environment information:\n"|
+.text:64404F79                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator=(char const *)
+.text:64404F7B                 call    ds:mfc90_820
+.text:64404F81                 cmp     [esi+38h], ebx
+.text:64404F84                 mov     ebx, ds:mfc90_2539
+.text:64404F8A                 jbe     short loc_64404FA9
+.text:64404F8C                 push    dword ptr [esi+34h]
+.text:64404F8F                 lea     eax, [ebp+var_14]
+.text:64404F92                 push    offset aWorkingDirecto ; \verb|"working directory: '%s'\n"|
+.text:64404F97                 push    eax
+
+; demangled name: ATL::CStringT::Format(char const *,...)
+.text:64404F98                 call    ebx ; mfc90\_2539
+.text:64404F9A                 add     esp, 0Ch
+.text:64404F9D                 lea     eax, [ebp+var_14]
+.text:64404FA0                 push    eax
+.text:64404FA1                 mov     ecx, edi
+
+; \verb|demangled name: ATL::CStringT::operator+=(class ATL::CSimpleStringT<char, 1> const &)|
+.text:64404FA3                 call    ds:mfc90_941
+.text:64404FA9
+.text:64404FA9 loc_64404FA9:
+.text:64404FA9                 mov     eax, [esi+38h]
+.text:64404FAC                 test    eax, eax
+.text:64404FAE                 jbe     short loc_64404FD3
+.text:64404FB0                 push    eax
+.text:64404FB1                 lea     eax, [ebp+var_14]
+.text:64404FB4                 push    offset aTraceLevelDAct ; \verb|"trace level %d activated\n"|
+.text:64404FB9                 push    eax
+
+; demangled name: ATL::CStringT::Format(char const *,...)
+.text:64404FBA                 call    ebx ; mfc90\_2539
+.text:64404FBC                 add     esp, 0Ch
+.text:64404FBF                 lea     eax, [ebp+var_14]
+.text:64404FC2                 push    eax
+.text:64404FC3                 mov     ecx, edi
+
+; \verb|demangled name: ATL::CStringT::operator+=(class ATL::CSimpleStringT<char, 1> const &)|
+.text:64404FC5                 call    ds:mfc90_941
+.text:64404FCB                 xor     ebx, ebx
+.text:64404FCD                 inc     ebx
+.text:64404FCE                 mov     [ebp+var_10], ebx
+.text:64404FD1                 jmp     short loc_64404FD6
+.text:64404FD3
+.text:64404FD3 loc_64404FD3:
+.text:64404FD3                 xor     ebx, ebx
+.text:64404FD5                 inc     ebx
+.text:64404FD6
+.text:64404FD6 loc_64404FD6:
+.text:64404FD6                 cmp     [esi+38h], ebx
+.text:64404FD9                 jbe     short loc_64404FF1
+.text:64404FDB                 cmp     dword ptr [esi+2978h], 0
+.text:64404FE2                 jz      short loc_64404FF1
+.text:64404FE4                 push    offset aHexdumpInTrace ; \verb|"hexdump in trace activated\n"|
+.text:64404FE9                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:64404FEB                 call    ds:mfc90_945
+.text:64404FF1
+.text:64404FF1 loc_64404FF1:
+.text:64404FF1
+.text:64404FF1                 cmp     byte ptr [esi+78h], 0
+.text:64404FF5                 jz      short loc_64405007
+.text:64404FF7                 push    offset aLoggingActivat ; \verb|"logging activated\n"|
+.text:64404FFC                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:64404FFE                 call    ds:mfc90_945
+.text:64405004                 mov     [ebp+var_10], ebx
+.text:64405007
+.text:64405007 loc_64405007:
+.text:64405007                 cmp     byte ptr [esi+3Dh], 0
+.text:6440500B                 jz      short bypass
+.text:6440500D                 push    offset aDataCompressio ; \verb|"data compression switched off\n"|
+.text:64405012                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:64405014                 call    ds:mfc90_945
+.text:6440501A                 mov     [ebp+var_10], ebx
+.text:6440501D
+.text:6440501D bypass:
+.text:6440501D                 mov     eax, [esi+20h]
+.text:64405020                 test    eax, eax
+.text:64405022                 jz      short loc_6440503A
+.text:64405024                 cmp     dword ptr [eax+28h], 0
+.text:64405028                 jz      short loc_6440503A
+.text:6440502A                 push    offset aDataRecordMode ; \verb|"data record mode switched on\n"|
+.text:6440502F                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:64405031                 call    ds:mfc90_945
+.text:64405037                 mov     [ebp+var_10], ebx
+.text:6440503A
+.text:6440503A loc_6440503A:
+.text:6440503A
+.text:6440503A                 mov     ecx, edi
+.text:6440503C                 cmp     [ebp+var_10], ebx
+.text:6440503F                 jnz     loc_64405142
+.text:64405045                 push    offset aForMaximumData ; \verb|"\nFor maximum data security delete\nthe s"...|
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:6440504A                 call    ds:mfc90_945
+.text:64405050                 xor     edi, edi
+.text:64405052                 push    edi             ; fWinIni
+.text:64405053                 lea     eax, [ebp+pvParam]
+.text:64405056                 push    eax             ; pvParam
+.text:64405057                 push    edi             ; uiParam
+.text:64405058                 push    30h             ; uiAction
+.text:6440505A                 call    ds:SystemParametersInfoA
+.text:64405060                 mov     eax, [ebp+var_34]
+.text:64405063                 cmp     eax, 1600
+.text:64405068                 jle     short loc_64405072
+.text:6440506A                 cdq
+.text:6440506B                 sub     eax, edx
+.text:6440506D                 sar     eax, 1
+.text:6440506F                 mov     [ebp+var_34], eax
+.text:64405072
+.text:64405072 loc_64405072:
+.text:64405072                 push    edi             ; hWnd
+.text:64405073                 mov     [ebp+cy], 0A0h
+.text:6440507A                 call    ds:GetDC
+.text:64405080                 mov     [ebp+var_10], eax
+.text:64405083                 mov     ebx, 12Ch
+.text:64405088                 cmp     eax, edi
+.text:6440508A                 jz      loc_64405113
+.text:64405090                 push    11h             ; i
+.text:64405092                 call    ds:GetStockObject
+.text:64405098                 mov     edi, ds:SelectObject
+.text:6440509E                 push    eax             ; h
+.text:6440509F                 push    [ebp+var_10]    ; hdc
+.text:644050A2                 call    edi ; SelectObject
+.text:644050A4                 and     [ebp+rc.left], 0
+.text:644050A8                 and     [ebp+rc.top], 0
+.text:644050AC                 mov     [ebp+h], eax
+.text:644050AF                 push    401h            ; format
+.text:644050B4                 lea     eax, [ebp+rc]
+.text:644050B7                 push    eax             ; lprc
+.text:644050B8                 lea     ecx, [esi+2854h]
+.text:644050BE                 mov     [ebp+rc.right], ebx
+.text:644050C1                 mov     [ebp+rc.bottom], 0B4h
+
+; demangled name: ATL::CSimpleStringT::GetLength(void)
+.text:644050C8                 call    ds:mfc90_3178
+.text:644050CE                 push    eax             ; cchText
+.text:644050CF                 lea     ecx, [esi+2854h]
+
+; demangled name: const char* ATL::CSimpleStringT::operator PCXSTR 
+.text:644050D5                 call    ds:mfc90_910
+.text:644050DB                 push    eax             ; lpchText
+.text:644050DC                 push    [ebp+var_10]    ; hdc
+.text:644050DF                 call    ds:DrawTextA
+.text:644050E5                 push    4               ; nIndex
+.text:644050E7                 call    ds:GetSystemMetrics
+.text:644050ED                 mov     ecx, [ebp+rc.bottom]
+.text:644050F0                 sub     ecx, [ebp+rc.top]
+.text:644050F3                 cmp     [ebp+h], 0
+.text:644050F7                 lea     eax, [eax+ecx+28h]
+.text:644050FB                 mov     [ebp+cy], eax
+.text:644050FE                 jz      short loc_64405108
+.text:64405100                 push    [ebp+h]         ; h
+.text:64405103                 push    [ebp+var_10]    ; hdc
+.text:64405106                 call    edi ; SelectObject
+.text:64405108
+.text:64405108 loc_64405108:
+.text:64405108                 push    [ebp+var_10]    ; hDC
+.text:6440510B                 push    0               ; hWnd
+.text:6440510D                 call    ds:ReleaseDC
+.text:64405113
+.text:64405113 loc_64405113:
+.text:64405113                 mov     eax, [ebp+var_38]
+.text:64405116                 push    80h             ; uFlags
+.text:6440511B                 push    [ebp+cy]        ; cy
+.text:6440511E                 inc     eax
+.text:6440511F                 push    ebx             ; cx
+.text:64405120                 push    eax             ; Y
+.text:64405121                 mov     eax, [ebp+var_34]
+.text:64405124                 add     eax, 0FFFFFED4h
+.text:64405129                 cdq
+.text:6440512A                 sub     eax, edx
+.text:6440512C                 sar     eax, 1
+.text:6440512E                 push    eax             ; X
+.text:6440512F                 push    0               ; hWndInsertAfter
+.text:64405131                 push    dword ptr [esi+285Ch] ; hWnd
+.text:64405137                 call    ds:SetWindowPos
+.text:6440513D                 xor     ebx, ebx
+.text:6440513F                 inc     ebx
+.text:64405140                 jmp     short loc_6440514D
+.text:64405142
+.text:64405142 loc_64405142:
+.text:64405142                 push    offset byte_64443AF8
+
+; demangled name: ATL::CStringT::operator=(char const *)
+.text:64405147                 call    ds:mfc90_820
+.text:6440514D
+.text:6440514D loc_6440514D:
+.text:6440514D                 cmp     dword_6450B970, ebx
+.text:64405153                 jl      short loc_64405188
+.text:64405155                 call    sub_6441C910
+.text:6440515A                 mov     dword_644F858C, ebx
+.text:64405160                 push    dword ptr [esi+2854h]
+.text:64405166                 push    offset aCdwsguiPrepare ; \verb|"\nCDwsGui::PrepareInfoWindow: sapgui env"...|
+.text:6440516B                 push    dword ptr [esi+2848h]
+.text:64405171                 call    dbg
+.text:64405176                 add     esp, 0Ch
+.text:64405179                 mov     dword_644F858C, 2
+.text:64405183                 call    sub_6441C920
+.text:64405188
+.text:64405188 loc_64405188:
+.text:64405188                 or      [ebp+var_4], 0FFFFFFFFh
+.text:6440518C                 lea     ecx, [ebp+var_14]
+
+; demangled name: ATL::CStringT::~CStringT()
+.text:6440518F                 call    ds:mfc90_601
+.text:64405195                 call    __EH_epilog3
+.text:6440519A                 retn
+.text:6440519A CDwsGui__PrepareInfoWindow endp

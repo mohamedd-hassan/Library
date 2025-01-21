@@ -1,0 +1,468 @@
+\mysection{Мой опыт с Hex-Rays 2.2.0}
+\myindex{Hex-Rays}
+\label{hex_rays}
+
+\subsection{Ошибки}
+
+Есть несколько ошибок.
+
+Прежде всего, Hex-Rays теряется, когда инструкции \ac{FPU} перемежаются (кодегенератором компилятора) с другими.
+
+Например:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+        	lea     eax, [esp+4]
+	        fild    dword ptr [eax]
+                lea     eax, [esp+8]
+        	fild    dword ptr [eax]
+	        fabs
+                fcompp
+        	fnstsw  ax
+	        test    ah, 1
+                jz      l01
+
+        	mov     eax, 1
+	        retn
+l01:
+                mov     eax, 2
+	        retn
+
+f               endp
+\end{lstlisting}
+
+\dots будет корректно декомпилировано в:
+
+\begin{lstlisting}[style=customc]
+signed int __cdecl f(signed int a1, signed int a2)
+{
+  signed int result; // eax@2
+
+  if ( fabs((double)a2) >= (double)a1 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+Но давайте закомментируем одну инструкцию в конце:
+
+\begin{lstlisting}[style=customasmx86]
+...
+l01:
+	        ;mov    eax, 2
+        	retn
+...
+\end{lstlisting}
+
+\dots получаем явную ошибку:
+
+\begin{lstlisting}[style=customc]
+void __cdecl f(char a1, char a2)
+{
+  fabs((double)a2);
+}
+\end{lstlisting}
+
+Вот еще ошибка:
+
+\begin{lstlisting}[style=customasmx86]
+extrn f1:dword
+extrn f2:dword
+
+f               proc    near
+
+	        fld     dword ptr [esp+4]
+        	fadd    dword ptr [esp+8]
+                fst     dword ptr [esp+12]
+	        fcomp   ds:const_100
+                fld     dword ptr [esp+16]      ; закомментируйте эту инструкцию, и всё будет хорошо
+	        fnstsw  ax
+        	test    ah, 1
+
+                jnz     short l01
+
+	        call    f1
+        	retn
+l01:
+	        call    f2
+        	retn
+
+f               endp
+
+...
+
+const_100       dd 42C80000h            ; 100.0
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(float a1, float a2, float a3, float a4)
+{
+  double v5; // st7@1
+  char v6; // c0@1
+  int result; // eax@2
+
+  v5 = a4;
+  if ( v6 )
+    result = f2(v5);
+  else
+    result = f1(v5);
+  return result;
+}
+\end{lstlisting}
+
+У переменной \emph{v6} тип \emph{char}, и если вы попытаетесь скомпилировать этот код, компилятор выдаст предупреждение о том,
+что переменная используется перед тем, как была инициализирована.
+
+Еще ошибка: инструкция \INS{FPATAN} корректно декомпилируется в \emph{atan2()}, но аргументы перепутаны.
+
+\subsection{Странности}
+
+Hex-Rays часто конвертирует 32-битный \emph{int} в 64-битный.
+Вот пример:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+	        mov     eax, [esp+4]
+                cdq
+	        xor     eax, edx
+        	sub     eax, edx
+                ; EAX=abs(a1)
+
+	        sub     eax, [esp+8]
+        	; EAX=EAX-a2
+
+                ; в этом месте, EAX каким-то образом был сконвертирован в 64-битный (RAX)
+
+	        cdq
+        	xor     eax, edx
+                sub     eax, edx
+	        ; EAX=abs(abs(a1)-a2)
+
+                retn
+
+f               endp
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1, int a2)
+{
+  __int64 v2; // rax@1
+
+  v2 = abs(a1) - a2;
+  return (HIDWORD(v2) ^ v2) - HIDWORD(v2);
+}
+\end{lstlisting}
+
+Возможно, это результат инструкции \INS{CDQ}? Я не уверен.
+Так или иначе, если вы видите тип \emph{\_\_int64} в 32-битном коде, обращайте внимание.
+
+Это тоже странно:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+	        mov     esi, [esp+4]
+
+        	lea     ebx, [esi+10h]
+                cmp     esi, ebx
+	        jge     short l00
+
+                cmp     esi, 1000
+	        jg      short l00
+
+                mov     eax, 2
+	        retn
+
+l00:
+	        mov     eax, 1
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+signed int __cdecl f(signed int a1)
+{
+  signed int result; // eax@3
+
+  if ( __OFSUB__(a1, a1 + 16) ^ 1 && a1 <= 1000 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+Код корректный, но требует ручного вмешательства.
+
+Иногда Hex-Rays не сокращает деление через умножение:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+        	mov     eax, [esp+4]
+	        mov     edx, 2AAAAAABh
+                imul    edx
+        	mov     eax, edx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1)
+{
+  return (unsigned __int64)(715827883i64 * a1) >> 32;
+}
+\end{lstlisting}
+
+Это можно сократить вручную.
+
+Многие из этих странностей можно решить при помощи ручного переупорядочивания инструкций, перекомпиляции ассемблерного кода,
+и затем подачи его снова на вход Hex-Rays.
+
+\subsection{Безмолвие}
+
+\begin{lstlisting}[style=customasmx86]
+extrn some_func:dword
+
+f               proc    near
+
+        	mov     ecx, [esp+4]
+	        mov     eax, [esp+8]
+                push    eax
+        	call    some_func
+	        add     esp, 4
+
+                ; используем ECX
+        	mov     eax, ecx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1, int a2)
+{
+  int v2; // ecx@1
+
+  some_func(a2);
+  return v2;
+}
+\end{lstlisting}
+
+Переменная \emph{v2} (из ECX) потерялась \dots
+Да, код некорректный (значение в регистре ECX не сохраняется после вызова другой ф-ции),
+но для Hex-Rays было бы неплохо выдать предупреждение.
+
+Вот еще:
+
+\begin{lstlisting}[style=customasmx86]
+extrn some_func:dword
+
+f               proc    near
+
+	        call    some_func
+        	jnz     l01
+
+                mov     eax, 1
+	        retn
+l01:
+	        mov     eax, 2
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Результат:
+
+\begin{lstlisting}[style=customc]
+signed int f()
+{
+  char v0; // zf@1
+  signed int result; // eax@2
+
+  some_func();
+  if ( v0 )
+    result = 1;
+  else
+    result = 2;
+  return result;
+}
+\end{lstlisting}
+
+И снова, предупреждение бы помогло.
+
+Так или иначе, если вы видите переменную типа \emph{char}, которая используется без инициализации, это явный признак того,
+что что-то пошло не так и требует ручного вмешательства.
+
+\subsection{Запятая}
+\myindex{\CLanguageElements!Запятая}
+
+Запятая в Си/Си++ имеет дурную славу, потому что она приводит к малопонятному коду.
+
+Вот простая задача, что возвращает эта ф-ция на Си/Си++?
+
+\begin{lstlisting}[style=customc]
+int f()
+{
+	return 1, 2;
+};
+\end{lstlisting}
+
+Это 2: когда компилятор встречает выражение с запятой, он генерирует код, исполняющий все подвыражения, и \emph{возвращает}
+значение последнего подвыражения.
+
+Я видел такое в реальном коде:
+
+\begin{lstlisting}[style=customc]
+if (cond)
+	return global_var=123, 456; // возвращается 456
+else
+	return global_var=789, 321; // возвращается 321
+\end{lstlisting}
+
+Вероятно, автор хотел сделать код немного короче, без дополнительных фигурных скобок.
+Другими словами, запятая позволяет упаковать несколько выражений в одно, без формирования
+блока внутри фигурных скобок.
+
+\myindex{Scheme}
+\myindex{Racket}
+Запятая в Си/Си++ близка к \TT{begin} в Scheme/Racket: \url{https://docs.racket-lang.org/guide/begin.html}.
+
+Вероятно, есть только одно популярное и всеми одобренное использование запятой, это в выражении \emph{for()}:
+
+\begin{lstlisting}[style=customc]
+char *s="hello, world";
+for(int i=0; *s; s++, i++);
+// i = длина строки
+\end{lstlisting}
+
+И \emph{s++} и \emph{i++} исполняются на каждой итерации цикла.
+
+Читайте больше об этом: \url{https://stackoverflow.com/q/52550}.
+
+\myindex{\CLanguageElements!Short-circuit}
+Я пишу всё это потому что Hex-Rays выдает код (как минимум, в моем случае) очень богатый и на запятые и на
+short-circuit-выражения (\emph{короткое замыкание}).
+Например, вот реальный пример работы Hex-Rays:
+
+\begin{lstlisting}[style=customc]
+ if ( a >= b || (c = a, (d[a] - e) >> 2 > f) )
+    {
+    	...
+\end{lstlisting}
+
+Это корректно, оно компилируется и работает, и да поможет вам бог понять, как.
+Вот оно переписанное:
+
+\begin{lstlisting}[style=customc]
+if (cond1 || (comma_expr, cond2))
+{
+	...
+\end{lstlisting}
+
+Здесь работает \emph{short-circuit} (\emph{короткое замыкание}): в начале проверяется \emph{cond1}, и если оно истинно,
+исполняется тело \emph{if()}, и остальная часть выражения \emph{if()} полностью игнорируется.
+Если \emph{cond1} ложно, тогда исполняется \emph{comma\_expr} (в предыдущем примере, \emph{a} копируется в \emph{c}),
+затем проверяется \emph{cond2}.
+Если \emph{cond2} истинно, исполняется тело \emph{if()}, или нет.
+Другими словами, тело \emph{if()} исполняется, если \emph{cond1} истинно, или если \emph{cond2} истинно,
+но если последнее истинно, исполняется также \emph{comma\_expr}.
+
+Теперь вы видите, почему запятая имеет такую славу.
+
+\textbf{Еще о short-circuit (короткое замыкание).}
+Частое заблуждение начинающих в том, что подусловия проверяются в произвольном порядке, и это не верно.
+В выражении \TT{a | b | c}, $a$, $b$ и $c$ исполняются в произвольном порядке, и вот почему в Си/Си++ был также добавлен
+оператор \TT{||}, чтобы явно применять \emph{short-circuit}.
+
+\subsection{Типы данных}
+
+Типы данных это проблема для декомпиляторов.
+
+Hex-Rays может быть слеп к массивам в локальном стеке, если они не были корректно обозначены перед декомпиляцией.
+Та же история с глобальными массивами.
+
+Другая проблема это большие ф-ции, где один и тот же слот в локальном стеке может использоваться разными переменными
+во время исполнения ф-ции.
+Нередкий случай, когда слот в начале используется для \emph{int}-переменной, затем для указателя, затем для переменной типа
+\emph{float}.
+Hex-Rays корректно декомпилирует это: он создает переменную с каким-то типом, затем приводит её к другому типу в разных частях
+ф-ции.
+Эта проблема решалась мною ручным разделением ф-ции на несколько меньших.
+Просто сделайте локальные переменные глобальными, итд, итд.
+И не забывайте о тестах.
+
+\subsection{Длинные и запутанные выражения}
+
+Иногда, во время переписывания, вы можете прийти к длинным и труднопонятным выражениям в конструкциях \emph{if()}, вроде:
+
+\begin{lstlisting}[style=customc]
+if ((! (v38 && v30 <= 5 && v27 != -1)) && ((! (v38 && v30 <= 5) && v27 != -1) || (v24 >= 5 || v26)) && v25)
+{
+...
+}
+\end{lstlisting}
+
+Wolfram Mathematica может оптимизировать некоторые из них, используя ф-цию \TT{BooleanMinimize[]}:
+
+\begin{lstlisting}
+In[1]:= BooleanMinimize[(! (v38 && v30 <= 5 && v27 != -1)) && v38 && v30 <= 5 && v25 == 0]
+
+Out[1]:= v38 && v25 == 0 && v27 == -1 && v30 <= 5
+\end{lstlisting}
+
+Есть даже способ еще лучше, с поиском общих подвыражений:
+
+\begin{lstlisting}
+In[2]:= Experimental`OptimizeExpression[(! (v38 && v30 <= 5 &&
+      v27 != -1)) && ((! (v38 && v30 <= 5) &&
+      v27 != -1) || (v24 >= 5 || v26)) && v25]
+Out[2]= Experimental`OptimizedExpression[
+ Block[{Compile`$1, Compile`$2}, Compile`$1 = v30 <= 5;
+  Compile`$2 =
+   v27 != -1; ! (v38 && Compile`$1 &&
+      Compile`$2) && ((! (v38 && Compile`$1) && Compile`$2) ||
+     v24 >= 5 || v26) && v25]]
+\end{lstlisting}
+
+Mathematica может добавить две новых переменных: \TT{Compile`\$1} и \TT{Compile`\$2}, значения которых будут использоваться
+в выражении несколько раз.
+Так что мы можем добавить две дополнительных переменных.
+
+\input{other/DeMorgan_RU}
+
+\subsection{Мой план}
+
+\begin{itemize}
+\item Разделить большие ф-ции (и не забывать о тестах).
+Иногда очень полезно формировать новые ф-ции из тел циклов.
+
+\item Проверяйте/устанавливайте тип данных для переменных, массивов, итд.
+
+\item Если вы видите странный результат, \emph{висящую} переменную (которая используется перед инициализацией),
+попробуйте поменять инструкции вручную, перекомпилировать и снова подать на вход Hex-Rays-у.
+\end{itemize}
+
+\subsection{Итог}
+
+Тем не мнее, качество Hex-Rays 2.2.0 очень и очень хорошее.
+Он делает жизнь легче.
+

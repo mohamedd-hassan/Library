@@ -1,0 +1,73 @@
+\clearpage
+\subsection{Chiffrement le plus simple possible avec un XOR de 4-octets}
+
+Si un pattern plus long était utilisé, comme un pattern de 4 octets, ça serait
+facile à repérer.
+
+Par exemple, voici le début du fichier kernel32.dll (version 32-bit de Windows Server
+2008):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/4byte/original1.png}
+\caption{Fichier original}
+\end{figure}
+
+\clearpage
+
+Ici, il est \q{chiffré} avec une clef de 4-octet:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/4byte/encrypted1.png}
+\caption{Fichier \q{chiffré}}
+\end{figure}
+
+Il est facile de repérer les 4 symboles récurrents.
+
+En effet, l'entête d'un fichier PE comporte de longues zones de zéro, ce qui explique
+que la clef devient visible.
+
+\clearpage
+
+Voici le début d'un entête PE au format hexadécimal:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/4byte/original2.png}
+\caption{Entête PE}
+\end{figure}
+
+\clearpage
+
+Le voici \q{chiffré}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/4byte/encrypted2.png}
+\caption{Entête PE \q{chiffré}}
+\end{figure}
+
+Il est facile de repérer que la clef est la séquence de 4 octets suivant: \TT{8C 61 D2 63}.
+
+Avec cette information, c'est facile de déchiffrer le fichier entier.
+
+Il est important de garder à l'esprit ces propriétés importantes des fichiers PE:
+1) l'entête PE comporte de nombreuses zones remplies de zéro;
+2) toutes les sections PE sont complétées avec des zéros jusqu'à une limite de page
+(4096 octets),
+donc il y a d'habitude de longues zones à zéro après chaque section.
+
+Quelques autres formats de fichier contiennent de longues zones de zéro.
+
+C'est typique des fichiers utilisés par les scientifiques et les ingénieurs logiciels.
+
+Pour ceux qui veulent inspecter ces fichiers eux-même, ils sont téléchargeables ici:
+\url{http://beginners.re/examples/XOR_4byte/}.
+
+\subsubsection{\Exercise}
+
+\begin{itemize}
+	\item \url{http://challenges.re/50}
+\end{itemize}
+

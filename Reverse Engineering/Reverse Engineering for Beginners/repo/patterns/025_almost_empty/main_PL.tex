@@ -1,0 +1,27 @@
+\mysection{Funkcja niemal pusta}
+\label{Boolector}
+\myindex{Boolector}
+\myindex{x86!\Instructions!JMP}
+
+Poniższy fragment kodu znalazłem w projekcie Boolector\footnote{\url{https://boolector.github.io/}}:
+
+\lstinputlisting[style=customc]{patterns/025_almost_empty/boolectormain.c}
+
+Dlaczego ktoś miałby tak robić? Prawdopodobnie \verb|boolector_main()| może być kompilowane do biblioteki dynamicznej (jak np. DLL) i wywoływane w testach. Kod testowy również może przygotować argumenty \verb|argc/argv|, tak jak to robi \ac{CRT}.
+
+Ciekawy jest wynik kompilacji:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O0.s}
+
+Mamy tutaj: prolog, niepotrzebne (niezoptymalizowane) przetasowanie dwóch argumentów, \INS{CALL}, epilog i \INS{RET}.
+
+Zobaczmy na efekt kompilacji GCC z włączoną optymalizacją:
+
+\lstinputlisting[caption=\Optimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O3.s}
+
+Bardzo prosty kod ~--- rejestr i stos zostały nienaruszone, gdyż \verb|boolector_main()| ma taki sam zestaw argumentów. Jedyne co należało zrobić, to przekazać sterowanie pod inny adres.
+
+Przypomina to \glslink{thunk function}{thunk funkcje}.
+
+Później zobaczymy nieco bardziej zaawansowane przykłady: \myref{ARM_B_to_printf}, \myref{JMP_instead_of_RET}.
+

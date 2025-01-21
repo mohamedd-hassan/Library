@@ -1,0 +1,42 @@
+﻿% N.B.: \Conclusion{} is a macro name, do not translate
+\subsection{\Conclusion{}}
+
+Scheletro grezzo del ciclo da 2 a 9 inclusi:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_optimized_IT.lst}
+
+L' operazione di incremento può essere rappresentata con 3 istruzioni nel codice non ottimizzato:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_IT.lst}
+
+Se il corpo del ciclo è corto, un intero registro può essere dedicato alla variabile contatore:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_reg_IT.lst}
+
+Molte parti del ciclo possono essere generate in oridine diverso dal compilatore:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_order_IT.lst}
+
+Di solito la condizione è controllata \emph{prima} del corpo del ciclo, ma il compilatore potrebbe riarrangiarlo in maniera che la condizione sia controllata 
+\emph{dopo} il corpo del ciclo.
+
+Questo avviene quando il compilatore è sicuro che la condizione è sempre \emph{vera} per la prima iterazione, 
+di conseguenza il corpo del ciclo verrà eseguito almeno una volta:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_reorder_IT.lst}
+
+\myindex{x86!\Instructions!LOOP}
+
+Utilizzando l' istruzione di \TT{LOOP}. E' raro che il compilatore non lo utilizzi.
+Se ciò avviene, è segno che il codice è stato scritto a mano:
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_loop_IT.lst}
+
+ARM. 
+
+Il registro \Reg{4} è dedicato alla variabile contatore in questo esempio:
+
+\lstinputlisting[caption=ARM,style=customasmARM]{patterns/09_loops/skeleton_ARM_IT.lst}
+
+% TODO MIPS
+

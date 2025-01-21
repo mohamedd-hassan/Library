@@ -1,0 +1,49 @@
+\mysection{Utilisation de nombres magiques lors du tracing}
+
+Souvent, notre but principal est de comprendre comment le programme utilise une valeur
+qui a été soit lue d'un fichier ou reçue par le réseau. Le tracing manuel d'une valeur
+est souvent une tâche laborieuse. Une des techniques les plus simple pour ceci (bien
+que non sûre à 100\%) est d'utiliser votre propre \emph{nombre magique}.
+
+Ceci ressemble à la tomodensitométrie aux rayons X: un agent de radio-contraste est
+injecté dans le sang du patient, qui est utilisé pour augmenter la visibilité de
+la structure interne du patient aux rayons X.
+C'est bien connu comment le sang circule dans les reins d'humains en bonne santé
+et si l'agent est dans le sang, il peut être vu facilement en tomographie comment
+le sang circule et si il y a des calculs ou des tumeurs.
+
+Nous pouvons prendre un nombre 32-bit comme \TT{0x0badf00d}, ou la date de naissance
+de quelqu'un comme \TT{0x11101979} et écrire ce nombre de 4 octets quelque part dans
+un fichier utilisé par le programme que nous investiguons.
+
+\myindex{\GrepUsage}
+\myindex{tracer}
+
+Puis, en suivant ce programme avec \tracer en mode \emph{code coverage}, avec l'aide
+de \emph{grep} ou simplement en cherchant dans le fichier texte (résultant de l'investigation),
+nous pouvons facilement voir où la valeur a été utilisée et comment.
+
+Exemple de résultats de \tracer \emph{grepable} en mode \emph{cc}:
+
+\begin{lstlisting}[style=customasmx86]
+0x150bf66 (_kziaia+0x14), e=       1 [MOV EBX, [EBP+8]] [EBP+8]=0xf59c934
+0x150bf69 (_kziaia+0x17), e=       1 [MOV EDX, [69AEB08h]] [69AEB08h]=0
+0x150bf6f (_kziaia+0x1d), e=       1 [FS: MOV EAX, [2Ch]]
+0x150bf75 (_kziaia+0x23), e=       1 [MOV ECX, [EAX+EDX*4]] [EAX+EDX*4]=0xf1ac360
+0x150bf78 (_kziaia+0x26), e=       1 [MOV [EBP-4], ECX] ECX=0xf1ac360
+\end{lstlisting}
+% TODO: good example!
+
+Cela peut aussi être utilisé pour des paquets réseau.
+Il est important que le \emph{nombre magique} soit unique et ne soit pas présent
+dans le code du programme.
+
+\newcommand{\DOSBOXURL}{\href{http://blog.yurichev.com/node/55}{blog.yurichev.com}}
+
+\myindex{DosBox}
+\myindex{MS-DOS}
+À part \tracer, DosBox (émulateur MS-DOS) en mode heavydebug est capable d'écrire
+de l'information à propos de l'état de tous les registres pour chaque instruction
+du programme exécutée dans un fichier texte\footnote{Voir aussi mon article de blog
+sur cette fonctionnalité de DosBox: \DOSBOXURL{}}, donc cette technique peut être
+utile également pour des programmes DOS.

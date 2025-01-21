@@ -1,0 +1,40 @@
+% to be synced with English version
+\section{Compiler Pin}
+
+Compiler Pin pour Windows peut s'avérer délicat.
+Ceci est ma recette qui fonctionne.
+
+\begin{itemize}
+
+\item Décompacter le dernier Pin, disons, \verb|C:\pin-3.7\|
+
+\item Installer le dernier Cygwin, dans, disons, \verb|c:\cygwin64|
+
+\item Installer MSVC 2015 ou plus récent.
+
+\item Ouvrir le fichier \verb|C:\pin-3.7\source\tools\Config\makefile.default.rules|, remplacer \verb|mkdir -p $@| par \verb|/bin/mkdir -p $@|
+
+\item (Si nécessaire) dans \verb|C:\pin-3.7\source\tools\SimpleExamples\makefile.rules|, ajouter votre pintool à la liste \verb|TEST_TOOL_ROOTS|.
+
+\item Ouvrir "VS2015 x86 Native Tools Command Prompt". Taper:
+
+\begin{lstlisting}
+cd c:\pin-3.7\source\tools\SimpleExamples
+c:\cygwin64\bin\make all TARGET=ia32
+\end{lstlisting}
+
+Maintenant les outils pintools sont dans \verb|c:\pin-3.7\source\tools\SimpleExamples\obj-ia32|
+
+\item Pour winx64, utiliser "x64 Native Tools Command Prompt" et lancer:
+
+\begin{lstlisting}
+c:\cygwin64\bin\make all TARGET=intel64
+\end{lstlisting}
+
+\item Lancer pintool:
+
+\begin{lstlisting}
+c:\pin-3.7\pin.exe -t C:\pin-3.7\source\tools\SimpleExamples\obj-ia32\XOR_ins.dll -- program.exe arguments
+\end{lstlisting}
+
+\end{itemize}

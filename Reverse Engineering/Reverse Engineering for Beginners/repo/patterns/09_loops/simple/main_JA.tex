@@ -1,0 +1,27 @@
+﻿\subsection{単純な例}
+
+% subsections
+\input{patterns/09_loops/simple/x86}
+\input{patterns/09_loops/simple/ARM/main}
+\input{patterns/09_loops/simple/MIPS}
+
+\subsubsection{もう一つ}
+
+生成されたコードでは、 
+$i$ を初期化した後、iの条件が最初にチェックされ、
+ループ本体が実行された後にのみ、ループの本体が実行されないことがわかります。 
+それは正しいです。
+
+ループの条件が最初に満たされない場合、
+ループの本体は実行されてはならないからです。
+これは次の場合に可能です：
+
+\lstinputlisting[style=customc]{patterns/09_loops/simple/loops_3_JA.c}
+
+\emph{total\_entries\_to\_process}が0の場合、ループの本体はまったく実行されてはなりません。
+
+これは、実行前に条件がチェックされている理由です。
+
+しかし、最適化されたコンパイラは、ここで説明した状況が不可能であることが確かな場合
+（例えばKeil、Xcode（LLVM）、MSVCなどのコンパイラを最適化モードで使用する場合など）、
+条件チェックとループ本体をスワップできます。

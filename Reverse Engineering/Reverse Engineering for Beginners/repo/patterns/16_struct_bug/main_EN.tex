@@ -1,0 +1,48 @@
+\mysection{The classic \emph{struct} bug}
+
+This is a classic \emph{struct} bug.
+
+A sample definition:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/old.h}
+
+And then C files:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/setter.c}
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/printer.c}
+
+So far so good.
+
+Now you add a third field into the structure, some place between two fields:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/new.h}
+
+And you probably modify \verb|setter()| function, but forget about \verb|printer()|:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/setter_new.c}
+
+You compile your project, but the C file where \verb|printer()| is residing, isn't recompiling,
+because your \ac{IDE} or build system
+has no idea that module depends on a \emph{test} struct definition.
+Maybe because \verb|#include <new.h>| is omitted.
+Or maybe, \verb|new.h| header file is included in \verb|printer.c| via some other header file.
+The object file remains untouched (\ac{IDE} thinks it doesn't need to be recompiled),
+while \verb|setter()| function is already a new version.
+These two object files (old and new) eventually linked into an executable file.
+
+Then you run it, and the \verb|setter()| sets 3 fields at +0, +4 and +8 offsets.
+However, the \verb|printer()| only knows about 2 fields, and gets them from +0 and +4 offsets during printing.
+
+This leads to very obscure and nasty bugs.
+The reason is that \ac{IDE} or build system or Makefile doesn't know the fact that both C files (or modules) depends on the header
+file with \emph{test} definition.
+A popular remedy is to clean everything and recompile.
+
+This is true for C++ classes as well, since they works just like structures: \myref{CppClasses}.
+
+This is a C/C++'s malady, and a source of criticism, yes.
+Many newer \ac{PL}s has better support of modules and interfaces.
+But keep in mind, when C compiler was created: 1970s, on old PDP computers.
+So everything was simplified down to this by C creators.
+

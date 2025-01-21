@@ -1,0 +1,22 @@
+\myindex{x86!\Instructions!ROL}
+\myindex{x86!\Instructions!ROR}
+\label{ROL_ROR}
+\item[ROL/ROR] (M) cyclic shift
+  
+ROL: rotate left:
+
+\input{rotate_left}
+
+ROR: rotate right:
+
+\input{rotate_right}
+
+Despite the 
+fact that almost all \ac{CPU}s have these instructions, there are no corresponding
+operations in \CCpp, so the compilers of these \ac{PL}s usually do not generate these 
+instructions.
+
+For the programmer's convenience, at least \ac{MSVC} has the pseudofunctions (compiler intrinsics)
+\emph{\_rotl()} and \emph{\_rotr()}\FNMSDNROTxURL{},
+which are translated by the compiler directly to these instructions.
+

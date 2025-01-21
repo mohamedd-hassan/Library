@@ -1,0 +1,20 @@
+f_signed:
+; W0=a, W1=b
+	cmp	w0, w1
+	bgt	.L19	; 大きければ (a>b)分岐
+	beq	.L20	; 等しければ (a==b)分岐
+	bge	.L15	; 大きい、または等しければ分岐(a>=b) (不可能)
+	; a<b
+	adrp	x0, .LC11	; "a<b"
+	add	x0, x0, :lo12:.LC11
+	b	puts
+.L19:
+	adrp	x0, .LC9	; "a>b"
+	add	x0, x0, :lo12:.LC9
+	b	puts
+.L15:	; ここに来るのは不可能
+	ret
+.L20:
+	adrp	x0, .LC10	; "a==b"
+	add	x0, x0, :lo12:.LC10
+	b	puts

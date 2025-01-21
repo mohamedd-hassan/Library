@@ -1,0 +1,21 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/08_switch/1_few/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!JR}
+
+関数は常に \puts を呼び出すことで終了するので、\puts（\INS{JR}：\q{Jump Register}）へのジャンプは\q{jump and link}ではなく、ここにあります。
+私たちは以前これについて話しました：\myref{JMP_instead_of_RET}
+
+\myindex{MIPS!Load delay slot}
+\INS{LW}命令の後に\INS{NOP}命令も表示されることがよくあります。
+これは\q{load delay slot}：MIPSの別の\emph{delay slot}です。
+\myindex{MIPS!\Instructions!LW}
+
+\INS{LW}がメモリから値をロードする間に、\INS{LW}の次の命令が実行されることがあります。
+
+ただし、次の命令は\INS{LW}の結果を使用してはなりません。
+
+現代のMIPS CPUは、次の命令が\INS{LW}の結果を使用するのを待つ機能を持っているので、これは幾分時代遅れですが、
+GCCは古いMIPS CPU用にNOPを追加します。
+一般に、無視することができます。

@@ -1,0 +1,41 @@
+_a$ = -4
+_main	PROC
+; здесь вставлен (inline) соптимизированный код create\_color():
+	push	ecx
+	push	12
+	call	_malloc
+	mov	DWORD PTR [eax], 1
+	mov	DWORD PTR [eax+4], 2
+	mov	DWORD PTR [eax+8], 3
+; EAX указывает на выделенный буфер, и он заполняется, ОK
+; теперь мы перезагружаем указатель на буфер, надеясь, что он в переменной "a"
+; но вставленная (inlined) ф-ция не сохраняла указатель в переменной "a"!
+	mov	eax, DWORD PTR _a$[esp+8]
+; EAX = в этом месте, какой-нибудь случайный мусор
+	push	DWORD PTR [eax+8]
+	push	DWORD PTR [eax+4]
+	push	DWORD PTR [eax]
+	push	OFFSET $SG6074
+	call	_printf
+	xor	eax, eax
+	add	esp, 24
+	ret	0
+_main	ENDP
+
+_R$ = 8
+_G$ = 12
+_B$ = 16
+_create_color PROC
+	push	12
+	call	_malloc
+	mov	ecx, DWORD PTR _R$[esp]
+	add	esp, 4
+	mov	DWORD PTR [eax], ecx
+	mov	ecx, DWORD PTR _G$[esp-4]
+	mov	DWORD PTR [eax+4], ecx
+	mov	ecx, DWORD PTR _B$[esp-4]
+	mov	DWORD PTR [eax+8], ecx
+; EAX указывает на выделенный буфер, OK
+	ret	0
+_create_color ENDP
+

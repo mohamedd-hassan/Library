@@ -1,0 +1,35 @@
+\mysection{x86}
+
+\subsection{Terminology}
+
+Common for 16-bit (8086/80286), 32-bit (80386, etc.), 64-bit.
+
+\myindex{IEEE 754}
+\myindex{MS-DOS}
+\begin{description}
+	\item[byte] 8-bit.
+		The DB assembly directive is used for defining variables and arrays of bytes.
+		Bytes are passed in the 8-bit part of registers: \TT{AL/BL/CL/DL/AH/BH/CH/DH/SIL/DIL/R*L}.
+	\item[word] 16-bit. 
+		DW assembly directive \dittoclosing.
+		Words are passed in the 16-bit part of the registers:\\
+			\TT{AX/BX/CX/DX/SI/DI/R*W}.
+	\item[double word] (\q{dword}) 32-bit.
+		DD assembly directive \dittoclosing.
+		Double words are passed in registers (x86) or in the 32-bit part of registers (x64). 
+		In 16-bit code, double words are passed in 16-bit register pairs.
+	\item[quad word] (\q{qword}) 64-bit.
+		DQ assembly directive \dittoclosing.
+		In 32-bit environment, quad words are passed in 32-bit register pairs.
+	\item[tbyte] (10 bytes) 80-bit or 10 bytes (used for IEEE 754 FPU registers).
+	\item[paragraph] (16 bytes)---term was popular in MS-DOS environment. % TODO link to a part about 8086 memory model...
+\end{description}
+
+\myindex{Windows!API}
+
+Data types of the same width (BYTE, WORD, DWORD) are also the same in Windows \ac{API}.
+
+\input{appendix/x86/registers_EN} % subsection
+\input{appendix/x86/instructions_EN} % subsection
+\input{appendix/x86/npad} % subsection
+

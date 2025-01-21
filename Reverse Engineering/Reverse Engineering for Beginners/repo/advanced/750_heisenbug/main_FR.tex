@@ -1,0 +1,44 @@
+\mysection{Un autre heisenbug}
+\label{GlobalArraysOverflowHeisenbug}
+
+Parfois, un tableau (ou tampon) peut déborder à cause d'une \emph{erreur de poteaux et d'intervalles}:
+
+\lstinputlisting[style=customc]{advanced/750_heisenbug/1.c}
+
+Ceci est ce que ce programme a affiché dans mon cas (GCC 5.4 x86 sans optimisation sur Linux):
+
+\begin{lstlisting}
+important_var1=1
+important_var2=456
+important_var3=3
+important_var4=4
+important_var5=5
+\end{lstlisting}
+
+Lorsque ça se produit, \TT{important\_var2} avait été mise par le compilateur juste
+après \TT{array1[]}:
+
+\begin{lstlisting}[caption=objdump -x]
+0804a040 g     O .bss   00000200              array1
+...
+0804a240 g     O .bss   00000004              important_var2
+0804a244 g     O .bss   00000004              important_var4
+...
+0804a248 g     O .bss   00000004              important_var1
+0804a24c g     O .bss   00000004              important_var3
+0804a250 g     O .bss   00000004              important_var5
+\end{lstlisting}
+
+D'autres compilateurs peuvent arranger les variables dans un autre ordre, et une autre
+variable sera écrasée.
+\myindex{Heisenbug}
+Ceci est aussi un \emph{heisenbug} (\myref{heisenbug})---bug qui peut se produire
+ou passer inaperçu suivant la version du compilateur et les options d'optimisation.
+
+\myindex{Valgrind}
+Si toutes les variables et tableaux sont allouées sur la pile locale, la protection
+de la pile peut être déclenchée, ou pas.
+Toutefois, Valgrind peut trouver ce genre de bugs.
+
+Un exemple connexe dans le livre (jeu Angband): \myref{Angband}.
+

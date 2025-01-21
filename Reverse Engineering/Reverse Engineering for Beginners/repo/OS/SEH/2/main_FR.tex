@@ -1,0 +1,257 @@
+﻿\subsubsection{Retour à MSVC}
+
+\myindex{\Cpp!exceptions}
+
+Microsoft a ajouté un mécanisme non standard de gestion d'exceptions à
+MSVC\footnote{\href{http://msdn.microsoft.com/en-us/library/swezty51.aspx}{MSDN}} essentiellement à l'usage des programmeurs C.
+Ce mécanisme est totalement distinct de celui définit par le standard ISO du langage C++.
+
+% FIXME russian listing:
+\begin{lstlisting}[style=customc]
+__try
+{
+    ...
+}
+__except(filter code)
+{
+    handler code
+}
+\end{lstlisting}
+
+À la place du gestionnaire d'exception, on peut trouver un block \q{Finally}:
+
+\begin{lstlisting}[style=customc]
+__try
+{
+    ...
+}
+__finally
+{
+    ...
+}
+\end{lstlisting}
+
+Le code de filtrage est une expression. L'évaluation de celle-ci permet de définir si le gestionnaire
+reconnaît l'exception qui a été déclenchée.
+
+Si votre filtre est trop complexe pour tenir dans une seule expression, une fonction de filtrage
+séparée peut être définie.\\
+\\
+Il existe de nombreuses constructions de ce type dans le noyau Windows.
+En voici quelques exemples (\ac{WRK}):
+
+\lstinputlisting[caption=WRK-v1.2/base/ntos/ob/obwait.c,style=customc]{OS/SEH/2/wrk_ex1.c}
+
+\lstinputlisting[caption=WRK-v1.2/base/ntos/cache/cachesub.c,style=customc]{OS/SEH/2/wrk_ex2.c}
+
+Voici aussi un exemple de code de filtrage:
+
+\lstinputlisting[caption=WRK-v1.2/base/ntos/cache/copysup.c,style=customc]{OS/SEH/2/wrk_ex3.c}
+
+En interne, SEH est une extension du mécanisme de gestion des exceptions implémenté par l'OS.
+La fonction de gestion d'exceptions est \TT{\_except\_handler3} (pour SEH3) ou
+\TT{\_except\_handler4} (pour SEH4).
+
+Le code de ce gestionnaire est propre à MSVC et est situé dans ses librairies, ou dans msvcr*.dll.
+Il est essentiel de comprendre que SEH est purement lié à MSVC.
+
+D'autres compilateurs win32 peuvent choisir un modèle totalement différent.
+
+\myparagraph{SEH3}
+
+SEH3 est géré par la fonction \TT{\_except\_handler3}. Il ajoute à la structure \TT{\_EXCEPTION\_REGISTRATION}
+un pointeur vers une \emph{scope table} et une variable \emph{previous try level}.
+SEH4 de son côté ajoute 4 valeurs à la structure \emph{scope table} pour la gestion des dépassements
+de buffer.\\
+\\
+La structure \emph{scope table} est un ensemble de pointeurs vers les blocs de code du filtre et du
+gestionnaire de chaque niveau \emph{try/except} imbriqué.
+
+\input{OS/SEH/2/tikz}
+
+Il est essentiel de comprendre que l'\ac{OS} ne se préoccupe que des champs \emph{prev/handle} et de
+rien d'autre.\\
+Les autres champs sont exploités par la fonction \TT{\_except\_handler3}, de même que le contenu
+de la structure \emph{scope table} afin de décider quel gestionnaire exécuter et quand.\\
+\\
+\myindex{Wine}
+\myindex{ReactOS}
+Le code source de la fonction \TT{\_except\_handler3} n'est pas public.
+
+Cependant, le système d'exploitation Sanos, possède un mode de compatibilité win32.
+Celui-ci ré-implémente les mêmes fonctions d'une manière quasi équivalente à celle de Windows
+\footnote{\url{https://code.google.com/p/sanos/source/browse/src/win32/msvcrt/except.c}}.
+On trouve une autre ré-implémentation dans Wine\footnote{\href{https://github.com/mirrors/wine/blob/master/dlls/msvcrt/except_i386.c}{GitHub}}
+ainsi que dans ReactOS\footnote{\url{http://doxygen.reactos.org/d4/df2/lib_2sdk_2crt_2except_2except_8c_source.html}}.\\
+\\
+Lorsque le champ \emph{filter} est un pointeur NULL, le champ \emph{handler} est un pointeur vers un
+bloc de code \emph{finally}.\\
+\\
+Au cours de l'exécution, la valeur du champ \emph{previous try level} change. \\
+Ceci permet à la
+fonction \TT{\_except\_handler3} de connaître le niveau d'imbrication et donc de savoir quelle
+entrée de la table \emph{scope table} utiliser en cas d'exception.
+
+\myparagraph{SEH3: exemple de bloc try/except}
+
+\lstinputlisting[style=customc]{OS/SEH/2/2.c}
+
+\lstinputlisting[caption=MSVC 2003,style=customasmx86]{OS/SEH/2/2_SEH3.asm}
+
+Nous voyons ici la manière dont le bloc SEH est construit sur la pile.
+La structure \emph{scope table} est présente dans le segment \TT{CONST} du programme--- ce qui est
+normal puisque son contenu n'a jamais besoin d'être changé.
+Un point intéressant est la manière dont la valeur de la variable \emph{previous try level} évolue.
+Sa valeur initiale est \TT{0xFFFFFFFF} ($-1$).
+L'entrée dans le bloc \TT{try} débute par l'écriture de la valeur 0 dans la variable.
+La sortie du bloc \TT{try} est marquée par la restauration de la valeur $-1$.
+Nous voyons également l'adresse du bloc de filtrage et de celui du gestionnaire.
+
+Nous pouvons donc observer facilement la présence de blocs \emph{try/except} dans la fonction.\\
+\\
+Le code d'initialisation des structures SEH dans le prologue de la fonction peut être partagé par
+de nombreuses fonctions. Le compilateur choisi donc parfois d'insérer dans le prologue d'une fonction
+un appel à la fonction \TT{SEH\_prolog()} qui assure cette initialisation.
+
+Le code de nettoyage des structures SEH se trouve quant à lui dans la fonction \TT{SEH\_epilog()}.\\
+\\
+Tentons d'exécuter cet exemple dans \tracer{}:
+\myindex{tracer}
+
+\begin{lstlisting}
+tracer.exe -l:2.exe --dump-seh
+\end{lstlisting}
+
+\begin{lstlisting}[caption=tracer.exe output]
+EXCEPTION_ACCESS_VIOLATION at 2.exe!main+0x44 (0x401054) ExceptionInformation[0]=1
+EAX=0x00000000 EBX=0x7efde000 ECX=0x0040cbc8 EDX=0x0008e3c8
+ESI=0x00001db1 EDI=0x00000000 EBP=0x0018feac ESP=0x0018fe80
+EIP=0x00401054
+FLAGS=AF IF RF
+* SEH frame at 0x18fe9c prev=0x18ff78 handler=0x401204 (2.exe!_except_handler3)
+SEH3 frame. previous trylevel=0
+scopetable entry[0]. previous try level=-1, filter=0x401070 (2.exe!main+0x60) handler=0x401088 (2.exe!main+0x78)
+* SEH frame at 0x18ff78 prev=0x18ffc4 handler=0x401204 (2.exe!_except_handler3)
+SEH3 frame. previous trylevel=0
+scopetable entry[0]. previous try level=-1, filter=0x401531 (2.exe!mainCRTStartup+0x18d) handler=0x401545 (2.exe!mainCRTStartup+0x1a1)
+* SEH frame at 0x18ffc4 prev=0x18ffe4 handler=0x771f71f5 (ntdll.dll!__except_handler4)
+SEH4 frame. previous trylevel=0
+SEH4 header:	GSCookieOffset=0xfffffffe GSCookieXOROffset=0x0
+		EHCookieOffset=0xffffffcc EHCookieXOROffset=0x0
+scopetable entry[0]. previous try level=-2, filter=0x771f74d0 (ntdll.dll!___safe_se_handler_table+0x20) handler=0x771f90eb (ntdll.dll!_TppTerminateProcess@4+0x43)
+* SEH frame at 0x18ffe4 prev=0xffffffff handler=0x77247428 (ntdll.dll!_FinalExceptionHandler@16)
+\end{lstlisting}
+
+Nous constatons que la chaîne SEH est constituée de 4 gestionnaires.\\
+\\
+\myindex{CRT}
+Le deux premiers sont situés dans le code de notre exemple. Deux? Mais nous n'en avons défini qu'un!
+Effectivement, mais un second a été initialisé dans la fonction \TT{\_mainCRTStartup()} du \ac{CRT}.
+Il semble que celui-ci gère au moins les exceptions \ac{FPU}.
+Son code source figure dans le fichier \TT{crt/src/winxfltr.c} fournit avec l'installation de MSVC.\\
+\\
+Le troisième est le gestionnaire SEH4 dans ntdll.dll.
+Le quatrième n'est pas lié à MSVC et se situe dans ntdll.dll. Son nom suffit à en décrire l'utilité.\\
+\\
+Comme vous le constatez, nous avons 3 types de gestionnaire dans la même chaîne:
+
+L'un n'a rien à voir avec MSVC (le dernier) et deux autres sont liés à MSVC: SEH3 et SEH4.
+
+\myparagraph{SEH3: exemple de deux blocs try/except}
+
+\lstinputlisting[style=customc]{OS/SEH/2/3.c}
+
+Nous avons maintenant deux blocs \TT{try}.
+La structure \emph{scope table} possède donc deux entrées, une pour chaque bloc.
+La valeur de \emph{Previous try level} change selon que l'exécution entre ou sort des blocs \TT{try}.
+
+\lstinputlisting[caption=MSVC 2003,style=customasmx86]{OS/SEH/2/3_SEH3.asm}
+
+Si nous positionnons un point d'arrêt sur la fonction \printf{} qui est appelée par le gestionnaire,
+nous pouvons constater comment un nouveau gestionnaire SEH est ajouté.
+
+Il s'agit peut-être d'un autre mécanisme interne de la gestion SEH.
+Nous constatons aussi que notre structure \emph{scope table} contient 2 entrées.
+
+\begin{lstlisting}
+tracer.exe -l:3.exe bpx=3.exe!printf --dump-seh
+\end{lstlisting}
+
+\begin{lstlisting}[caption=tracer.exe output]
+(0) 3.exe!printf
+EAX=0x0000001b EBX=0x00000000 ECX=0x0040cc58 EDX=0x0008e3c8
+ESI=0x00000000 EDI=0x00000000 EBP=0x0018f840 ESP=0x0018f838
+EIP=0x004011b6
+FLAGS=PF ZF IF
+* SEH frame at 0x18f88c prev=0x18fe9c handler=0x771db4ad (ntdll.dll!ExecuteHandler2@20+0x3a)
+* SEH frame at 0x18fe9c prev=0x18ff78 handler=0x4012e0 (3.exe!_except_handler3)
+SEH3 frame. previous trylevel=1
+scopetable entry[0]. previous try level=-1, filter=0x401120 (3.exe!main+0xb0) handler=0x40113b (3.exe!main+0xcb)
+scopetable entry[1]. previous try level=0, filter=0x4010e8 (3.exe!main+0x78) handler=0x401100 (3.exe!main+0x90)
+* SEH frame at 0x18ff78 prev=0x18ffc4 handler=0x4012e0 (3.exe!_except_handler3)
+SEH3 frame. previous trylevel=0
+scopetable entry[0]. previous try level=-1, filter=0x40160d (3.exe!mainCRTStartup+0x18d) handler=0x401621 (3.exe!mainCRTStartup+0x1a1)
+* SEH frame at 0x18ffc4 prev=0x18ffe4 handler=0x771f71f5 (ntdll.dll!__except_handler4)
+SEH4 frame. previous trylevel=0
+SEH4 header:	GSCookieOffset=0xfffffffe GSCookieXOROffset=0x0
+		EHCookieOffset=0xffffffcc EHCookieXOROffset=0x0
+scopetable entry[0]. previous try level=-2, filter=0x771f74d0 (ntdll.dll!___safe_se_handler_table+0x20) handler=0x771f90eb (ntdll.dll!_TppTerminateProcess@4+0x43)
+* SEH frame at 0x18ffe4 prev=0xffffffff handler=0x77247428 (ntdll.dll!_FinalExceptionHandler@16)
+\end{lstlisting}
+
+\myparagraph{SEH4}
+
+\myindex{\BufferOverflow}
+\myindex{Security cookie}
+Lors d'une attaque par dépassement de buffer (\myref{subsec:bufferoverflow}), l'adresse de la
+\emph{scope table} peut être modifiée. C'est pourquoi à partir de MSVC 2005 SEH3 a été amélioré vers
+SEH4 pour ajouter une protection contre ce type d'attaque.
+Le pointeur vers la structure \emph{scope table} est désormais \glslink{xoring}{xored} avec la valeur
+d'un \gls{security cookie}.
+Par ailleurs, la structure \emph{scope table} a été étendue avec une en-tête contenant deux pointeurs
+vers des \emph{security cookies}.
+
+Chaque élément contient un offset dans la pile d'une valeur correspondant à:
+adresse du \gls{stack frame} (\EBP) \glslink{xoring}{xored} avec la valeur du \TT{security\_cookie}
+lui aussi situé sur la pile.
+
+Durant la gestion d'exception, l'intégrité de cette valeur est vérifiée.
+La valeur de chaque \emph{security cookie} situé sur la pile est aléatoire. Une attaque à distance ne
+pourra donc pas la deviner. \\
+\\
+Avec SEH4, la valeur initiale de \emph{previous try level} est de $-2$ et non de $-1$.
+
+\def\SEHfour{1}
+\input{OS/SEH/2/tikz}
+
+Voici deux exemples compilés avec MSVC 2012 et SEH4:
+
+\lstinputlisting[caption=MSVC 2012: exemple bloc try unique,style=customasmx86]{OS/SEH/2/2_SEH4.asm}
+
+\lstinputlisting[caption=MSVC 2012: exemple de deux blocs try,style=customasmx86]{OS/SEH/2/3_SEH4.asm}
+
+La signification de \emph{cookies} est la suivante: \TT{Cookie Offset} est la différence entre l'adresse
+dans la pile de la dernière valeur sauvegardée du registre EBP et de l'adresse dans la pile du
+résultat de l'addition $EBP \oplus security\_cookie$.
+\TT{Cookie XOR Offset} est quant à lui la différence entre $EBP \oplus security\_cookie$ et la valeur
+conservée sur la pile.
+
+Si le prédicat ci-dessous n'est pas respecté, le processus est arrêté du fait d'une corruption
+de la pile:
+
+\begin{center}
+$security\_cookie \oplus (CookieXOROffset + address\_of\_saved\_EBP) == stack[address\_of\_saved\_EBP + CookieOffset]$
+\end{center}
+
+Lorsque \TT{Cookie Offset} vaut $-2$, ceci indique qu'il n'est pas présent.
+
+\iffalse
+% FIXME: get this back when tracer src will be hosted again somewhere
+\myindex{tracer}
+La vérification des \emph{Cookies} est aussi implémentée dans mon \tracer{},
+voir \href{https://github.com/DennisYurichev/tracer/blob/master/SEH.c}{GitHub} pour les détails.\\
+\\
+Pour les versions à partir de MSVC 2005, il est toujours possible de revenir à la version SEH3
+en utilisant l'option \TT{/GS-}. Toutefois, le \ac{CRT} continue à utiliser SEH4.
+\fi
+

@@ -1,0 +1,38 @@
+my_abs:
+; déplacer depuis le coprocesseur 1:
+                mfc1    $v1, $f12
+                li      $v0, 0x7FFFFFFF
+; \$v0=0x7FFFFFFF
+; faire AND:
+                and     $v0, $v1
+; déplacer vers le  coprocesseur 1:
+                mtc1    $v0, $f0
+; return
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement
+
+set_sign:
+; déplacer depuis le  coprocesseur 1:
+                mfc1    $v0, $f12
+                lui     $v1, 0x8000
+; \$v1=0x80000000
+; faire OR:
+                or      $v0, $v1, $v0
+; déplacer vers le  coprocesseur 1:
+                mtc1    $v0, $f0
+; return
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement
+
+negate:
+; déplacer depuis le  coprocesseur 1:
+                mfc1    $v0, $f12
+                lui     $v1, 0x8000
+; \$v1=0x80000000
+; do XOR:
+                xor     $v0, $v1, $v0
+; déplacer vers le  coprocesseur 1:
+                mtc1    $v0, $f0
+; sortir
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement

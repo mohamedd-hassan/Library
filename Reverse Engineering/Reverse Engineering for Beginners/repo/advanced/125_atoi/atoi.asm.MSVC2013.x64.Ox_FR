@@ -1,0 +1,31 @@
+s$ = 8
+my_atoi	PROC
+; charger le premier caractère
+	movzx	r8d, BYTE PTR [rcx]
+; EAX est alloué pour la variable "rt"
+; qui vaut 0 au début
+	xor	eax, eax
+; est-ce que le premier caractère est un octet à zéro, i.e., fin de chaine?
+; si oui, sortir
+	test	r8b, r8b
+	je	SHORT $LN9@my_atoi
+$LL2@my_atoi:
+	lea	edx, DWORD PTR [rax+rax*4]
+; EDX=RAX+RAX*4=rt+rt*4=rt*5
+	movsx	eax, r8b
+; EAX=caractère en entrée
+; charger le caractère suivant dans R8D
+	movzx	r8d, BYTE PTR [rcx+1]
+; décaler le pointeur dans RCX sur le caractère suivant:
+	lea	rcx, QWORD PTR [rcx+1]
+	lea	eax, DWORD PTR [rax+rdx*2]
+; EAX=RAX+RDX*2=caractère en entrée + rt*5*2=caractère en entrée + rt*10
+: chiffre correct en soustrayant 48 (0x30 ou '0')
+	add	eax, -48				; ffffffffffffffd0H
+; est-ce que le dernier caractère était zéro?
+	test	r8b, r8b
+; sauter au début de la boucle si non
+	jne	SHORT $LL2@my_atoi
+$LN9@my_atoi:
+	ret	0
+my_atoi	ENDP

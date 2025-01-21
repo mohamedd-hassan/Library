@@ -1,0 +1,210 @@
+\subsection{Travailler avec des adresses au lieu de pointeurs}
+
+Un pointeur est juste une adresse en mémoire. Mais pourquoi écrivons-nous \TT{char* string}
+au lieu de quelque chose comme \TT{address string}?
+La variable pointeur est fournie avec un type de la valeur sur laquelle le pointeur
+pointe.
+Donc le compilateur est capable de détecter des bugs de type de données lors de la
+compilation.
+
+Pour être pédant, les types de données des langages de programmation ne servent qu'a
+prévenir des bugs et à l'auto-documentation.
+Il est possible de n'utiliser que deux types de données, comme \emph{int} (ou \emph{int64\_t})
+et l'octet---ce sont les seuls types disponible aux programmeurs en langage d'assemblage.
+Mais c'est une tâche extrêmement difficile d'écrire des programmes en assembleur
+pratique et sans bugs méchants.
+La plus petite typo peut conduire à un bug difficile-à-trouver.
+
+L'information sur le type de données est absente d'un code compilé (et c'est l'un
+des problèmes majeurs pour les dé-compilateurs), et je peux le prouver.
+
+Ceci est ce qu'un programmeur \CCpp peut écrire:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+void print_string (char *s)
+{
+	printf ("(address: 0x%llx)\n", s);
+	printf ("%s\n", s);
+};
+
+int main()
+{
+	char *s="Hello, world!";
+
+	print_string (s);
+};
+\end{lstlisting}
+
+Ceci est ce que je peux écrire:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+void print_string (uint64_t address)
+{
+	printf ("(address: 0x%llx)\n", address);
+	puts ((char*)address);
+};
+
+int main()
+{
+	char *s="Hello, world!";
+
+	print_string ((uint64_t)s);
+};
+\end{lstlisting}
+
+J'utilise \emph{uint64\_t} car j'ai effectué cet exemple sur Linux x64. \emph{int} fonctionnerait
+pour des \ac{OS}-s 32-bit.
+D'abord, un pointeur sur un caractère (la toute première chaîne de bienvenu) est
+casté en \emph{uint64\_t}, puis passé plus loin.
+La fonction \TT{print\_string()} re-caste la valeur \emph{uint64\_t} en un pointeur
+sur un caractère.
+
+Ce qui est intéressant, c'est que GCC 4.8.4 produit une sortie assembleur identique
+pour les deux versions:
+
+\begin{lstlisting}
+gcc 1.c -S -masm=intel -O3 -fno-inline
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86]
+.LC0:
+	.string	"(address: 0x%llx)\n"
+print_string:
+	push	rbx
+	mov	rdx, rdi
+	mov	rbx, rdi
+	mov	esi, OFFSET FLAT:.LC0
+	mov	edi, 1
+	xor	eax, eax
+	call	__printf_chk
+	mov	rdi, rbx
+	pop	rbx
+	jmp	puts
+.LC1:
+	.string	"Hello, world!"
+main:
+	sub	rsp, 8
+	mov	edi, OFFSET FLAT:.LC1
+	call	print_string
+	add	rsp, 8
+	ret
+\end{lstlisting}
+
+(j'ai supprimé toutes les directives non significatives de GCC.)
+
+J'ai aussi essayé différents utilitaires UNIX de \emph{diff} et ils ne montrent aucune
+différence.
+
+Continuons à abuser massivement des traditions de programmation de \CCpp.
+On pourrait écrire ceci:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+uint8_t load_byte_at_address (uint8_t* address)
+{
+	return *address;
+	//this is also possible: return address[0]; 
+};
+
+void print_string (char *s)
+{
+	char* current_address=s;
+	while (1)
+	{
+		char current_char=load_byte_at_address(current_address);
+		if (current_char==0)
+			break;
+		printf ("%c", current_char);
+		current_address++;
+	};
+};
+
+int main()
+{
+	char *s="Hello, world!";
+
+	print_string (s);
+};
+\end{lstlisting}
+
+Ça pourrait être récrit comme ceci:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+uint8_t load_byte_at_address (uint64_t address)
+{
+	return *(uint8_t*)address;
+};
+
+void print_string (uint64_t address)
+{
+	uint64_t current_address=address;
+	while (1)
+	{
+		char current_char=load_byte_at_address(current_address);
+		if (current_char==0)
+			break;
+		printf ("%c", current_char);
+		current_address++;
+	};
+};
+
+int main()
+{
+	char *s="Hello, world!";
+
+	print_string ((uint64_t)s);
+};
+\end{lstlisting}
+
+Les deux codes source donnent la même sortie assembleur:
+
+\begin{lstlisting}
+gcc 1.c -S -masm=intel -O3 -fno-inline
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86]
+load_byte_at_address:
+	movzx	eax, BYTE PTR [rdi]
+	ret
+print_string:
+.LFB15:
+	push	rbx
+	mov	rbx, rdi
+	jmp	.L4
+.L7:
+	movsx	edi, al
+	add	rbx, 1
+	call	putchar
+.L4:
+	mov	rdi, rbx
+	call	load_byte_at_address
+	test	al, al
+	jne	.L7
+	pop	rbx
+	ret
+.LC0:
+	.string	"Hello, world!"
+main:
+	sub	rsp, 8
+	mov	edi, OFFSET FLAT:.LC0
+	call	print_string
+	add	rsp, 8
+	ret
+\end{lstlisting}
+
+(j'ai supprimé toutes les directives non significatives de GCC.)
+
+Aucune différence: les pointeurs \CCpp sont essentiellement des adresses, mais fournies
+avec une information sur le type, afin de prévenir des erreurs possible lors de la
+compilation.

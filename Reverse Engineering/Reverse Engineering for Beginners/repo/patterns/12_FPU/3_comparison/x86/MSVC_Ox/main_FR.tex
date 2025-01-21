@@ -1,0 +1,38 @@
+\myparagraph{MSVC 2010 \Optimizing}
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{patterns/12_FPU/3_comparison/x86/MSVC_Ox/MSVC_FR.asm}
+
+\myindex{x86!\Instructions!FCOM}
+
+\FCOM diffère de \FCOMP dans le sens où il compare seulement les deux valeurs, et
+ne change pas la pile du FPU.
+Contrairement à l'exemple précédent, ici les opérandes sont dans l'ordre inverse,
+c'est pourquoi le résultat de la comparaison dans \CThreeBits est différent.
+
+\begin{itemize}
+\item si $a>b$ dans notre exemple, alors les bits \CThreeBits sont mis comme suit: 0, 0, 0.
+\item si $b>a$, alors les bits sont: 0, 0, 1.
+\item si $a=b$, alors les bits sont: 1, 0, 0.
+\end{itemize}
+% TODO: table?
+
+L'instruction \INS{test ah, 65} laisse seulement deux bits~---\Cthree et \Czero.
+Les deux seront à zéro si $a>b$: dans ce cas le saut \JNE ne sera pas effectué.
+Puis \INS{FSTP ST(1)} suit~---cette instruction copie la valeur de \ST{0} dans l'opérande
+et supprime une valeur de la pile du FPU.
+En d'autres mots, l'instruction copie \ST{0} (où la valeur de \GTT{\_a} se trouve)
+dans \ST{1}.
+Après cela, deux copies de {\_a} sont sur le sommet de la pile.
+Puis, une valeur est supprimée.
+Après cela, \ST{0} contient {\_a} et la fonction se termine.
+
+Le saut conditionnel \JNE est effectué dans deux cas: si $b>a$ ou $a=b$.
+\ST{0} est copié dans \ST{0}, c'est comme une opération sans effet (\ac{NOP}), puis
+une valeur est supprimée de la pile et le sommet de la pile (\ST{0}) contient la
+valeur qui était avant dans \ST{1} (qui est {\_b}).
+Puis la fonction se termine.
+La raison pour laquelle cette instruction est utilisée ici est sans doute que le
+\ac{FPU} n'a pas d'autre instruction pour prendre une valeur sur la pile et la
+supprimer.
+
+\input{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly_FR.tex}

@@ -1,0 +1,12 @@
+﻿    MOV [counter], 2 ; 初期化
+    JMP label_check
+label_increment:
+    ADD [counter], 1 ; インクリメント
+label_check:
+    CMP [counter], 10
+    JGE exit
+    ; ループボディ
+    ; ここで何かする
+    ; ローカルスタックでカウンタ変数を使用する
+    JMP label_increment
+exit:

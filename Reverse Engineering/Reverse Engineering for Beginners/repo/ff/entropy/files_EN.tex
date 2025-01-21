@@ -1,0 +1,128 @@
+\subsection{Entropy of various files}
+
+Entropy of random data is close to 8:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | ent
+Entropy = 7.999803 bits per byte.
+\end{lstlisting}
+
+This means, almost all available space inside of byte is filled with information.
+
+256 bytes in range of 0..255 gives exact value of 8:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys
+
+for i in range(256):
+    sys.stdout.write(chr(i))
+\end{lstlisting}
+
+\begin{lstlisting}
+% python 1.py | ent
+Entropy = 8.000000 bits per byte.
+\end{lstlisting}
+
+Order of bytes doesn't matter.
+This means, all available space inside of byte is filled.
+
+Entropy of any block filled with zero bytes is 0:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/zero | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+Entropy of a string constisting of a single (any) byte is 0:
+
+\begin{lstlisting}
+% echo -n "aaaaaaaaaaaaaaaaaaa" | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+\myindex{base64}
+Entropy of base64 string is the same as entropy of source data, but multiplied by $\frac{3}{4}$.
+This is because base64 encoding uses 64 symbols instead of 256.
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | base64 | ent
+Entropy = 6.022068 bits per byte.
+\end{lstlisting}
+
+Perhaps, 6.02 is slightly bigger than 6 because padding symbols (\TT{=}) spoils our statistics for a little.
+
+\myindex{Uuencode}
+Uuencode also uses 64 symbols:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | uuencode - | ent
+Entropy = 6.013162 bits per byte.
+\end{lstlisting}
+
+This means, any base64 and Uuencode strings can be transmitted using 6-bit bytes or characters.
+
+Any random information in hexadecimal form has entropy of 4 bits per byte:
+
+\begin{lstlisting}
+% openssl rand -hex $\$$(( 2**16 )) | ent
+Entropy = 4.000013 bits per byte.
+\end{lstlisting}
+
+Entropy of randomly picked English language text from Gutenberg library has entropy $\approx 4.5$.
+The reason of this is because English texts uses mostly 26 symbols, and $log_2(26)=\approx 4.7$, i.e., you would need
+5-bit bytes to transmit uncompressed English texts, that would be enough (it was indeed so in teletype era).
+
+Randomly chosen Russian language text from \url{http://lib.ru}
+library is F.M.Dostoevsky ``Idiot''\footnote{\url{http://az.lib.ru/d/dostoewskij_f_m/text_0070.shtml}},
+internally encoded in CP1251 encoding.
+
+And this file has entropy of $\approx 4.98$.
+Russian language has 33 characters, and $log_2(33)=\approx 5.04$.
+But it has unpopular and rare ``ё'' character.
+% FIXME YO letter isn't rendered in Eng version
+And $log_2(32)=5$ (Russian alphabet without this rare character)---now this close to what we've got.
+
+However, the text we studying uses ``ё'' letter, but, probably, it's still rarely used there.
+
+\myindex{UTF-8}
+The very same file transcoded from CP1251 to UTF-8 gave entropy of $\approx 4.23$.
+Each Cyrillic character encoded in UTF-8 is usually encoded as a pair,
+and the first byte is always one of: 0xD0 or 0xD1.
+Perhaps, this caused bias.
+
+Let's generate random bits and output them as ``T'' and ``F'' characters:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    if random.randint(0,1)==1:
+        rt=rt+"T"
+    else:
+        rt=rt+"F"
+print rt
+\end{lstlisting}
+
+Sample: \TT{...TTTFTFTTTFFFTTTFTTTTTTFTTFFTTTFTFTTFTTFFFFFF...}.
+
+Entropy is very close to 1 (i.e., 1 bit per byte).
+
+Let's generate random decimal digits:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    rt=rt+"%d" % random.randint(0,9)
+print rt
+\end{lstlisting}
+
+Sample: \TT{...52203466119390328807552582367031963888032...}.
+
+Entropy will be close to 3.32, indeed, this is $log_2(10)$.
+

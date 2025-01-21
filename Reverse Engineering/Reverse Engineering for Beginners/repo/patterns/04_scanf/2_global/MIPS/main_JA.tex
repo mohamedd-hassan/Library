@@ -1,0 +1,70 @@
+\subsubsection{MIPS}
+
+\myparagraph{初期化されていないグローバル変数}
+
+だから今$x$変数はグローバルです。 
+オブジェクトファイルではなく実行ファイルにコンパイルし、 \IDA にロードしてみましょう。 
+IDAは、\emph{.sbss} ELFセクションに$x$変数を表示します（25ページの\q{グローバルポインタ} \myref{MIPS_GP}を覚えておいてください）。
+これは変数が最初に初期化されていないためです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_IDA_JA.lst}
+
+IDAは情報量を減らすため、objdumpを使用してリスティングを行い、コメントします。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (objdump),numbers=left,style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_objdump_JA.txt}
+
+今度は$x$変数アドレスがGPを使って64KiBのデータバッファから読み込まれ、負のオフセットが加えられていることがわかります（18行目）。 
+さらに、この例（ \puts 、 \scanf 、 \printf ）で使用されている3つの外部関数のアドレスもGPを使用して64KiBグローバルデータバッファから読み込まれます（9,16,26行目） 。 
+GPはバッファの中央を指しています。このようなオフセットは、
+3つの関数のアドレスと$x$変数のアドレスがすべてそのバッファの先頭に格納されていることを示しています。 
+私たちの例は非常に小さいので、それは理にかなっています。
+
+\myindex{MIPS!\Pseudoinstructions!MOVE}
+\myindex{MIPS!\Pseudoinstructions!NOP}
+
+言及する価値がある別のことは、次の関数の開始を16バイトの境界に合わせるために、関数が2つの\ac{NOP}（\TT{MOVE \$AT,\$AT}、アイドル命令）で終了することです。
+
+\myparagraph{初期化されたグローバル変数}
+
+$x$変数にデフォルト値を与えることで、この例を変更しましょう。
+
+\lstinputlisting[style=customc]{patterns/04_scanf/2_global/default_value_JA.c}
+
+IDAは$x$変数が.dataセクションに存在することを示しています：
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_IDA_init_JA.lst}
+
+.sdataにしたら？ これはおそらくいくつかのGCCオプションに依存するのでしょうか？
+
+それにもかかわらず、$x$は一般的なメモリ領域である.dataにあり、
+ここで変数を扱う方法を見てみることができます。
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{MIPS!\Instructions!ADDIU}
+
+変数のアドレスは、命令のペアを使用して構成する必要があります。
+
+私たちの場合、それらは\INS{LUI}（\q{Load Upper Immediate}）と\INS{ADDIU}（\q{Add Immediate Unsigned Word}）です。 
+
+厳密な検査のためのobjdumpリストもあります：
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (objdump),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_objdump_init_JA.txt}
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{MIPS!\Instructions!ADDIU}
+\myindex{MIPS!\Instructions!LW}
+
+アドレスは\INS{LUI}と\INS{ADDIU}を使用して形成されていますが、アドレスの上位部分はまだ \$S0 レジスタにあり、
+\INS{LW}（\q{Load Word}）命令でオフセットをエンコードすることができます。 
+変数から値をロードして \printf に渡すには十分です。
+
+一時的なデータを保持するレジスタの先頭にはT-が付いていますが、ここでは接頭辞S-が付いています。
+その内容は他の関数で使用する前に保持しておく必要があります。
+% FIXME:
+% This needs to be clarified a bit, e.g. "the registers need to be preserved if a function is called and it wants to use them
+
+そのため、 \$S0 の値は0x4006ccのアドレスに設定されており、
+\scanf 呼び出し後に0x4006e8番地で再び使用されています。 
+\scanf 関数は値を変更しません。
+
+% TODO non-optimized example?

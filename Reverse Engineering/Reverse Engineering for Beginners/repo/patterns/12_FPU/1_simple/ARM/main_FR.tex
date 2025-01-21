@@ -1,0 +1,124 @@
+\subsubsection{ARM: \OptimizingXcodeIV (\ARMMode)}
+
+Jusqu'à la standardisation du support de la virgule flottante, certains fabricants
+de processeur ont ajouté leur propre instructions étendues.
+Ensuite, VFP (\emph{Vector Floating Point}) a été standardisé.
+
+Une différence importante par rapport au x86 est qu'en ARM, il n'y a pas de pile,
+vous travaillez seulement avec des registres.
+
+\lstinputlisting[label=ARM_leaf_example10,caption=\OptimizingXcodeIV (\ARMMode),style=customasmARM]{patterns/12_FPU/1_simple/ARM/Xcode_ARM_O3_FR.asm}
+
+\myindex{ARM!D-\registers{}}
+\myindex{ARM!S-\registers{}}
+
+Donc, nous voyons ici que des nouveaux registres sont utilisés, avec le préfixe D.
+
+Ce sont des registres 64-bits, il y en a 32, et ils peuvent être utilisés tant pour
+des nombres à virgules flottantes (double) que pour des opérations SIMD (c'est appelé
+NEON ici en ARM).
+
+Il y a aussi 32 S-registres 32 bits, destinés à être utilisés pour les nombres à
+virgules flottantes simple précision (float).
+
+C'est facile à retenir: les registres D sont pour les nombres en double précision,
+tandis que les registres S----pour les nombres en simple précision
+Pour aller plus loin: \myref{ARM_VFP_registers}.
+
+Les deux constantes (3.14 et 4.1) sont stockées en mémoire au format IEEE 754.
+
+\myindex{ARM!\Instructions!VLDR}
+\myindex{ARM!\Instructions!VMOV}
+\INS{VLDR} et \INS{VMOV}, comme il peut en être facilement déduit, sont analogues
+aux instructions \INS{LDR} et \MOV, mais travaillent avec des registres D.
+
+Il est à noter que ces instructions, tout comme les registres D, sont destinées non
+seulement pour les nombres à virgules flottantes, mais peuvent aussi être utilisées
+pour des opérations SIMD (NEON) et cela va être montré bientôt.
+
+Les arguments sont passés à la fonction de manière classique, via les R-registres,
+toutefois, chaque nombre en double précision a une taille de 64 bits, donc deux
+R-registres sont nécessaires pour passer chacun d'entre eux.
+
+\INS{VMOV D17, R0, R1} au début, combine les deux valeurs 32-bit de \Reg{0} et \Reg{1}
+en une valeur 64-bit et la sauve dans \GTT{D17}.
+
+\INS{VMOV R0, R1, D16} est l'opération inverse: ce qui est dans \GTT{D16} est séparé
+dans deux registres, \Reg{0} et \Reg{1}, car un nombre en double précision qui
+nécessite 64 bit pour le stockage, est renvoyé dans \Reg{0} et \Reg{1}.
+
+\myindex{ARM!\Instructions!VDIV}
+\myindex{ARM!\Instructions!VMUL}
+\myindex{ARM!\Instructions!VADD}
+\INS{VDIV}, \INS{VMUL} and \INS{VADD}, 
+sont des instructions pour traiter des nombres à virgule flottante, qui calculent
+respectivement le \gls{quotient}, \glslink{product}{produit} et la somme.
+
+Le code pour Thumb-2 est similaire.
+
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/1_simple/ARM/Keil_O3_thumb_FR.asm}
+
+Code généré par Keil pour un processeur sans FPU ou support pour NEON.
+
+Les nombres en virgule flottante double précision sont passés par des R-registres
+génériques et au lieu d'instructions FPU, des fonctions d'une bibliothèque de service
+sont appelées (comme \GTT{\_\_aeabi\_dmul}, \GTT{\_\_aeabi\_ddiv}, \GTT{\_\_aeabi\_dadd})
+qui émulent la multiplication, la division et l'addition pour les nombres à virgule
+flottante.
+
+Bien sûr, c'est plus lent qu'un coprocesseur FPU, mais toujours mieux que rien.
+
+À propos, de telles bibliothèques d'émulation de FPU étaient très populaires dans
+le monde x86 lorsque les coprocesseurs étaient rares et chers, et étaient installés
+seulement dans des ordinateurs coûteux.
+
+\myindex{ARM!soft float}
+\myindex{ARM!armel}
+\myindex{ARM!armhf}
+\myindex{ARM!hard float}
+
+L'émulation d'un coprocesseur FPU est appelée \emph{soft float} ou \emph{armel} (\emph{emulation})
+dans le monde ARM, alors que l'utilisation des instructions d'un coprocesseur FPU
+est appelée \emph{hard float} ou \emph{armhf}.
+
+\iffalse
+% TODO разобраться...
+\myindex{Raspberry Pi}
+
+Par exemple, le noyau Linux pour Raspberry Pi est compilé en deux variantes.
+
+Dans le case \emph{soft float}, les arguments sont passés par les R-registres, et dans
+le cas \emph{hard float}---par les registes-D.
+
+Et c'est ce qui empêche d'utiliser des bibliothèques armfh pour de code armel ou
+vice-versa, et c'est pourquoi le code dans les distributions Linux doit être compilé
+suivant une seule convention.
+\fi
+
+\subsubsection{ARM64: GCC \Optimizing (Linaro) 4.9}
+
+Code très compact:
+
+\lstinputlisting[caption=GCC \Optimizing (Linaro) 4.9,style=customasmARM]{patterns/12_FPU/1_simple/ARM/ARM64_GCC_O3_FR.s}
+
+\subsubsection{ARM64: GCC \NonOptimizing (Linaro) 4.9}
+
+\lstinputlisting[caption=GCC \NonOptimizing (Linaro) 4.9,style=customasmARM]{patterns/12_FPU/1_simple/ARM/ARM64_GCC_O0_FR.s}
+
+GCC \NonOptimizing est plus verbeux.
+
+Il y a des nombreuses modifications de valeur inutiles, incluant du code clairement
+redondant (les deux dernières instructions \INS{FMOV}). Sans doute que GCC 4.9 n'est
+pas encore très bon pour la génération de code ARM64.
+
+Il est utile de noter qu'ARM64 possède des registres 64-bit, et que les D-registres
+sont aussi 64-bit.
+
+Donc le compilateur est libre de sauver des valeurs de type \Tdouble dans \ac{GPR}s
+au lieu de la pile locale.
+Ce n'est pas possible sur des CPUs 32-bit.
+
+Et encore, à titre d'exercice, vous pouvez essayer d'optimiser manuellement cette
+fonction, sans introduire de nouvelles instructions comme \INS{FMADD}.

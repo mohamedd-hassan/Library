@@ -1,0 +1,292 @@
+﻿\newcommand{\comp}{\TT{comp()}\xspace}
+\mysection{関数へのポインタ}
+\label{sec:pointerstofunctions}
+
+\myindex{\CLanguageElements!\Pointers}
+
+関数へのポインタは、他のポインタと同様に、コードセグメント内の関数の開始アドレスにすぎません。
+
+\myindex{Callbacks}
+それらはコールバック関数を呼び出すためによく使われます。
+
+よく知られている例は次のとおりです。
+
+\begin{itemize}
+\item 標準Cライブラリの \qsort,
+\TT{atexit()}
+
+\item *NIX OS シグナル
+
+\item スレッド開始: \TT{CreateThread()} (win32), \TT{pthread\_create()} (POSIX);
+
+\item 多くのwin32関数、例えば\TT{EnumChildWindows()}.
+
+\item Linuxカーネル内部の色々なところで、例えばファイルシステムドライバ関数はコールバック経由で呼び出されます.
+
+\item GCCプラグイン関数もコールバック経由で呼び出されます.
+
+\end{itemize}
+
+\label{qsort}
+\myindex{\CStandardLibrary!qsort()}
+
+そのため、 \qsort 関数は \CCpp 標準ライブラリのquicksortの実装です。 
+これら2つの要素を比較する関数があり、 \qsort が関数を呼び出すことができる限り、関数はあらゆるデータ、
+あらゆるタイプのデータをソートすることができます。
+
+比較関数は次のように定義できます。
+
+\begin{lstlisting}
+int (*compare)(const void *, const void *)
+\end{lstlisting}
+
+次の例を使用しましょう。
+
+\lstinputlisting[numbers=left,label=qsort_c_src,style=customc]{patterns/18_pointers_to_functions/17_1.c}
+
+\subsection{MSVC}
+
+MSVC 2010（簡潔にするため一部を省略）で\TT{\Ox}オプションを付けてコンパイルしましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2010: /GS- /MD,style=customasmx86]{patterns/18_pointers_to_functions/17_2_msvc_Ox.asm}
+
+これまでのところ驚くべきことは何もありません。 
+4番目の引数として、ラベル\TT{\_comp}のアドレスが渡されます。これは \comp が置かれている場所、
+つまりその関数の最初の命令のアドレスです。
+
+\qsort はどうやって呼び出すでしょうか？
+
+\myindex{Windows!MSVCR80.DLL}
+
+MSVCR80.DLL（C標準ライブラリ関数を含むMSVC DLLモジュール）にあるこの関数を見てみましょう。
+
+\lstinputlisting[caption=MSVCR80.DLL,style=customasmx86]{patterns/18_pointers_to_functions/17_3_MSVCR.lst}
+
+\TT{comp}は関数への4番目の引数です。 
+ここで、制御は\TT{comp}への引数のアドレスに渡されます。
+その前に、 \comp に対して2つの引数が用意されています。 その結果は実行後にチェックされます。
+
+そのため、関数へのポインタを使用するのは危険です。 
+まず第一に、誤った関数ポインタで \qsort を呼び出すと、 \qsort が誤ったポイントに制御フローを渡すことがあり、
+プロセスがクラッシュしてこのバグを見つけるのが難しくなります。
+
+2番目の理由は、コールバック関数の型は厳密に従わなければならず、間違った型の間違った引数で
+間違った関数を呼び出すと深刻な問題につながる可能性があるということです。ただし、プロセスのクラッシュは
+問題ではありません、問題はクラッシュの理由をどうやって決定するのかです、なぜならコンパイラは
+コンパイル中に潜在的な問題について沈黙しているかもしれないからです。
+
+\input{patterns/18_pointers_to_functions/olly_JA.tex}
+
+\subsubsection{MSVC + tracer}
+\myindex{tracer}
+
+どのペアが比較されるかも見てみましょう。 
+1892、45、200、-98、4087、5、-12345、1087、88、-100000の
+10個の番号がソートされています。
+
+\comp で最初の \CMP 命令のアドレスを取得しました。これは\TT{0x0040100C}です。ここにブレークポイントを設定しました。
+
+\begin{lstlisting}
+tracer.exe -l:17_1.exe bpx=17_1.exe!0x0040100C
+\end{lstlisting}
+
+これで、ブレークポイントのレジスタに関する情報がいくつか得られます。
+
+\begin{lstlisting}
+PID=4336|New process 17_1.exe
+(0) 17_1.exe!0x40100c
+EAX=0x00000764 EBX=0x0051f7c8 ECX=0x00000005 EDX=0x00000000
+ESI=0x0051f7d8 EDI=0x0051f7b4 EBP=0x0051f794 ESP=0x0051f67c
+EIP=0x0028100c
+FLAGS=IF
+(0) 17_1.exe!0x40100c
+EAX=0x00000005 EBX=0x0051f7c8 ECX=0xfffe7960 EDX=0x00000000
+ESI=0x0051f7d8 EDI=0x0051f7b4 EBP=0x0051f794 ESP=0x0051f67c
+EIP=0x0028100c
+FLAGS=PF ZF IF
+(0) 17_1.exe!0x40100c
+EAX=0x00000764 EBX=0x0051f7c8 ECX=0x00000005 EDX=0x00000000
+ESI=0x0051f7d8 EDI=0x0051f7b4 EBP=0x0051f794 ESP=0x0051f67c
+EIP=0x0028100c
+FLAGS=CF PF ZF IF
+...
+\end{lstlisting}
+
+\TT{EAX}と\TT{ECX}を除外すると以下のようになります。
+
+\begin{lstlisting}
+EAX=0x00000764 ECX=0x00000005
+EAX=0x00000005 ECX=0xfffe7960
+EAX=0x00000764 ECX=0x00000005
+EAX=0x0000002d ECX=0x00000005
+EAX=0x00000058 ECX=0x00000005
+EAX=0x0000043f ECX=0x00000005
+EAX=0xffffcfc7 ECX=0x00000005
+EAX=0x000000c8 ECX=0x00000005
+EAX=0xffffff9e ECX=0x00000005
+EAX=0x00000ff7 ECX=0x00000005
+EAX=0x00000ff7 ECX=0x00000005
+EAX=0xffffff9e ECX=0x00000005
+EAX=0xffffff9e ECX=0x00000005
+EAX=0xffffcfc7 ECX=0xfffe7960
+EAX=0x00000005 ECX=0xffffcfc7
+EAX=0xffffff9e ECX=0x00000005
+EAX=0xffffcfc7 ECX=0xfffe7960
+EAX=0xffffff9e ECX=0xffffcfc7
+EAX=0xffffcfc7 ECX=0xfffe7960
+EAX=0x000000c8 ECX=0x00000ff7
+EAX=0x0000002d ECX=0x00000ff7
+EAX=0x0000043f ECX=0x00000ff7
+EAX=0x00000058 ECX=0x00000ff7
+EAX=0x00000764 ECX=0x00000ff7
+EAX=0x000000c8 ECX=0x00000764
+EAX=0x0000002d ECX=0x00000764
+EAX=0x0000043f ECX=0x00000764
+EAX=0x00000058 ECX=0x00000764
+EAX=0x000000c8 ECX=0x00000058
+EAX=0x0000002d ECX=0x000000c8
+EAX=0x0000043f ECX=0x000000c8
+EAX=0x000000c8 ECX=0x00000058
+EAX=0x0000002d ECX=0x000000c8
+EAX=0x0000002d ECX=0x00000058
+\end{lstlisting}
+
+34ペアです。
+したがって、クイックソートアルゴリズムでは、これら10個の数字をソートするために34回の比較操作が必要です。
+
+\clearpage
+\subsubsection{MSVC + tracer (code coverage)}
+\myindex{tracer}
+
+トレーサの機能を使用して可能なすべてのレジスタ値を収集し、それらを \IDA に表示することもできます。
+
+\comp 内のすべての命令をトレースしましょう。
+
+\begin{lstlisting}
+tracer.exe -l:17_1.exe bpf=17_1.exe!0x00401000,trace:cc
+\end{lstlisting}
+
+\IDA にロードするための .idc-script を入手してロードします。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/18_pointers_to_functions/tracer_cc.png}
+\caption{トレーサとIDA。注意：
+値がいくつか右側で切れています}
+\label{fig:qsort_tracer_cc}
+\end{figure}
+
+\IDA は関数に名前（PtFuncCompare）を付けました。 \IDA はこの関数へのポインタが \qsort に渡されることを認識しているためです。
+
+$a$ ポインタと $b$ ポインタは配列内のさまざまな場所を指していますが、32ビット値が配列に格納されているため、
+それらの間のステップは4です。
+
+\TT{0x401010}と\TT{0x401012}の命令は実行されなかったことがわかります（したがって、それらは白のままになります）。
+実際、 \comp は0を返すことがありません。これは、配列内に等しい要素がないためです。
+
+\subsection{GCC}
+
+大きな違いはありません。
+
+\begin{lstlisting}[caption=GCC,style=customasmx86]
+                lea     eax, [esp+40h+var_28]
+                mov     [esp+40h+var_40], eax
+                mov     [esp+40h+var_28], 764h
+                mov     [esp+40h+var_24], 2Dh
+                mov     [esp+40h+var_20], 0C8h
+                mov     [esp+40h+var_1C], 0FFFFFF9Eh
+                mov     [esp+40h+var_18], 0FF7h
+                mov     [esp+40h+var_14], 5
+                mov     [esp+40h+var_10], 0FFFFCFC7h
+                mov     [esp+40h+var_C], 43Fh
+                mov     [esp+40h+var_8], 58h
+                mov     [esp+40h+var_4], 0FFFE7960h
+                mov     [esp+40h+var_34], offset comp
+                mov     [esp+40h+var_38], 4
+                mov     [esp+40h+var_3C], 0Ah
+                call    _qsort
+\end{lstlisting}
+
+\comp 関数
+
+\begin{lstlisting}[style=customasmx86]
+                public comp
+comp            proc near
+
+arg_0           = dword ptr  8
+arg_4           = dword ptr  0Ch
+
+                push    ebp
+                mov     ebp, esp
+                mov     eax, [ebp+arg_4]
+                mov     ecx, [ebp+arg_0]
+                mov     edx, [eax]
+                xor     eax, eax
+                cmp     [ecx], edx
+                jnz     short loc_8048458
+                pop     ebp
+                retn
+loc_8048458:
+                setnl   al
+                movzx   eax, al
+                lea     eax, [eax+eax-1]
+                pop     ebp
+                retn
+comp            endp
+\end{lstlisting}
+
+\myindex{Linux!libc.so.6}
+
+\qsort の実装は\TT{libc.so.6}にあり、実際は単に\TT{qsort\_r()}のラッパーです
+\footnote{\gls{thunk function}と似たコンセプト}。
+
+次に、\TT{quicksort()}を呼び出しています。ここでは、定義済みの関数が渡されたポインタを介して呼び出されます。
+
+\begin{lstlisting}[caption=(file libc.so.6{,} glibc version---2.10.1),style=customasmx86]
+...
+.text:0002DDF6                 mov     edx, [ebp+arg_10]
+.text:0002DDF9                 mov     [esp+4], esi
+.text:0002DDFD                 mov     [esp], edi
+.text:0002DE00                 mov     [esp+8], edx
+.text:0002DE04                 call    [ebp+arg_C]
+...
+\end{lstlisting}
+
+\subsubsection{GCC + GDB (ソースコード付き)}
+\myindex{GDB}
+
+明らかに、この例のCソースコード（\myref{qsort_c_src}）があるので、
+行番号（11:最初の比較が行われる行）にブレークポイント（$b$）を設定できます。 
+また、デバッグ情報が含まれるように（\TT{-g}）例をコンパイルする必要があります。
+それで、アドレスと対応する行番号のテーブルが表示されます。
+
+変数名（\TT{p}）を使って値を出力することもできます。
+デバッグ情報から、どのレジスタやローカルスタック要素に
+どの変数が含まれているかがわかります。
+
+\myindex{Glibc}
+スタック（\TT{bt}）を見て、Glibcで使用されている中間関数\TT{msort\_with\_tmp()}があることもわかります。
+
+\lstinputlisting[caption=GDB session]{patterns/18_pointers_to_functions/GDB_source.txt}
+
+\subsubsection{GCC + GDB (ソースコードなし)}
+\myindex{GDB}
+
+しかし多くの場合ソースコードが全くないので、 \comp 関数を逆アセンブルし（\TT{disas}）、一番最初の
+\CMP 命令を見つけてそのアドレスにブレークポイント（$b$）を設定することができます。
+
+各ブレークポイントで、すべてのレジスタの内容
+（\TT{info registers}）をダンプします。 
+スタック情報も利用可能です（\TT{bt}）が、
+
+部分的です。 \comp の行番号情報はありません。
+
+\lstinputlisting[caption=GDB session]{patterns/18_pointers_to_functions/GDB_no_source.txt}
+
+\subsection{関数へのポインタの危なさ}
+
+ご覧のとおり、 \qsort 関数は、2つの\emph{void*}引数を取り、整数を返す関数へのポインタを
+期待しています。 
+コード内に複数の比較関数がある場合（1つは文字列、もう1つは整数などを比較します）、それらを互いに混同することは
+非常に簡単です。 
+あなたは整数を比較する関数を使って文字列の配列をソートしようとすることができます、そしてコンパイラはバグについてあなたに警告しません。

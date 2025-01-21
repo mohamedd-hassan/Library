@@ -1,0 +1,16 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+同じ例
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/15_structs/3_tm_linux/ARM/tm_ARM_keil_thumb.asm}
+
+\myparagraph{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+\IDA は\TT{tm}構造体を\q{知っています}。
+（ \IDA は\TT{localtime\_r()}のようなライブラリ関数の引数の型を\q{しっている}からです）
+
+ここでは構造要素のアクセスとその名前を示しています。
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]{patterns/15_structs/3_tm_linux/ARM/tm_ARM_xcode_thumb.asm}

@@ -1,0 +1,15 @@
+\subsubsection{MIPS}
+
+ローカルスタック内の場所は$x$変数に割り当てられ、$\$sp+24$ と呼ばれます。
+\myindex{MIPS!\Instructions!LW}
+
+そのアドレスは \scanf に渡され、ユーザー入力値は\INC{LW}（\q{Load Word}）を使用してロードされます。
+そしてそれから \printf に渡されます。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3_JA.s}
+
+IDAはスタックレイアウトを次のように表示します。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3.IDA_JA.lst}
+
+% TODO non-optimized version?

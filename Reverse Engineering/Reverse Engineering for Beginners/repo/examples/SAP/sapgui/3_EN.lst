@@ -1,0 +1,28 @@
+.text:64404C19 sub_64404C19    proc near
+.text:64404C19
+.text:64404C19 arg_0           = dword ptr  4
+.text:64404C19
+.text:64404C19                 push    ebx
+.text:64404C1A                 push    ebp
+.text:64404C1B                 push    esi
+.text:64404C1C                 push    edi
+.text:64404C1D                 mov     edi, [esp+10h+arg_0]
+.text:64404C21                 mov     eax, [edi]
+.text:64404C23                 mov     esi, ecx ; ESI/ECX are pointers to some unknown object.
+.text:64404C25                 mov     [esi], eax
+.text:64404C27                 mov     eax, [edi+4]
+.text:64404C2A                 mov     [esi+4], eax
+.text:64404C2D                 mov     eax, [edi+8]
+.text:64404C30                 mov     [esi+8], eax
+.text:64404C33                 lea     eax, [edi+0Ch]
+.text:64404C36                 push    eax
+.text:64404C37                 lea     ecx, [esi+0Ch]
+
+; \verb|demangled name:  ATL::CStringT::operator=(class ATL::CStringT ... &)|
+.text:64404C3A                 call    ds:mfc90_817 
+.text:64404C40                 mov     eax, [edi+10h]
+.text:64404C43                 mov     [esi+10h], eax
+.text:64404C46                 mov     al, [edi+14h]
+.text:64404C49                 mov     [esi+14h], al
+.text:64404C4C                 mov     al, [edi+15h] ; copy byte from 0x15 offset
+.text:64404C4F                 mov     [esi+15h], al ; to 0x15 offset in CDwsGui object

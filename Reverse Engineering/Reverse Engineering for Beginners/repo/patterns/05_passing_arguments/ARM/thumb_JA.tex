@@ -1,0 +1,15 @@
+\subsubsection{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[label=ARM_leaf_example2,style=customasmARM]
+.text:0000005E 48 43          MULS    R0, R1
+.text:00000060 80 18          ADDS    R0, R0, R2
+.text:00000062 70 47          BX      LR
+\end{lstlisting}
+
+Thumbモードでは\TT{MLA}命令を使用できないため、コンパイラはこれら2つの演算（乗算と加算）を
+別々に実行するコードを生成します。
+\myindex{ARM!\Instructions!MULS}
+\myindex{ARM!\Instructions!ADDS}
+
+最初に、\TT{MULS}命令は\Reg{0}に\Reg{1}を掛けて、結果をレジスタ\Reg{0}に残します。 
+2番目の命令（\TT{ADDS}）は結果と\Reg{2}を加算して結果をレジスタ\Reg{0}に残します。

@@ -1,0 +1,112 @@
+\subsection{スタックのノイズ}
+\label{noise_in_stack}
+
+\epigraph{ある人が何かがランダムに見えると言うとき、実際には、その中に何らかの規則性を見ることができないということです}{Stephen Wolfram, A New Kind of Science.}
+
+多くの場合、この本では\q{ノイズ}や\q{ガベージ}の値がスタックやメモリに記述されています。
+彼らはどこから来たのか？
+これらは、他の関数の実行後にそこに残っているものです。 
+短い例：
+
+\lstinputlisting[style=customc]{patterns/02_stack/08_noise/st.c}
+
+コンパイルすると \dots
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2010,style=customasmx86]{patterns/02_stack/08_noise/st.asm}
+
+コンパイラは少し不満そうです\dots
+
+\begin{lstlisting}
+c:\Polygon\c>cl st.c /Fast.asm /MD
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 16.00.40219.01 for 80x86
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+st.c
+c:\polygon\c\st.c(11) : warning C4700: uninitialized local variable 'c' used
+c:\polygon\c\st.c(11) : warning C4700: uninitialized local variable 'b' used
+c:\polygon\c\st.c(11) : warning C4700: uninitialized local variable 'a' used
+Microsoft (R) Incremental Linker Version 10.00.40219.01
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+/out:st.exe
+st.obj
+\end{lstlisting}
+
+しかし、コンパイルされたプログラムを実行すると \dots
+
+\begin{lstlisting}
+c:\Polygon\c>st
+1, 2, 3
+\end{lstlisting}
+
+ああ、なんて奇妙なんでしょう！ 我々は\TT{f2()}に変数を設定しませんでした。
+これらは\q{ゴースト}値であり、まだスタックに入っています。
+
+\clearpage
+サンプルを \olly にロードしましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/02_stack/08_noise/olly1.png}
+\caption{\olly: \TT{f1()}}
+\label{fig:stack_noise_olly1}
+\end{figure}
+
+\TT{f1()}が変数$a$、$b$、$c$を代入すると、その値はアドレス\TT{0x1FF860}に格納されます。
+
+\clearpage
+そして\TT{f2()}が実行されるとき：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/02_stack/08_noise/olly2.png}
+\caption{\olly: \TT{f2()}}
+\label{fig:stack_noise_olly2}
+\end{figure}
+
+... \TT{f2()}の$a$、$b$、$c$は同じアドレスにあります！
+誰もまだ値を上書きしていないので、その時点でまだ変更はありません。
+したがって、この奇妙な状況が発生するためには、いくつかの関数を次々と呼び出さなければならず、
+\ac{SP}は各関数エントリで同じでなければならない（すなわち、それらは同じ数の引数を有する）。 
+次に、ローカル変数はスタック内の同じ位置に配置されます。 
+要約すると、スタック（およびメモリセル）内のすべての値は、以前の関数実行から残った値を持ちます。 
+彼らは厳密な意味でランダムではなく、むしろ予測不可能な値を持っています。 
+別のオプションがありますか？ 
+各関数の実行前にスタックの一部をクリアすることはおそらく可能ですが、余計な（そして不要な）作業です。
+
+\subsubsection{MSVC 2013}
+
+この例はMSVC 2010によってコンパイルされました。
+しかし、この本の読者は、このサンプルをMSVC 2013でコンパイルして実行し、3つの数字がすべて逆の結果になるでしょう。
+
+\begin{lstlisting}
+c:\Polygon\c>st
+3, 2, 1
+\end{lstlisting}
+
+どうして？
+私もMSVC 2013でこの例をコンパイルし、見てみました。
+
+\begin{lstlisting}[caption=MSVC 2013,style=customasmx86]
+_a$ = -12	; size = 4
+_b$ = -8	; size = 4
+_c$ = -4	; size = 4
+_f2	PROC
+
+...
+
+_f2	ENDP
+
+_c$ = -12	; size = 4
+_b$ = -8	; size = 4
+_a$ = -4	; size = 4
+_f1	PROC
+
+...
+
+_f1	ENDP
+\end{lstlisting}
+
+MSVC 2010とは異なり、MSVC 2013は関数\TT{f2()}のa/b/c変数を逆順に割り当てました。
+これは完全に正しい動作です。 \CCpp 標準にはルールがありません。ローカル変数をローカルスタックに割り当てる必要があれば、どういう順番でもよいのです。 
+理由の違いは、MSVC 2010にはその方法があり、MSVC 2013はおそらくコンパイラの心臓部で何かが変わったと考えられるからです。

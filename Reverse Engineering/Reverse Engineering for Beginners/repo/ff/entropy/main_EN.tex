@@ -1,0 +1,136 @@
+% TODO png blur? too wide listings
+\mysection{Information entropy}
+\label{entropy}
+\myindex{Entropy}
+
+\epigraph{Entropy: The quantitative measure of disorder, which in turn relates to the thermodynamic functions, temperature, and heat.}
+{Dictionary of Applied Math for Engineers and Scientists}
+
+For the sake of simplification, I would say, information entropy is a measure,
+how tightly some piece of data can be compressed.
+For example, it is usually not possible to compress already compressed archive file, so it has high entropy.
+On the other hand, 1MiB of zero bytes can be compressed to a tiny output file.
+Indeed, in plain English language, one million of zeros can be described just as
+``resulting file is one million zero bytes''.
+Compressed files are usually a list of instructions to decompressor, like this:
+``put 1000 zeros, then 0x23 byte, then 0x45 byte, then put a block of size 10 bytes which we've seen 500 bytes back, etc.''
+
+Texts written in natural languages are also can be compressed tightly, 
+because natural languages has a lot of redundancy
+(otherwise, a tiny typo will always lead to misunderstanding, 
+like any toggled bit in compressed archive make decompression nearly impossible), 
+some words are used very often, etc.
+In everyday speech, it's possible to drop up to half of words and it still be recognizable.
+
+Code for CPUs is also can be compressed, because some \ac{ISA} instructions are used much more often than others.
+\myindex{x86!\Instructions!MOV}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!CALL}
+In x86, most used instructions are \INS{MOV}/\INS{PUSH}/\INS{CALL} (\myref{correctly_disasmed_code}).
+
+Data compressors and ciphers tend to produce very high entropy results.
+Good \ac{PRNG} also produce data which cannot be compressed 
+(it is possible to measure their quality by this sign).
+
+So, in other words, entropy is a measure which can help to probe contents of unknown data block.
+
+\input{ff/entropy/math_EN}
+
+\subsection{Conclusion}
+
+Information entropy can be used as a quick-n-dirty method for inspecting unknown binary files.
+In particular, it is a very quick way to find compressed/encrypted pieces of data.
+Someone say it's possible to find \ac{RSA} (and other asymmetric cryptographic algorithms) public/private keys 
+in executable code (keys has high entropy as well), but I didn't try this myself.
+
+\subsection{Tools}
+
+Handy Linux \emph{ent} utility to measure entropy of a file\footnote{\url{http://www.fourmilab.ch/random/}}.
+
+There is a great online entropy visualizer made by Aldo Cortesi, 
+which I tried to mimic using Mathematica: \url{http://binvis.io}.
+His articles about entropy visualization are worth reading:
+\url{http://corte.si/posts/visualisation/entropy/index.html},
+\url{http://corte.si/posts/visualisation/malware/index.html},
+\url{http://corte.si/posts/visualisation/binvis/index.html}.
+
+\myindex{radare2}
+radare2 framework has \emph{\#entropy} command for this.
+
+A tool for IDA: IDAtropy\footnote{\url{https://github.com/danigargu/IDAtropy}}.
+
+\subsection{A word about primitive encryption like XORing}
+
+It's interesting that simple XOR encryption doesn't affect entropy of data.
+I've shown this in \emph{Norton Guide} example in the book (\myref{norton_guide}).
+
+Generalizing: encryption by substitution cipher also doesn't affect entropy of data
+(and XOR can be viewed as substitution cipher).
+The reason of that is because entropy calculation algorithm view data on byte-level.
+On the other hand, the data encrypted by 2 or 4-byte XOR pattern will result in another level of entropy.
+
+Nevertheless, low entropy is usually a good sign of weak amateur cryptography
+(which is also used in license keys/files, etc.).
+
+\subsection{More about entropy of executable code}
+
+It is quickly noticeable that probably a biggest source of high-entropy in executable code
+are relative offsets encoded in opcodes.
+For example, these two consequent instructions will have different relative offsets in their opcodes, 
+while they are in fact pointing to the same function:
+
+\begin{lstlisting}[style=customasmx86]
+function proc
+...
+function endp
+
+...
+
+CALL function
+...
+CALL function
+\end{lstlisting}
+
+Ideal executable code compressor would encode information like this:
+\emph{there is a CALL to a ``function'' at address X and the same CALL at address Y} without necessity to encode
+address of the \emph{function} twice.
+
+\myindex{UPX}
+To deal with this, executable compressors are sometimes able to reduce entropy here.
+One example is UPX: \url{http://sourceforge.net/p/upx/code/ci/default/tree/doc/filter.txt}.
+
+\subsection{\ac{PRNG}}
+
+\myindex{GnuPG}
+When I run GnuPG to generate new private (secret) key, it asking for some entropy \dots
+
+\begin{lstlisting}
+We need to generate a lot of random bytes. It is a good idea to perform
+some other action (type on the keyboard, move the mouse, utilize the
+disks) during the prime generation; this gives the random number
+generator a better chance to gain enough entropy.
+
+Not enough random bytes available.  Please do some other work to give
+the OS a chance to collect more entropy! (Need 169 more bytes)
+\end{lstlisting}
+
+This means that good a \ac{PRNG} produces long high-entropy results,
+and this is what the secret asymmetrical cryptographical key needs.
+But \ac{CPRNG} is tricky (because computer is highly deterministic device itself),
+so the GnuPG asking for some additional randomness from the user.
+
+\subsection{More examples}
+
+Here is a case where I try to calculate entropy of some blocks with unknown contents: \myref{encrypted_DB1}.
+
+\input{ff/entropy/files_EN}
+
+\subsection{Making lower level of entropy}
+
+The author of these lines once saw a software which stored each byte of encrypted data in 3 bytes:
+each has {\Large $\approx \frac{byte}{3}$} value, so reconstructing encrypted byte back involving summing up 3 consecutive bytes.
+Looks absurdly.
+
+But some people say this was done in order to conceal the very fact
+the data has something encrypted inside: measuring entropy of such block will show much lower level of it.
+

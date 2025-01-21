@@ -1,0 +1,11 @@
+.text:64405007 loc_64405007:
+.text:64405007                 cmp     byte ptr [esi+3Dh], 0
+.text:6440500B                 jz      short bypass
+.text:6440500D                 push    offset aDataCompressio ; \verb|"data compression switched off\n"|
+.text:64405012                 mov     ecx, edi
+
+; demangled name: ATL::CStringT::operator+=(char const *)
+.text:64405014                 call    ds:mfc90_945
+.text:6440501A                 mov     [ebp+var_10], ebx
+.text:6440501D
+.text:6440501D bypass:

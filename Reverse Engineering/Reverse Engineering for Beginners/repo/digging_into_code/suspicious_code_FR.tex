@@ -1,0 +1,69 @@
+\mysection{Patterns de code suspect}
+
+\subsection{instructions XOR}
+\myindex{x86!\Instructions!XOR}
+
+Des instructions comme \TT{XOR op, op} (par exemple, \TT{XOR EAX, EAX}) sont utilisées
+en général pour mettre la valeur d'un registre à zéro, mais si les opérandes sont
+différentes, l'opération \q{ou exclusif} est exécutée.
+
+Cette opération est rare en programmation courante, mais répandu en cryptographie,
+y compris amateur.
+C'est particulièrement suspect si le second opérande est un grand nombre.
+
+Ceci peut indiquer du chiffrement/déchiffrement, du calcul de somme de contrôle, etc.\\
+\\
+
+Une exception à cette observation, qu'il est utile de noter, est le \q{canari} (\myref{subsec:BO_protection}).
+Sa génération et sa vérification sont souvent effectuées en utilisant des instructions
+\XOR. \\
+\\
+\myindex{AWK}
+
+Ce script awk peut être utilisé pour traité les fichiers listing (.lst) d'\IDA:
+
+\lstinputlisting{digging_into_code/awk.sh}
+
+Il est aussi utile de noter que ce type de script peut aussi rapporter du code mal
+désassemblé
+(\myref{sec:incorrectly_disasmed_code}).
+
+\subsection{Code assembleur écrit à la main}
+
+\myindex{Function prologue}
+\myindex{Function epilogue}
+\myindex{x86!\Instructions!LOOP}
+\myindex{x86!\Instructions!RCL}
+
+Les compilateurs modernes ne génèrent pas les instructions \TT{LOOP} et \TT{RCL}.
+D'un autre côté, ces instructions sont très connues des codeurs qui aiment écrire
+directement en langage d'assemblage.
+Si vous les rencontrez, on peut dire qu'il est très probable que ce morceau de code
+ait été écrit à la main.
+De telles instructions sont marquées avec un (M) dans la liste des instructions de
+cet appendice: \myref{sec:x86_instructions}.
+
+\par
+De même, les prologue/épilogue de fonction sont rares dans de l'assembleur écrit
+à la main.
+
+\par
+Il n'y a généralement pas de système fixé pour le passage des arguments aux fonctions
+dans du code écrit à la main.
+
+\par
+Exemple du noyau de Windows 2003
+(ntoskrnl.exe file):
+
+\lstinputlisting[style=customasmx86]{digging_into_code/ntoskrnl.lst}
+
+En effet, si nous regardons dans le code source de \ac{WRK} v1.2, ce code peut être
+trouvé facilement dans le fichier \\
+\emph{WRK-v1.2\textbackslash{}base\textbackslash{}ntos\textbackslash{}ke\textbackslash{}i386\textbackslash{}cpu.asm}.
+
+\par 
+D'après l'instruction \INS{RCL} que j'ai pu trouver dans le fichier ntoskrnl.exe de Windows
+2003 x86 (compilé avec MS Visual C compiler).
+Elle apparaît seulement une fois ici, \\
+dans la fonction \TT{RtlExtendedLargeIntegerDivide()}
+et ça pourrait être un cas de code assembleur en ligne.

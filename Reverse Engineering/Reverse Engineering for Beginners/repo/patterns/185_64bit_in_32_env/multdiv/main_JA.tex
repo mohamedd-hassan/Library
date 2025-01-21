@@ -1,0 +1,40 @@
+﻿\subsection{乗算、除算}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/multdiv/2.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 /Ob1,style=customasmx86]{patterns/185_64bit_in_32_env/multdiv/2_MSVC_JA.asm}
+
+乗算と除算はより複雑な演算なので、通常、コンパイラはそれを行うライブラリ関数への
+呼び出しを埋め込みます。
+
+これらの機能はここに記述されています：\myref{sec:MSVC_library_func}
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1 -fno-inline,style=customasmx86]{patterns/185_64bit_in_32_env/multdiv/2_GCC_JA.asm}
+
+GCCは期待どおりに機能しますが、乗算コードは
+関数内でインライン化されているため、より効率的になる可能性があります。
+GCCには異なる関数名のライブラリあります：\myref{sec:GCC_library_func}
+
+\subsubsection{ARM}
+
+ThumbモードのKeilはライブラリサブルーチン呼び出しを挿入します。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/185_64bit_in_32_env/multdiv/Keil_thumb_O3.s}
+
+一方、ARMモードのKeilでは64ビットの乗算コードを生成できます。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/multdiv/Keil_ARM_O3.s}
+% TODO add explanation
+
+\subsubsection{MIPS}
+
+MIPS用に \Optimizing GCC 64ビット乗算コードを生成できますが、64ビット除算用のライブラリルーチンを呼び出す必要があります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/multdiv/MIPS_O3_IDA.lst}
+
+たくさんの\ac{NOP}があります。おそらく乗算命令の後に埋められた遅延スロットです（結局のところ、
+それは他の命令より遅いです）。
+
+% TODO add explanation

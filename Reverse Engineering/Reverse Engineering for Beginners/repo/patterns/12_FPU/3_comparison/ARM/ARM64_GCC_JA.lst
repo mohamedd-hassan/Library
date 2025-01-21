@@ -1,0 +1,25 @@
+﻿d_max:
+; "Register Save Area"に入力引数を保存
+	sub	sp, sp, #16
+	str	d0, [sp,8]
+	str	d1, [sp]
+; 値をリロード
+	ldr	x1, [sp,8]
+	ldr	x0, [sp]
+	fmov	d0, x1
+	fmov	d1, x0
+; D0 - a, D1 - b
+	fcmpe	d0, d1
+	ble	.L76
+; a>bなら、D0 (a)をX0にロード
+	ldr	x0, [sp,8]
+	b	.L74
+.L76:
+; a<=bならD1 (b)をX0にロード
+	ldr	x0, [sp]
+.L74:
+; 結果がX0に
+	fmov	d0, x0
+; 結果がD0に
+	add	sp, sp, 16
+	ret

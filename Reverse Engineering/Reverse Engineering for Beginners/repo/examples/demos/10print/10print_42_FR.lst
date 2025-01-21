@@ -1,0 +1,29 @@
+00000000: B001         mov         al,1        ; mettre le mode vidéo 40x25
+00000002: CD10         int         010
+00000004: 30FF         xor         bh,bh       ; mettre la page vidéo pour l'appel int 10h
+00000006: B9D007       mov         cx,007D0    ; 2000 caractères sur la sortie
+00000009: 31C0         xor         ax,ax
+0000000B: 9C           pushf                   ; pousser les flags
+; prendre une valeur aléatoire du chip timer
+0000000C: FA           cli                     ; interdire les interruptions
+0000000D: E643         out         043,al      ; écrire 0 sur le port 43h
+; lire une valeur 16-bit depuis le port 40h
+0000000F: E440         in          al,040
+00000011: 88C4         mov         ah,al
+00000013: E440         in          al,040
+00000015: 9D           popf                    ; autoriser les interruptions en restaurant le flag IF
+00000016: 86C4         xchg        ah,al
+; ici nous avons une valeur 16-bit pseudo-aléatoire
+00000018: D1E8         shr         ax,1
+0000001A: D1E8         shr         ax,1
+; CF contient le second bit de la valeur
+0000001C: B05C         mov         al,05C ;'\'
+; si CF=1, sauter l'instruction suivante
+0000001E: 7202         jc          000000022
+; si CF=0, recharger le registre AL avec un autre caractère
+00000020: B02F         mov         al,02F ;'/'
+; caractère de sortie
+00000022: B40E         mov         ah,00E
+00000024: CD10         int         010
+00000026: E2E1         loop        000000009 ; boucler 2000 fois
+00000028: CD20         int         020       ; sortir dans le DOS

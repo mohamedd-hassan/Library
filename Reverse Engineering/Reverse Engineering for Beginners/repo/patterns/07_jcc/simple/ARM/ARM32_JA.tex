@@ -1,0 +1,99 @@
+\myparagraph{32-bit ARM}
+\label{subsec:jcc_ARM}
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_O3_signed.asm}
+
+\myindex{ARM!Condition codes}
+% FIXME \ref -> which instructions?
+
+ARMモードの多くの命令は、特定のフラグがセットされている場合にのみ実行できます。
+例えば、これは数字を比較するときによく使用されます。
+
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!ADDAL}
+
+例えば、 \ADD 命令は実際には内部で\TT{ADDAL}と名付けられ、
+ALは\emph{常に}、すなわち常に実行する。
+述語は、32ビットARM命令の4つの上位ビット（\emph{条件フィールド}）でエンコードされます。
+\myindex{ARM!\Instructions!B}
+無条件ジャンプの\TT{B}命令は、実際には条件付きで他の条件ジャンプと同様にエンコードされますが、
+条件フィールドには\TT{AL}があり、フラグを無視して\emph{常に実行}することを意味します。
+
+\myindex{ARM!\Instructions!ADR}
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!CMP}
+
+\TT{ADRGT}命令は\TT{ADR}と同じように動作しますが、前の \CMP 命令が2つ（\emph{大きい方}）を比較しながら、
+他の命令より大きな数値の1つを検出した場合にのみ実行されます。
+
+\myindex{ARM!\Instructions!BL}
+\myindex{ARM!\Instructions!BLcc}
+
+次の\TT{BLGT}命令は\TT{BL}と同じように動作し、
+比較の結果が（より大きい）場合にのみ実行されます。 
+\TT{ADRGT}は文字列\TT{a>b\textbackslash{}n}へのポインタを\Reg{0}に書き込み、\TT{BLGT}は \printf を呼び出します。
+したがって、\TT{-GT}の後に続く命令は、\Reg{0}（$a$）の値が\Reg{4}（$b$）の値より大きい場合にのみ実行されます。
+
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!BLcc}
+
+\TT{ADREQ}命令と\TT{BLEQ}命令が順方向に進みます。
+それらは\TT{ADR}と\TT{BL}のように動作しますが、最後の比較時にオペランドが等しい場合にのみ実行されます。 
+\printf の実行によってフラグが改ざんされた可能性があるため、別の \CMP がその前に配置されます。
+
+\myindex{ARM!\Instructions!LDMccFD}
+\myindex{ARM!\Instructions!LDMFD}
+
+次に、\TT{LDMGEFD}を参照してください。この命令は\TT{LDMFD}\footnote{\ac{LDMFD}}のように機能しますが、
+一方の値が他方の値より大きいか等しい場合にのみ実行されます。 
+\TT{LDMGEFD SP!, \{R4-R6,PC\}}命令は関数エピローグのように動作しますが、$a>=b$の場合にのみトリガされ、その後に関数の実行が終了します。
+
+\myindex{Function epilogue}
+
+しかし、その条件が満たされない場合、すなわち$a<b$の場合、制御フローは次の
+\TT{\q{LDMFD SP!, \{R4-R6,LR\}}}命令に続き、これはもう1つの関数エピローグです。この命令は、\TT{R4-R6}だけでなく\ac{PC}の代わりに\ac{LR}も登録されているため、関数からは戻りません。
+最後の2つの命令は、文字列<<a<b\textbackslash{}n>>を唯一の引数として \printf を呼び出します。  
+\printf セクション（\myref{ARM_B_to_printf}）の関数の戻り値ではなく、 \printf 関数への無条件ジャンプを調べました。
+
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!BLcc}
+\myindex{ARM!\Instructions!LDMccFD}
+\TT{f\_unsigned}は類似しており、\TT{ADRHI}、\TT{BLHI}、および\TT{LDMCSFD}命令のみが使用されています。これらの述部（\emph{HI = Unsigned higher, CS = Carry Set (greater than or equal)}）は、前に説明したものと類似しています。
+
+\main 関数にはそんなに新しい点はありません。
+
+\lstinputlisting[caption=\main,style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_O3_main.asm}
+
+これは、ARMモードでの条件付きジャンプを取り除く方法です。
+
+\myindex{RISC pipeline}
+なぜこれがよいのでしょう？ 以下を読んでください：\myref{branch_predictors}
+
+\myindex{x86!\Instructions!CMOVcc}
+
+x86では、\TT{CMOVcc}命令以外は \MOV と同じですが、
+通常は \CMP によって設定された特定のフラグが設定されている場合にのみ実行されます。
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_thumb_signed.asm}
+
+\myindex{ARM!\Instructions!BLE}
+\myindex{ARM!\Instructions!BNE}
+\myindex{ARM!\Instructions!BGE}
+\myindex{ARM!\Instructions!BLS}
+\myindex{ARM!\Instructions!BCS}
+\myindex{ARM!\Instructions!B}
+\myindex{ARM!\ThumbMode}
+
+Thumbモードの\TT{B}命令だけが\emph{条件コード}で補完されるため、
+Thumbコードはより一般的に見えます。
+
+\TT{BLE}は通常の条件ジャンプであり、\emph{Less than or Equal}の意味です。 
+\TT{BNE}は\emph{Not Equal}の意味です。
+\TT{BGE}は\emph{Greater than or Equal}の意味です。
+
+\TT{f\_unsigned}は似ていますが、符号なしの値を扱う際には、
+\TT{BLS}（\emph{Unsigned lower or same}）および\TT{BCS}（\emph{Carry Set (Greater than or equal)}）命令しか使用されません。

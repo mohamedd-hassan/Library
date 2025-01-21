@@ -1,0 +1,35 @@
+\clearpage
+\subsubsection{MSVC: x86 + \olly}
+
+\olly でプログラムをハックしようとして、 \scanf が常にエラーなく動作するようにしましょう。 
+ローカル変数のアドレスが \scanf に渡されると、
+変数には最初にいくつかのランダムなガベージが含まれます。この場合、\TT{0x6E494714}です。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/olly_1.png}
+\caption{\olly: passing variable address into \scanf}
+\label{fig:scanf_ex3_olly_1}
+\end{figure}
+
+\clearpage
+\scanf が実行されている間、コンソールでは、 \q{asdasd}のように、数字ではないものを入力します。 
+\scanf は、エラーが発生したことを示す \EAX が0で終了します。
+
+また、スタック内のローカル変数をチェックし、変更されていないことに注意してください。 
+実際、 \scanf は何を書いていますか？ 
+ゼロを返す以外は何もしませんでした。
+
+私たちのプログラムを\q{ハックする}ようにしましょう。 
+\EAX を右クリックし、
+オプションの中に\q{Set to 1}があります。 
+これが必要なものです。
+
+\EAX には1があるので、以下のチェックを意図どおりに実行し、
+\printf は変数の値をスタックに出力します。 
+
+プログラム（F9）を実行すると、コンソールウィンドウで次のように表示されます。
+
+\lstinputlisting[caption=console window]{patterns/04_scanf/3_checking_retval/console.txt}
+
+実際、1850296084はスタック（\TT{0x6E494714}）の数値を10進表現したものです！

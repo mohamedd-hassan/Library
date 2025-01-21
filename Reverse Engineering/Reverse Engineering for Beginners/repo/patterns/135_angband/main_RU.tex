@@ -1,0 +1,155 @@
+\mysection{Пример: ошибка в Angband}
+\myindex{Angband}
+\label{Angband}
+
+В сравнительно древней rogue-like игре 90-х
+\footnote{\url{https://en.wikipedia.org/wiki/Angband_(video_game)}, \url{http://rephial.org/}}
+была ошибка в духе ``Пикника на обочине'' Стругацких или сериала
+``Потерянная комната''\footnote{\url{http://archive.is/oIQyL}}:
+
+\begin{framed}
+\begin{quotation}
+Версия frog-knows изобиловала ошибками. Самая смешная из них повлекла хитрую технику обмана игры, которую назвали "mushroom farming" -- 
+разведение грибов. Если в лабиринте оказывалось больше определенного числа (около пятисот) предметов, игра ломалась, 
+и старые предметы помногу превращались в предметы, брошенные на пол. Соответственно, игрок шел в лабиринт, 
+делал там такие продольные канавки (специальным заклинанием), и ходил вдоль канавок, создавая грибы еще другим специальным заклинанием. 
+Когда грибов было достаточно много, гражданин клал и брал, клал и брал какой-нибудь полезный предмет, 
+и грибы один за другим превращались в этот предмет. После этого игрок возвращался с сотнями копий полезного предмета. 
+\end{quotation}
+\end{framed}
+( Миша ``tiphareth'' Вербицкий, \url{http://imperium.lenin.ru/CEBEP/arc/3/lightmusic/light.htm} )
+
+Еще из usenet-а:
+
+\begin{lstlisting}
+From: be...@uswest.com (George Bell)
+Subject: [Angband] Multiple artifact copies found (bug?)
+Date: Fri, 23 Jul 1993 15:55:08 GMT
+
+Up to 2000 ft I found only 4 artifacts, now my house is littered with the
+suckers (FYI, most I've gotten from killing nasties, like Dracoliches and the
+like).  Something really weird is happening now, as I found multiple
+copies of the same artifact!  My half-elf ranger is down at 2400 ft on one
+level which is particularly nasty.  There is a graveyard plus monsters
+surrounded by permanent rock and 2 or 3 other special monster rooms!  I did
+so much slashing with my favorite weapon, Crisdurian, that I filled several
+rooms nearly to the brim with treasure (as usual, mostly junk).
+
+Then, when I found a way into the big vault, I noticed some of the treasure
+had already been identified (in fact it looked strangely familiar!).  Then I
+found *two* Short Swords named Sting (1d6) (+7,+8), and I just ran across a
+third copy!  I have seen multiple copies of Gurthang on this level as well.
+Is there some limit on the number of items per level which I have exceeded?
+This sounds reasonable as all multiple copies I have seen come from this level.
+
+I'm playing PC angband.  Anybody else had this problem?
+
+-George Bell
+
+Help!  I need a Rod of Restore Life Levels, if there is such a thing.  These
+Graveyards are nasty (Black Reavers and some speed 2 wraith in particular). 
+\end{lstlisting}
+( \url{https://groups.google.com/forum/#!original/rec.games.moria/jItmfrdGyL8/8csctQqA7PQJ} )
+
+\begin{lstlisting}
+From: Ceri <cm...@andrew.cmu.edu>
+Subject: Re: [Angband] Multiple artifact copies found (bug?)
+Date: Fri, 23 Jul 1993 23:32:20 -0400
+
+welcome to the mush bug. if there are more than 256 items
+on the floor, things start duplicating. learn to harness
+this power and you will win shortly  :>
+
+--Rick
+\end{lstlisting}
+( \href{https://groups.google.com/forum/#!search/angband$202.4$20bug$20multiplying$20items/rec.games.moria/jItmfrdGyL8/FoQeiccewHAJ}{google groups} )
+
+\begin{lstlisting}
+From: nwe...@soda.berkeley.edu (Nicholas C. Weaver)
+Subject: Re: [Angband] Multiple artifact copies found (bug?)
+Date: 24 Jul 1993 18:18:05 GMT
+
+In article <74348474...@unix1.andrew.cmu.edu> Ceri <cm...@andrew.cmu.edu> writes:
+>welcome to the mush bug. if there are more than 256 items
+>on the floor, things start duplicating. learn to harness
+>this power and you will win shortly  :>
+>
+>--Rick
+
+
+	QUestion on this.  Is it only the first 256 items which get
+duplicated?  What about the origional items?  Etc ETc ETc...
+
+	Oh, for those who like to know about bugs, though, the -n option
+(start new character) has the following behavior:
+
+	(this is in version 2.4.Frog.knows on unix)
+
+	If you hit controll-p, you keep your old stats.
+
+	YOu loose all record of artifacts founds and named monsters killed.
+
+	YOu loose all items you are carrying (they get turned into error in
+objid()s ).
+
+	You loose your gold.
+
+	You KEEP all the stuff in your house.
+
+	If you kill something, and then quaff a potion of restore life
+levels, you are back up to where you were before in EXPERIENCE POINTS!!
+
+	Gaining spells will not work right after this, unless you have a
+gain int item (for spellcasters) or gain wis item (for priests/palidans), in
+which case after performing the above, then take the item back on and off,
+you will be able to learn spells normally again.
+
+
+	This can be exploited, if you are a REAL H0ZER (like me), into
+getting multiple artifacts early on.  Just get to a level where you can
+pound wormtongue into the ground, kill him, go up, drop your stuff in your
+house, buy a few potions of restore exp and high value spellbooks with your
+leftover gold, angband -n yourself back to what you were before, and repeat
+the process.   Yes, you CAN kill wormtongue multiple times.  :)
+
+	This also allows the creation of a human rogue with dunedain warrior
+starting stats.
+
+	Of course, such practices are evil, vile, and disgusting.  I take no
+liability for the results of spreading this information.  Yeah, it's another
+bug to go onto the pile.
+-- 
+Nicholas C. Weaver       perpetual ensign guppy      nwe...@soda.berkeley.edu
+ It is a tale, told by an idiot, full of sound and fury, .signifying nothing.
+          Since C evolved out of B, and a C+ is close to a B,
+        does that mean that C++ is a devolution of the language?
+\end{lstlisting}
+( \url{https://groups.google.com/forum/#!original/rec.games.moria/jItmfrdGyL8/FoQeiccewHAJ} )
+
+\href{https://groups.google.com/forum/#!search/angband$202.4$20bug$20multiplying$20items/rec.games.moria/jItmfrdGyL8/FoQeiccewHAJ}{Весь тред}.
+
+Автор этих строк нашел версию с ошибкой (2.4 fk)
+\footnote{\url{http://rephial.org/release/2.4.fk}, \url{https://yurichev.com/mirrors/angband-2.4.fk.tar}},
+и мы легко можем увидеть, как определены глобальные массивы:
+
+\begin{lstlisting}[style=customc]
+/* Number of dungeon objects */
+#define MAX_DUNGEON_OBJ  423
+
+...
+
+int16 sorted_objects[MAX_DUNGEON_OBJ];
+
+/* Identified objects flags					*/
+int8u object_ident[OBJECT_IDENT_SIZE];
+int16 t_level[MAX_OBJ_LEVEL+1];
+inven_type t_list[MAX_TALLOC];
+inven_type inventory[INVEN_ARRAY_SIZE];
+\end{lstlisting}
+
+Видимо, это и есть причина. Константа \TT{MAX\_DUNGEON\_OBJ} слишком маленькая.
+Наверное, авторам следовало бы использовать связные списки, или иные структуры данных, без ограничений на размер.
+Но с массивами работать проще.
+
+Еще один пример переполнения буфера в глобальных массивах: \myref{GlobalArraysOverflowHeisenbug}.
+

@@ -1,0 +1,106 @@
+\clearpage
+\subsection{Norton Guide: chiffrement XOR à 1 octet le plus simple possible}
+\label{norton_guide}
+
+Norton Guide était très
+populaire à l'époque de MS-DOS, c'était un programme résident qui fonctionnait comme
+un manuel de référence hypertexte.
+
+Les bases de données de Norton Guide étaient des fichiers avec l'extension .ng, dont
+le contenu avait l'air chiffré:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/ng/ng1.png}
+\caption{Aspect très typique}
+\end{figure}
+
+Pourquoi pensons-nous qu'il est chiffré mais pas compressé?
+
+Nous voyons que l'octet 0x1A (ressemblant à \q{$\rightarrow$}) est très fréquent,
+ça ne serait pas possible dans un fichier compressé.
+
+Nous voyons aussi de longues parties constituées seulement de lettres latines, et
+qui ressemble à des chaînes de caractères dans un langage inconnu.
+
+\clearpage
+Puisque l'octet 0x1A revient si souvent, nous pouvons essayer de décrypter le fichier,
+en supposant qu'il est chiffré avec le chiffrement XOR le plus simple.
+
+Si nous appliquons un XOR avec la constante 0x1A à chaque octet dans Hiew, nous voyons
+des chaînes de texte familières en anglais:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/XOR/ng/ng2.png}
+\caption{XOR dans Hiew avec 0x1A}
+\end{figure}
+
+Le chiffrement XOR avec un seul octet constant est la méthode de chiffrement la plus
+simple, que l'on rencontre néanmoins parfois.
+
+Maintenant, nous comprenons pourquoi l'octet 0x1A revenait si souvent: parce qu'il
+y a beaucoup d'octets à zéro et qu'ils sont remplacés par 0x1A dans la forme chiffrée.
+
+Mais la constante pourrait être différente.
+Dans ce cas, nous pourrions essayer chaque constante dans l'intervalle 0..255 et
+chercher quelque chose de familier dans le fichier déchiffré. 256 n'est pas si grand.
+
+Plus d'informations sur le format de fichier de Norton Guide: \url{http://www.davep.org/norton-guides/file-format/}.
+
+\subsubsection{Entropie}
+\myindex{Wolfram Mathematica}
+\myindex{Entropy}
+
+Une propriété très importante de tels systèmes de chiffrement est que l'entropie
+des blocs chiffrés/déchiffrés est la même.
+
+Voici mon analyse faite dans Wolfram Mathematica 10.
+
+\begin{lstlisting}[caption=Wolfram Mathematica 10,style=custommath]
+In[1]:= input = BinaryReadList["X86.NG"];
+
+In[2]:= Entropy[2, input] // N
+Out[2]= 5.62724
+
+In[3]:= decrypted = Map[BitXor[#, 16^^1A] &, input];
+
+In[4]:= Export["X86_decrypted.NG", decrypted, "Binary"];
+
+In[5]:= Entropy[2, decrypted] // N
+Out[5]= 5.62724
+
+In[6]:= Entropy[2, ExampleData[{"Text", "ShakespearesSonnets"}]] // N
+Out[6]= 4.42366
+\end{lstlisting}
+
+Ici, nous chargeons le fichier, obtenons son entropie, le déchiffrons, le sauvons
+et obtenons à nouveau son entropie (la même!).
+
+Mathematica fourni également quelques textes en langue anglaise bien connus pour
+analyse.
+
+Nous obtenons ainsi l'entropie de sonnets de Shakespeare, et elle est proche de l'entropie
+du fichier que nous venons d'analyser.
+
+Le fichier que nous avons analysé consiste en des phrases en langue anglaise, qui
+sont proches du langage de Shakespeare.
+
+Et le texte en langue anglaise XOR-é possède la même entropie.
+
+% I checked!
+Toutefois, ceci n'est pas vrai lorsque le fichier est XOR-é avec un pattern de plus
+d'un octet.
+
+Le fichier qui vient d'être analysé peut être téléchargé ici: \url{http://beginners.re/examples/norton_guide/X86.NG}.
+
+\myparagraph{Encore un mot sur la base de l'entropie}
+
+\newcommand{\FNENTURL}{\footnote{\url{http://www.fourmilab.ch/random/}}}
+
+Wolfram Mathematica calcule l'entropie avec une base $e$ (base des logarithmes naturels),
+et l'utilitaire\FNENTURL UNIX \emph{ent} utilise une base 2.
+
+Donc, nous avons mis explicitement une base 2 dans la commande \TT{Entropy}, donc
+Mathematica nous donne le même résultat que l'utilitaire \emph{ent}.
+

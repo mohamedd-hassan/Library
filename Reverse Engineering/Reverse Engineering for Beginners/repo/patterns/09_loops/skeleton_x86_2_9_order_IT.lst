@@ -1,0 +1,12 @@
+﻿    MOV [counter], 2 ; inizializzazione
+    JMP label_check
+label_increment:
+    ADD [counter], 1 ; incrementa
+label_check:
+    CMP [counter], 10
+    JGE exit
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; usa la variabile contatore nello stack locale
+    JMP label_increment
+exit:

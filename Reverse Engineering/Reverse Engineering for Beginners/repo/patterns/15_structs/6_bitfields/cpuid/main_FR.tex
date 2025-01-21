@@ -1,0 +1,75 @@
+﻿\subsubsection{Exemple CPUID}
+
+Le langage \CCpp permet de définir précisément le nombre de bits occupés par chaque champ d'une structure. 
+Ceci est très utile lorsque l'on cherche à économise de la place. Par exemple, chaque bit permet de 
+représenter une variable \Tbool. Bien entendu, c'est au détriment de la vitesse d'exécution.
+% FIXME!
+% another use of this is to parse binary protocols/packets, for example
+% the definition of struct iphdr in include/linux/ip.h
+
+\newcommand{\FNCPUID}{\footnote{\href{http://en.wikipedia.org/wiki/CPUID}{Wikipédia}}}
+
+\myindex{x86!\Instructions!CPUID}
+\label{cpuid}
+
+Prenons par exemple l'instruction \CPUID\FNCPUID. Elle retourne des informations au sujet de la CPU qui 
+exécute le programme et de ses capacités.
+
+Si le registre \EAX est positionné à la valeur 1 avant d'invoquer cette instruction, \CPUID va retourné 
+les informations suivantes dans le registre \EAX:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+3:0 (4 bits)& Stepping \\
+7:4 (4 bits) & Modèle \\
+11:8 (4 bits) & Famille \\
+13:12 (2 bits) & Type de processeur \\
+19:16 (4 bits) & Sous-modèle \\
+27:20 (8 bits) & Sous-famille \\
+\hline
+\end{tabular}
+\end{center}
+
+\newcommand{\FNGCCAS}{\footnote{\href{http://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html}
+{Complément sur le fonctionnement interne de l'assembleur GCC}}}
+
+MSVC 2010 fourni une macro \CPUID, qui est absente de GCC 4.4.1. Tentons donc de rédiger nous même cette 
+fonction pour une utilisation dans GCC grâce à l'assembleur\FNGCCAS intégré à ce compilateur.
+
+\lstinputlisting[style=customc]{patterns/15_structs/6_bitfields/cpuid/CPUID.c}
+
+Après que l'instruction \CPUID ait rempli les registres \EAX/\EBX/\ECX/\EDX, ceux-ci doivent être recopiés 
+dans le tableau \TT{b[]}. Nous affectons dont le pointeur de structure \TT{CPUID\_1\_EAX} pour qu'il 
+contienne l'adresse du tableau \TT{b[]}.
+
+En d'autres termes, nous traitons une valeur \Tint comme une structure, puis nous lisons des bits spécifiques 
+de la structure.
+
+\myparagraph{MSVC}
+
+Compilons notre exemple avec MSVC 2008 en utilisant l'option \Ox:
+
+\lstinputlisting[caption=\Optimizing MSVC 2008,style=customasmx86]{patterns/15_structs/6_bitfields/cpuid/CPUID_msvc_Ox.asm}
+
+\myindex{x86!\Instructions!SHR}
+
+L'instruction \TT{SHR} va décaler la valeur du registre \EAX d'un certain nombre de bits qui vont être 
+abandonnées. Nous ignorons donc certains des bits de la partie droite.
+
+\myindex{x86!\Instructions!AND}
+
+L'instruction \AND "efface" les bits inutiles sur la gauche, ou en d'autres termes, ne laisse dans le 
+registre \EAX que les bits qui nous intéressent.
+
+\input{patterns/15_structs/6_bitfields/cpuid/olly_FR.tex}
+
+\myparagraph{GCC}
+
+Essayons maintenant une compilation avec GCC 4.4.1 en utilisant l'option \Othree.
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.1,style=customasmx86]{patterns/15_structs/6_bitfields/cpuid/CPUID_gcc_O3.asm}
+
+Le résultat est quasiment identique.
+Le seul élément notable est que GCC combine en quelques sortes le calcul de \TT{extended\_model\_id} et 
+\TT{extended\_family\_id} en un seul bloc au lieu de les calculer séparément avant chaque appel à \printf.

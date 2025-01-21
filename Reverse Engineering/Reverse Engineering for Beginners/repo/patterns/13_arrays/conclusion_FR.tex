@@ -1,0 +1,15 @@
+﻿\subsection{\Conclusion{}}
+
+Un tableau est un ensemble de données adjacentes en mémoire.
+
+C'est vrai pour tout type d'élément, structures incluses.
+
+Pour accéder à un élément spécifique d'un tableau, il suffit de calculer son adresse.
+
+\myindex{Hex-Rays}
+Donc, un pointeur sur un tableau et l'adresse de son premier élément---sont la même
+chose.
+C'est pourquoi les expressions \TT{ptr[0]} et \TT{*ptr} sont équivalentes en \CCpp.
+Il est intéressant de noter que Hex-Rays remplace souvent la première par la seconde.
+Il procède ainsi lorsqu'il n'a aucune idée qu'il travaille avec un pointeur sur
+le tableau complet et pense que c'est un pointeur sur une seule variable.

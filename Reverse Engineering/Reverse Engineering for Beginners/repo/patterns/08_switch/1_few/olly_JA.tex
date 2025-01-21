@@ -1,0 +1,107 @@
+﻿\clearpage
+\mysubparagraph{\olly}
+
+この例は扱いにくいので、 \olly でトレースしてみましょう。
+
+\olly はそのようなswitch()構文を検出することができ、有用なコメントを追加することができます。
+\EAX の値は最初は2で、それは関数への入力値です：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly1.png}
+\caption{\olly: \EAX 
+は最初の（そして唯一の）関数への引数を含んでいます}
+\label{fig:switch_few_olly1}
+\end{figure}
+
+\clearpage
+0は \EAX から2を引いた値です。
+もちろん、 \EAX にはまだ2が入っています。
+しかし、 \ZF フラグは0になり、結果の値がゼロでないことを示します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly2.png}
+\caption{\olly: \SUB の実行}
+\label{fig:switch_few_olly2}
+\end{figure}
+
+\clearpage
+\DEC が実行され、 \EAX には1が入ります。
+しかし1はゼロではないので、 \ZF フラグはまだ0です：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly3.png}
+\caption{\olly: 最初の \DEC 実行}
+\label{fig:switch_few_olly3}
+\end{figure}
+
+\clearpage
+次の \DEC が実行されます。
+\EAX は最終的に0になり、結果がゼロであるため \ZF フラグが設定されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly4.png}
+\caption{\olly: 2回目の \DEC 実行}
+\label{fig:switch_few_olly4}
+\end{figure}
+
+\olly は、このジャンプが今行われることを示しています。
+
+\clearpage
+\q{two}という文字列へのポインタが今スタックに書き込まれます：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly5.png}
+\caption{\olly: 
+文字列へのポインタは、最初の引数の場所に書き込まれる}
+\label{fig:switch_few_olly5}
+\end{figure}
+
+% TODO: homogenize numbers
+% now they are inconsistent: sometimes plain text, sometimes in math mode
+% some kind of \expr{} both for numbers and expressions? --DY
+注意：関数の現在の引数は2であり、2はスタックに\TT{0x001EF850}のアドレスにあります。
+
+\clearpage
+\MOV はアドレス\TT{0x001EF850}の文字列にポインタを書き込みます（スタックウィンドウを参照）。
+その後、ジャンプが発生します。
+これはMSVCR100.DLLの \printf 関数の最初の命令です（この例は/MDスイッチでコンパイルされています）。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly6.png}
+\caption{\olly: MSVCR100.DLLでの \printf の最初の命令}
+\label{fig:switch_few_olly6}
+\end{figure}
+
+今や \printf は\TT{0x00FF3010}の文字列を唯一の引数として扱い、文字列を出力します。
+
+\clearpage
+これが \printf の最後の命令です。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly7.png}
+\caption{\olly: MSVCR100.DLLの \printf の最後の命令}
+\label{fig:switch_few_olly7}
+\end{figure}
+
+文字列 \q{two} はコンソールウィンドウに表示されます。
+
+\clearpage
+F7またはF8を押して(\stepover) リターンすると\dots \ttf ではなく、 \main にいきます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly8.png}
+\caption{\olly: \main へのリターン}
+\label{fig:switch_few_olly8}
+\end{figure}
+
+はい、 \printf の中心から \main に直接ジャンプしました。
+なぜならスタックの\ac{RA}は \ttf ではなく、 \main の場所を指しているからです。
+\CALL \TT{0x00FF1000}は \ttf を呼び出した実際の命令です。

@@ -1,0 +1,29 @@
+\mysection{Ajustement de chaînes}
+\newcommand{\CRLF}{\ac{CR}/\ac{LF}}
+
+Un traitement de chaîne très courant est la suppression de certains caractères au
+début et/où à la fin.
+
+Dans cet exemple, nous allons travailler avec une fonction qui supprime tous les
+caractères newline (\CRLF{}) à la fin de la chaîne entrée:
+
+\lstinputlisting[style=customc]{\CURPATH/strtrim_FR.c}
+
+L'argument en entrée est toujours renvoyé en sortie, ceci est pratique lorsque vous
+voulez chaîner les fonctions de traitement de chaîne, comme c'est fait ici dans la
+fonction \main.
+
+\myindex{\CLanguageElements!Short-circuit}
+La seconde partie de for() (\TT{str\_len>0 \&\& (c=s[str\_len-1])}) est appelé le
+\q{short-circuit} en \CCpp et est très pratique \InSqBrackets{\CNotes 1.3.8}.
+
+Les compilateurs \CCpp garantissent une séquence d'évaluation de gauche à droite.
+
+Donc, si la première clause est fausse après l'évaluation, la seconde n'est pas évaluée.
+
+% subsections
+\input{\CURPATH/x64_FR}
+\input{\CURPATH/ARM64_FR}
+\input{\CURPATH/ARM_FR}
+\input{\CURPATH/MIPS_FR}
+

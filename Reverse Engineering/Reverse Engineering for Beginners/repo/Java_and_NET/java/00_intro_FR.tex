@@ -1,0 +1,42 @@
+% TODO proof-reading
+\subsection{Introduction}
+
+\newcommand{\JADURL}{\url{http://varaneckas.com/jad/}}
+
+Il existe des décompilateurs très connus pour Java (ou pour du bytecode \ac{JVM} en général)
+\footnote{Par exemple, JAD: \JADURL}.
+
+La raison est que la décompilation du bytecode \ac{JVM} est un peu plus facile
+que du code x86 de plus bas niveau:
+
+\begin{itemize}
+\item Il y a bien plus d'informations sur les types de données.
+\item Le modèle de la mémoire \ac{JVM} est beaucoup plus rigoureux et décrit.
+\item Le compilateur Java ne fait pas d'optimisation (\ac{JVM} \ac{JIT} le fait à l'exécution),
+      donc le bytecode dans les fichiers de classe est généralement assez lisible.
+      
+\end{itemize}
+
+Quand est-ce que la connaissance de la \ac{JVM} est utile ?
+
+\newcommand{\URLListOfJVMLangs}{\url{http://en.wikipedia.org/wiki/List_of_JVM_languages}}
+
+\begin{itemize}
+\item Créer des patchs "Quick-and-dirty" des fichiers de classe sans avoir besoin de recompiler les résultats du décompilateur.
+\item Analyse de code obfusqué.
+\item Analyser du code généré par les nouveaux compilateurs Java, pour lesquels
+      il n'existe pas encore de décompilateur mis à jour.
+\item Construire votre propre obfuscateur.
+\item Construire un compilateur générateur de code (back-end) ciblant la \ac{JVM} (comme Scala, Clojure, etc.
+      \footnote{Liste complète: \URLListOfJVMLangs}).
+      
+\end{itemize}
+
+Commençons avec quelques bouts de code.
+Le JDK 1.7 est ici utilisé partout, sauf mention contraire.
+
+Voici la commande utilisée partout pour décompiler les fichiers de classe :\\
+\GTT{javap -c -verbose}.
+
+Voici le livre que j'ai utilisé pour préparer tous les exemples : \JavaBook.
+

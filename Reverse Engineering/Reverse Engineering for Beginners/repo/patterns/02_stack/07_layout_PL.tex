@@ -1,0 +1,18 @@
+\subsection{Struktura typowego stosu}
+
+Struktura typowego stosu w środowisku 32-bitowym,
+przed wykonaniem pierwszej instrukcji w funkcji, wygląda następująco:
+
+\input{patterns/02_stack/stack_layout_PL}
+
+% I think this only applies to RISC architectures
+% that don't have a POP instruction that only lets you read one value
+% (ie. ARM and MIPS).
+% In x86, the return address is saved before entering the function,
+% and the function does not have the chance to save the frame pointer.
+% Also, you should mention that this is how the stack looks like
+% right after the function prologue,
+% which some readers might think is the first instruction,
+% but is needed to save the frame pointer.
+
+

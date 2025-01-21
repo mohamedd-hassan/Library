@@ -1,0 +1,73 @@
+\subsection{Pointeur comme un identificateur d'objet}
+
+Tant le langage assembleur que le C n'ont pas de fonctionnalité \ac{OOP}, mais il
+est possible d'écrire du code dans un style \ac{OOP} (il suffit de traiter une structure
+comme un objet).
+
+Il est intéressant que, parfois, un pointeur sur un objet (ou son adresse) soit appelé
+comme ID (dans le sens de cacher/encapsuler des données).
+
+\myindex{win32!LoadLibrary()}
+\myindex{win32!GetProcAddress()}
+Par exemple, LoadLibrary(), d'après \ac{MSDN}, renvoie une ``handle to the module''
+\footnote{\url{https://msdn.microsoft.com/ru-ru/library/windows/desktop/ms684175(v=vs.85).aspx}}.
+Puis, vous passez ce ``handle'' à une autre fonction comme GetProcAddress().
+Mais en fait, LoadLibrary() renvoie un pointeur sur le fichier DLL mappé en mémoire.
+\footnote{\url{https://blogs.msdn.microsoft.com/oldnewthing/20041025-00/?p=37483}}.
+Vous pouvez lire deux octets de l'adresse renvoyée par LoadLibrary(), et ça sera
+``MZ'' (deux premiers octets de n'importe quel fichier .EXE/.DLL sur Windows).
+
+\myindex{win32!HMODULE}
+\myindex{win32!HINSTANCE}
+Il semble que Microsoft ``cache'' cela, afin de fournir une meilleure compatibilité
+ascendante. Donc, le type de données de HMODULE et HINSTANCE a une autre signification
+dan Windows 16-bits.
+
+Probablement que ceci est la raison pour laquelle \printf possède le modificateur
+``\%p'', qui est utilisé pour afficher des pointeurs (entier 32-bits sur une architecture
+32-bits et 64-bit sur une 64-bits, etc.) au format hexadécimal.
+L'adresse d'une structure écrite dans des logs de debug peut aider à la retrouver
+dans d'autres logs.
+
+\myindex{SQLite}
+Voici un exemple tiré du code source de SQLite:
+
+\begin{lstlisting}
+
+...
+
+struct Pager {
+  sqlite3_vfs *pVfs;          /* OS functions to use for IO */
+  u8 exclusiveMode;           /* Boolean. True if locking_mode==EXCLUSIVE */
+  u8 journalMode;             /* One of the PAGER_JOURNALMODE_* values */
+  u8 useJournal;              /* Use a rollback journal on this file */
+  u8 noSync;                  /* Do not sync the journal if true */
+
+....
+
+static int pagerLockDb(Pager *pPager, int eLock){
+  int rc = SQLITE_OK;
+
+  assert( eLock==SHARED_LOCK || eLock==RESERVED_LOCK || eLock==EXCLUSIVE_LOCK );
+  if( pPager->eLock<eLock || pPager->eLock==UNKNOWN_LOCK ){
+    rc = sqlite3OsLock(pPager->fd, eLock);
+    if( rc==SQLITE_OK && (pPager->eLock!=UNKNOWN_LOCK||eLock==EXCLUSIVE_LOCK) ){
+      pPager->eLock = (u8)eLock;
+      IOTRACE(("LOCK %p %d\n", pPager, eLock))
+    }
+  }
+  return rc;
+}
+
+...
+
+  PAGER_INCR(sqlite3_pager_readdb_count);
+  PAGER_INCR(pPager->nRead);
+  IOTRACE(("PGIN %p %d\n", pPager, pgno));
+  PAGERTRACE(("FETCH %d page %d hash(%08x)\n",
+               PAGERID(pPager), pgno, pager_pagehash(pPg)));
+
+...
+
+\end{lstlisting}
+

@@ -1,0 +1,10 @@
+    MOV EBX, 2 ; inizializzazione
+    JMP check
+body:
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; usa il contatore in EBX, ma non modificarlo!
+    INC EBX ; incrementa
+check:
+    CMP EBX, 9
+    JLE body

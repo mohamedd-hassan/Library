@@ -1,0 +1,12 @@
+\mysection{Intéressant à noter: variables globales vs. locales}
+
+Maintenant vous savez que les variables globales sont remplies avec des zéros
+par l'\ac{OS} au début
+(\myref{BSSClearedByCStd}, \InSqBrackets{\CNineNineStd 6.7.8p10}),
+mais que les variables locales ne le sont pas.
+
+Parfois, vous avez une variable globale que vous avez oublié d'initialiser et votre
+programme fonctionne grâce au fait qu'elle est à zéro au début.
+Puis, vous éditez votre programme et déplacez la variable globale dans une fonction
+pour la rendre locale.
+Elle ne sera plus initialisée à zéro et ceci peut résulter en de méchants bogues.

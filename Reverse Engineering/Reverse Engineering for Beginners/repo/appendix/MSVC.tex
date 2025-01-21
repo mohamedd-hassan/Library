@@ -1,0 +1,42 @@
+\subsection{MSVC}
+\myindex{MSVC}
+\label{sec:MSVC_options}
+
+\RU{Некоторые полезные опции, которые были использованы в книге}
+\EN{Some useful options which were used through this book}.
+\DE{Einige nützliche Optionen die in diesem Buch genutzt werden}.
+\FR{Quelques options utiles qui ont été utilisées dans ce livre}
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\HeaderColor \RU{опция}\EN{option}\DE{Option}\FR{option} & 
+\HeaderColor \RU{значение}\EN{meaning}\DE{Bedeutung}\FR{signification} \\
+\hline
+/O1		& \RU{оптимизация по размеру кода}\EN{minimize space}\DE{Speicherplatz minimieren}%
+\FR{minimiser l'espace}\\
+/Ob0		& \RU{не заменять вызовы inline-функций их кодом}\EN{no inline expansion}\DE{Keine Inline-Erweiterung}%
+\FR{pas de mire en ligne}\\
+/Ox		& \RU{максимальная оптимизация}\EN{maximum optimizations}\DE{maximale Optimierung}%
+\FR{optimisation maximale}\\
+/GS-		& \RU{отключить проверки переполнений буфера}
+		\EN{disable security checks (buffer overflows)}
+        \DE{Sicherheitsüberprüfungen deaktivieren (Buffer Overflows)}%
+		\FR{désactiver les vérifications de sécurité (buffer overflows)}\\
+/Fa(file)	& \RU{генерировать листинг на ассемблере}\EN{generate assembly listing}\DE{Assembler-Quelltext erstellen}%
+\FR{générer un listing assembleur}\\
+/Zi		& \RU{генерировать отладочную информацию}\EN{enable debugging information}\DE{Debugging-Informationen erstellen}%
+\FR{activer les informations de débogage}\\
+/Zp(n)		& \RU{паковать структуры по границе в $n$ байт}\EN{pack structs on $n$-byte boundary}\DE{Strukturen an $n$-Byte-Grenze ausrichten}%
+\FR{aligner les structures sur une limite de $n$-octet}\\
+/MD		& \RU{выходной исполняемый файл будет использовать}
+			\EN{produced executable will use}%
+            \DE{ausführbare Daten nutzt}%
+\FR{l'exécutable généré utilisera} \TT{MSVCR*.DLL}\\
+\hline
+\end{tabular}
+\end{center}
+
+\RU{Кое-как информация о версиях MSVC}\EN{Some information about MSVC versions}\DE{Informationen zu MSVC-Versionen}%
+\FR{Quelques informations sur les versions de MSVC}:
+\myref{MSVC_versions}.

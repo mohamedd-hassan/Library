@@ -1,0 +1,57 @@
+\subsection{Code mal désassemblé}
+\label{sec:incorrectly_disasmed_code}
+
+Un rétro ingénieur pratiquant a souvent à faire avec du code mal désassemblé.
+
+\subsubsection{Désassemblage depuis une adresse de début incorrecte (x86)}
+
+Contrairement à ARM et MIPS (où toute instruction a une longueur de 2 ou 4 octets),
+les instructions x86 ont une taille variable, donc tout désassembleur démarrant à
+une mauvaise adresse qui se trouve au milieu d'une instruction x86 pourra produire
+un résultat incorrect.
+
+À titre d'exemple:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/x86_wrong_start_FR.asm}
+
+Il y a des instructions incorrectement désassemblées au début, mais finalement le
+désassembleur revient sur la bonne voie.
+
+\subsubsection{À quoi ressemble du bruit aléatoire désassemblé?}
+
+Des propriétés répandues qui peuvent être repérées facilement sont:
+
+\begin{itemize}
+\item Dispersion d'instructions inhabituellement grande.
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!MOV}
+\myindex{x86!\Instructions!CALL}
+\myindex{x86!\Instructions!IN}
+\myindex{x86!\Instructions!OUT}
+Les instructions x86 les plus fréquentes sont \PUSH{}, \MOV{}, \CALL{}, mais ici nous
+voyons des instructions de tous les groupes d'instructions: \ac{FPU}, \INS{IN}/\INS{OUT},
+instructions systèmes et rares.
+
+\item Valeurs grandes et aléatoires, d'offsets et immédiates.
+
+\item Sauts ayant des offsets incorrects, sautant au milieu d'autres instructions
+\end{itemize}
+
+\lstinputlisting[caption=\randomNoise{} (x86),style=customasmx86]{\CURPATH/x86.asm}
+
+\myindex{x86-64}
+\lstinputlisting[caption=\randomNoise{} (x86-64),style=customasmx86]{\CURPATH/x64.asm}
+
+\myindex{ARM}
+\lstinputlisting[caption=\randomNoise{} (ARM (\ARMMode)),style=customasmARM]{\CURPATH/ARM.asm}
+
+\lstinputlisting[caption=\randomNoise{} (ARM (\ThumbMode)),style=customasmARM]{\CURPATH/ARM_thumb.asm}
+
+\myindex{MIPS}
+\lstinputlisting[caption=\randomNoise{} (MIPS little endian),style=customasmMIPS]{\CURPATH/MIPS.asm}
+
+Il est important de garder à l'esprit que du code de dépaquetage et de déchiffrement
+construit intelligemment (y compris auto-modifiant) peut avoir l'air aléatoire, mais
+s'exécute toujours correctement.
+% TODO таких примеров тоже бы добавить
+

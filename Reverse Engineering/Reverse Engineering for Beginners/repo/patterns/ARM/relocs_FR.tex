@@ -1,0 +1,75 @@
+﻿\newcommand{\ARMELF}{\InSqBrackets{\emph{ELF for the ARM 64-bit Architecture (AArch64)}, (2013)}\footnote{\AlsoAvailableAs \url{http://infocenter.arm.com/help/topic/com.arm.doc.ihi0056b/IHI0056B_aaelf64.pdf}}}
+
+\subsection{Relogement en ARM64}
+\label{ARM64_relocs}
+
+Comme nous le savons, il y a des instructions 4-octet en ARM64, donc il est impossible
+d'écrire un nombre large dans un registre en utilisant une seule instruction.
+
+Cependant, une image exécutable peut être chargée à n'importe quelle adresse aléatoire
+en mémoire, c'est pourquoi les relogements existent.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+L'adresse est formée en utilisant la paire d'instructions \TT{ADRP} et \ADD en ARM64.
+
+La première charge l'adresse d'une page de 4KiB et la seconde ajoute le reste.
+Compilons l'exemple de \q{\HelloWorldSectionName} (\lstref{hw_c}) avec GCC (Linaro)
+4.9 sous win32:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 et objdump du fichier objet,style=customasmARM]{patterns/ARM/relocs1.lst}
+
+Donc, il y a 3 relogements dans ce fichier objet.
+
+\begin{itemize}
+\item 
+La première prend l'adresse de la page, coupe les 12 bits du bas et écrit les 21 bits
+du haut restants dans le champs de bit de l'instruction \TT{ADRP}. Ceci car nous n'avons
+pas besoin d'encoder les 12 bits bas, et l'instruction \INS{ADRP} possède seulement
+de l'espace pour 21 bits.
+
+\item 
+La seconde met les 12 bits de l'adresse relative au début de la page dans le champ
+de bits de l'instruction \ADD.
+
+\item 
+La dernière, celle de 26-bit, est appliquée à l'instruction à l'adresse \TT{0x10}
+où le saut à la fonction \printf se trouve.
+
+Toutes les adresses des instructions ARM64 (et ARM en mode ARM) ont zéro dans les
+deux bits les plus bas (car toutes les instructions ont une taille de 4 octets),
+donc on doit seulement encoder les 26 bits du haut de l'espace d'adresse de 28-bit
+($\pm 128$MB).
+
+\end{itemize}
+
+Il n'y a pas de tels relogements dans le fichier exécutable: car l'adresse où se
+trouve la chaîne \q{Hello!} est connue, la page, et l'adresse de \puts sont aussi
+connues.
+
+Donc, il y a déjà des valeurs mises dans les instructions \TT{ADRP}, \ADD et \TT{BL}
+(l'éditeur de liens à écrit des valeurs lors de l'édition de liens):
+
+\lstinputlisting[caption=objdump du fichier exécutable,style=customasmARM]{patterns/ARM/relocs2.lst}
+
+\myindex{ARM!\Instructions!BL}
+
+À titre d'exemple, essayons de désassembler manuellement l'instruction BL.\\
+\TT{0x97ffffa0} est $0b10010111111111111111111110100000$.
+D'après \InSqBrackets{\ARMSixFourRef C5.6.26}, \emph{imm26} correspond aux derniers
+26 bits:\\
+$imm26 = 0b11111111111111111110100000$.
+Il s'agit de \TT{0x3FFFFA0}, mais le \ac{MSB} est 1,
+donc le nombre est négatif, et nous pouvons le convertir manuellement en une forme
+pratique pour nous.
+D'après les règles de la négation, il faut simplement
+inverser tous les bits (ça donne \TT{0b1011111=0x5F}), et ajouter 1 (\TT{0x5F+1=0x60}).
+Donc le nombre sous sa forme signée est \TT{-0x60}.
+Multiplions \TT{-0x60} par 4 (car l'adresse est stockée dans l'opcode est divisée
+par 4): ça fait \TT{-0x180}.
+Maintenant calculons l'adresse de destination: \TT{0x4005a0} + (\TT{-0x180}) = \TT{0x400420}
+(noter s'il vous plaît: nous considérons l'adresse de l'instruction BL, pas la valeur
+courante du \ac{PC}, qui peut être différente!).
+Donc l'adresse de destination est \TT{0x400420}.\\
+\\
+Plus d'informations relatives aux relogements en ARM64: \ARMELF.

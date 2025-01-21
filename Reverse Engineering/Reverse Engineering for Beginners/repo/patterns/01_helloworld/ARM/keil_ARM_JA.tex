@@ -1,0 +1,96 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+Keilの例をコンパイルすることから始めましょう。
+
+\begin{lstlisting}
+armcc.exe --arm --c90 -O0 1.c 
+\end{lstlisting}
+
+\myindex{\IntelSyntax}
+\emph{armcc}コンパイラはIntel構文でアセンブリリストを生成しますが、
+\footnote{例えば ARMモードには \PUSH/\POP 命令がありません}
+それには高レベルのARMプロセッサに関連するマクロがありますが、 \q{そのまま}の命令を見ることが重要ですので、 \IDA のコンパイル結果を見てみましょう。
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode) \IDA,style=customasmARM]
+.text:00000000             main
+.text:00000000 10 40 2D E9    STMFD   SP!, {R4,LR}
+.text:00000004 1E 0E 8F E2    ADR     R0, aHelloWorld ; "hello, world"
+.text:00000008 15 19 00 EB    BL      __2printf
+.text:0000000C 00 00 A0 E3    MOV     R0, #0
+.text:00000010 10 80 BD E8    LDMFD   SP!, {R4,PC}
+
+.text:000001EC 68 65 6C 6C+aHelloWorld  DCB "hello, world",0    ; DATA XREF: main+4
+\end{lstlisting}
+
+この例では、各命令のサイズが4バイトであることを簡単に確認できます。
+実際、Thumb用ではなくARMモード用のコードをコンパイルしました。
+
+\myindex{ARM!\Instructions!STMFD}
+\myindex{ARM!\Instructions!POP}
+最初の命令\INS{STMFD SP!, \{R4,LR\}}\footnote{\ac{STMFD}}は、2つのレジスタ(\Reg{4} と \ac{LR})の値をスタックに書き込むx86 \PUSH 命令として機能します。
+
+実際、 \emph{armcc} コンパイラの出力リストには、簡略化のために実際に \INS{PUSH \{r4,lr\}} 命令が示されています。しかしそれはかなり正確ではありません。 \PUSH 命令は、Thumbモードでのみ使用できます。したがって、物事をあまり混乱させないために、私たちは \IDA でこれをやっています。
+
+この命令は、最初に \ac{SP} を \glspl{decrement} して、新しいエントリがないスタック内の場所をポイントし、 \Reg{4} および \ac{LR} レジスタの値を変更された \ac{SP} に格納されたアドレスに保存します。
+
+この命令（Thumbモードの \PUSH 命令のような）は、一度にいくつかのレジスタ値を保存することができ、非常に便利です。
+ところで、これはx86には同等の機能はありません。
+また、\TT{STMFD}命令は、\ac{SP}だけでなく、どのレジスタでも動作できるため、\PUSH 命令の一般化（機能拡張）であることにも注意してください。
+換言すれば、\TT{STMFD}は、指定されたメモリアドレスにレジスタのセットを格納するために使用することもできます。
+
+\myindex{\PICcode}
+\myindex{ARM!\Instructions!ADR}
+\INS{ADR R0, aHelloWorld}命令は、\ac{PC}レジスタの値を\TT{hello, world}文字列が配置されているオフセットに加算または減算します。 
+ここでPCレジスタはどのように使用されるのですか？ これは\q{\PICcode}\footnote{関連セクションの詳細を読む:(\myref{sec:PIC})}と呼ばれます。
+
+このようなコードは、メモリ内の固定されていないアドレスで実行することができます。 換言すれば、これは\ac{PC}相対アドレッシングである。
+
+\INS{ADR}命令は、この命令のアドレスと文字列が配置されているアドレスとの間の差異を考慮する。 
+この違い（オフセット）は、\ac{OS}によってコードがロードされるアドレスに関係なく、常に同じになります。 
+だから私たちが必要とするのは、現在の命令のアドレス（\ac{PC}から）を追加して、C文字列の絶対メモリアドレスを取得することだけです。
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!BL}
+\INS{BL \_\_2printf}\footnote{Branch with Link}命令は \printf 関数を呼び出します。 
+この命令の仕組みは次のとおりです。
+
+\begin{itemize}
+\item \INS{BL}命令（\TT{0xC}）に続くアドレスを\ac{LR}に格納する
+\item そのアドレスを\ac{PC}レジスタに書き込むことによって、コントロールを \printf に渡します。
+\end{itemize}
+
+\printf の実行が終了すると、コントロールを返す必要がある場所に関する情報が必要です。
+各機能が\ac{LR}レジスタに格納されたアドレスに制御を渡す理由です。
+
+これはARMのような\q{純粋な} \ac{RISC}プロセッサとx86のような\ac{CISC}プロセッサとの違いです。
+リターンアドレスは通常スタックに格納されます。
+これについての詳細は、次のセクション(\myref{sec:stack})を参照してください。
+
+ところで、絶対32ビットのアドレスまたはオフセットは、24ビットのためのスペースしか有していないので、32ビット\TT{BL}命令では符号化することができない。
+思い出されるように、すべてのARMモード命令は4バイト（32ビット）のサイズを持ちます。
+したがって、それらは4バイトの境界アドレスにのみ配置することができます。
+これは、命令アドレスの最後の2ビット（常にゼロビット）が省略されることを意味する。
+要約すると、オフセットエンコーディングには26ビットがあります。これは$current\_PC \pm{} \approx{}32M$をエンコードするのに十分です。
+
+\myindex{ARM!\Instructions!MOV}
+次に、\INS{MOV R0, \#0}\footnote{MOVeの意味}命令は、\Reg{0}レジスタに0を書き込むだけです。
+これは、C関数が0を返し、戻り値が\Reg{0}レジスタに格納されるためです。
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!LDMFD}
+\myindex{ARM!\Instructions!POP}
+最後の命令\INS{LDMFD SP!, {R4,PC}}\footnote{\ac{LDMFD}は\ac{STMFD}とは逆の命令です}
+スタック（または他のメモリ場所）から値をロードして\Reg{4}と\ac{PC}に保存し、\gls{stack pointer} \ac{SP}を\glslink{increment}{increments}します。
+ここで \POP のように動作します。
+注意：最初の命令\TT{STMFD}は\Reg{4}と\ac{LR}レジスタのペアをスタックに保存しましたが、\Reg{4}と\ac{PC}は\TT{LDMFD}の実行中に\emph{リストア}されます。
+
+すでにわかっているように、各関数が制御を返さなければならない場所のアドレスは、通常、\ac{LR}レジスタに保存されます。
+最初の命令は、 \printf を呼び出すときに \main 関数が同じレジスタを使用するため、その値をスタックに保存します。
+関数の終わりでは、この値を直接\ac{PC}レジスタに書き込むことができ、したがって関数が呼び出された場所に制御を渡します。
+
+\main は通常 \CCpp の主要な関数なので、コントロールは\ac{OS}ローダーや\ac{CRT}のような点に返されます。
+
+すべての機能を使用すると、関数の最後に\INS{BX LR}命令を省略できます。
+
+\myindex{ARM!DCB}
+\TT{DCB}は、x86アセンブリ言語のDBディレクティブと同様に、バイトまたはASCII文字列の配列を定義するアセンブリ言語ディレクティブです。

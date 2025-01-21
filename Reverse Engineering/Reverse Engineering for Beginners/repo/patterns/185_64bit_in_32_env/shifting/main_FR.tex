@@ -1,0 +1,41 @@
+﻿\subsection{Décalage à droite}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/shifting/3.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=MSVC 2012 /Ob1 \Optimizing,style=customasmx86]{patterns/185_64bit_in_32_env/shifting/3_MSVC.asm}
+
+\lstinputlisting[caption=GCC 4.8.1 -fno-inline \Optimizing,style=customasmx86]{patterns/185_64bit_in_32_env/shifting/3_GCC.asm}
+
+\myindex{x86!\Instructions!SHRD}
+
+Le décalage se produit en deux passes: tout d'abord la partie basse est décalée,
+puis la partie haute.
+Mais la partie basse est décalée avec l'aide de l'instruction \INS{SHRD}, elle décale
+la valeur de \EAX{} de 7 bits, mais tire les nouveaux bits de \EDX{}, i.e., de la
+partie haute.
+En d'autres mots, la valeur 64-bit dans la paire de registres \TT{EDX:EAX}, dans
+son entier, est décalée de 7 bits et les 32 bits bas du résultat sont placés dans
+\EAX{}.
+La partie haute est décalée en utilisant l'instruction plus populaire \SHR{}: en
+effet, les bits libérés dans la partie haute doivent être remplis avec des zéros.
+
+\subsubsection{ARM}
+
+ARM n'a pas une instruction telle que \INS{SHRD} en x86, donc le compilateur Keil
+fait cela en utilisant des simples décalages et des opérations \INS{OR}:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/shifting/Keil_ARM_O3.s}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/185_64bit_in_32_env/shifting/Keil_thumb_O3.s}
+% TODO add explanationen 
+
+\subsubsection{MIPS}
+
+GCC pour MIPS suit le même algorithme que Keil fait pour le mode Thumb:
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/shifting/MIPS_O3_IDA.lst}
+
+% TODO add explanation
+

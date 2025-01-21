@@ -1,0 +1,197 @@
+\mysection{OpenMP}
+\label{openmp}
+\myindex{OpenMP}
+
+OpenMP est l'un des moyens les plus simple de paralléliser des algorithmes simples.
+
+\myindex{Bitcoin}
+
+À titre d'exemple, essayons de construire un programme pour calculer une \emph{nonce}
+cryptographique.
+
+Dans mon exemple simpliste, le \emph{nonce} est un nombre ajouté au texte non chiffré
+afin de produire un hash avec quelques caractéristiques spécifiques.
+
+Par exemple, à certaines étapes, le protocole Bitcoin nécessite de trouver de tels
+\emph{nonce} dont le hash résultant contient un nombre spécifique de zéros consécutifs.
+Ceci est aussi appelé \q{preuve de travail}
+\footnote{\href{https://en.wikipedia.org/wiki/Proof-of-work_system}{Wikipédia}}
+(i.e., le système prouve qu'il a fait des calculs intensifs et y a passé du temps).
+
+\myindex{SHA512}
+Mon exemple n'est en aucun cas lié au Bitcoin, il va essayer d'ajouter des nombres
+à la chaîne afin de trouver un nombre tel que le hash de \q{hello, world!\_<number>}
+avec l'algorithme SHA512, contiendra au moins 3 octets à zéro.
+
+Limitons notre recherche brute-force dans l'intervalle 0..INT32\_MAX-1 (i.e., \TT{0x7FFFFFFE}
+ou 2147483646).
+
+L'algorithme est assez direct:
+
+\lstinputlisting[style=customc]{advanced/700_openmp/openmp_example.c}
+
+La fonction \TT{check\_nonce()} ajoute simplement un nombre à la chaîne, hashe le
+résultat avec l'algorithme SHA12 et teste si il y a 3 octets à zéro dans le résultat.
+
+Une partie très importante du code est:
+
+\begin{lstlisting}[style=customc]
+	#pragma omp parallel for
+	for (i=0; i<INT32_MAX; i++)
+		check_nonce (i);
+\end{lstlisting}
+
+Oui, c'est simple, sans le \TT{\#pragma} nous appelons \TT{check\_nonce()} pour chaque
+nombre de 0 à \TT{INT32\_MAX} (\TT{0x7fffffff} ou 2147483647).
+Avec le \TT{\#pragma}, le compilateur ajoute du code particulier qui découpe l'intervalle
+de la boucle en des plus petits, afin de les lancer sur tous les c\oe{}urs de \ac{CPU}
+disponible\footnote{N.B.: Ceci est intentionnellement l'exemple le plus simple possible,
+mais en pratique, l'utilisation de OpenMP peut être plus difficile et plus complexe.}.
+
+L'exemple peut être compilé\footnote{Les fichiers sha512.(c|h) et u64.h peuvent être
+pris de la bibliothèque OpenSSL:
+\url{http://www.openssl.org/source/}}
+dans MSVC 2012:
+% FIXME1: \footnote{other source code files can be downloaded here: ...}
+
+\begin{lstlisting}
+cl openmp_example.c sha512.obj /openmp /O1 /Zi /Faopenmp_example.asm
+\end{lstlisting}
+
+Ou dans GCC:
+
+\begin{lstlisting}
+gcc -fopenmp 2.c sha512.c -S -masm=intel
+\end{lstlisting}
+
+\subsection{MSVC}
+
+Maintenant voici comment MSVC 2012 génère la boucle principale:
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{advanced/700_openmp/MSVC_loop.asm}
+
+Toutes les fonctions préfixées par \TT{vcomp} sont relatives à OpenMP et sont stockées
+dans le fichier vcomp*.dll.
+Donc, ici un groupe de threads est démarré.
+
+Regardons \TT{\_main\$omp\$1}:
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{advanced/700_openmp/MSVC_1.asm}
+
+Cette fonction va être démarrée $n$ fois en parallèle, où $n$ est le nombre de c\oe{}urs
+du \ac{CPU}.\\
+\TT{vcomp\_for\_static\_simple\_init()}
+calcul l'intervalle pour la construction for() du thread courant, dépendant du numéro
+du thread courant.
+
+Les valeurs de début et de fin sont stockées dans les variables locales \TT{\$T1}
+et \TT{\$T2}.
+Vous pouvez également remarquer l'argument \TT{7ffffffeh} (ou 2147483646) comme argument
+de la fonction\\
+\TT{vcomp\_for\_static\_simple\_init()}---ceci est le nombre d'itérations
+de la boucle complète,\\
+ qui doit éventuellement être divisée.
+
+Puis nous voyons une nouvelle boucle avec un appel à la fonction \TT{check\_nonce()},
+qui fait tout le travail.
+
+Ajoutons du code au début de la fonction \TT{check\_nonce()} pour collecter des statistiques
+sur les arguments avec lesquels la fonction a été appelée.
+
+Voici ce que nous pouvons voir lorsque nous le lançons:
+
+\begin{lstlisting}
+threads=4
+...
+checked=2800000
+checked=3000000
+checked=3200000
+checked=3300000
+found (thread 3): [hello, world!_1611446522]. seconds spent=3
+__min[0]=0x00000000 __max[0]=0x1fffffff
+__min[1]=0x20000000 __max[1]=0x3fffffff
+__min[2]=0x40000000 __max[2]=0x5fffffff
+__min[3]=0x60000000 __max[3]=0x7ffffffe
+\end{lstlisting}
+
+Oui, le résultat est correct, les 3 premiers octets sont des zéros:
+
+\begin{lstlisting}
+C:\...\sha512sum test
+000000f4a8fac5a4ed38794da4c1e39f54279ad5d9bb3c5465cdf57adaf60403
+df6e3fe6019f5764fc9975e505a7395fed780fee50eb38dd4c0279cb114672e2 *test
+\end{lstlisting}
+
+Le temps de traitement est $\approx2..3$ secondes sur un Intel Xeon E3-1220 3.10 GHz 4-core.
+Dans le gestionnaire de tâches nous voyons 5 threads:
+1 thread principal + 4 autres.
+Il n'y a pas d'optimisations faites afin de garder cet exemple aussi petit et clair
+que possible.
+Mais probablement qu'on pourrait le rendre plus rapide.
+Mon \ac{CPU} a 4 c\oe{}urs, c'est pourquoi OpenMP a démarré exactement 4 threads.
+
+En regardant la table des statistiques, nous voyons clairement comment la boucle
+a été découpée en 4 parties égales.
+Oui bon, presque égales, si nous ne tenons pas compte du dernier bit.
+
+Il y a aussi des pragmas pour les \glslink{atomic operation}{operations atomiques.}.
+
+Voyons comment ce code est compilé:
+
+\begin{lstlisting}[style=customc]
+	#pragma omp atomic
+	checked++;
+
+	#pragma omp critical
+	if ((checked % 100000)==0)
+		printf ("checked=%d\n", checked);
+\end{lstlisting}
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{advanced/700_openmp/MSVC_2.asm}
+
+Il semble que la fonction \TT{vcomp\_atomic\_add\_i4()} dans vcomp*.dll soit juste
+une minuscule fonction avec l'instruction \TT{LOCK XADD}\footnote{En savoir plus sur le préfixe LOCK: \myref{x86_lock}}
+dedans.
+
+\TT{vcomp\_enter\_critsect()}
+appelle finalement la fonction de l'\ac{API} win32 \\
+\TT{EnterCriticalSection()}
+\footnote{Vous pouvez en lire plus sur les sections critiques ici: \myref{critical_sections}}.
+
+\subsection{GCC}
+
+GCC 4.8.1 produit un programme qui montre exactement la même table de statistique,
+
+donc, l'implémentation de GCC divise la boucle en parties de la même manière.
+
+\begin{lstlisting}[caption=GCC 4.8.1,style=customasmx86]
+	mov	edi, OFFSET FLAT:main._omp_fn.0
+	call	GOMP_parallel_start
+	mov	edi, 0
+	call	main._omp_fn.0
+	call	GOMP_parallel_end
+\end{lstlisting}
+
+Contrairement à l'implémentation de MSVC, ce que le code de GCC fait est de démarrer
+3 threads et lance la quatrième dans le thread courant. Il y a donc 4 threads au
+lieu de 5 dans MSVC.
+
+Voici les fonctions \TT{main.\_omp\_fn.0}:
+
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{advanced/700_openmp/GCC_1.asm}
+
+Ici nous voyons la division clairement: en appelant\\
+\TT{omp\_get\_num\_threads()} et \TT{omp\_get\_thread\_num()}
+
+nous obtenons le nombre de threads lancés, le nombre courant de threads,
+et ainsi détermine l'intervalle de la boucle.
+Ensuite nous lançons \TT{check\_nonce()}.
+
+GCC a également inséré l'instruction \TT{LOCK ADD} directement dans le code, contrairement
+à MSVC, qui génère un appel à une fonction DLL séparée:
+
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{advanced/700_openmp/GCC_2.asm}
+
+Les fonctions préfixées par GOMP sont de la bibliothèque GNU OpenMP.
+Contrairement à vcomp*.dll, son code source est librement disponible:
+\href{https://github.com/mirrors/gcc/tree/master/libgomp}{GitHub}.

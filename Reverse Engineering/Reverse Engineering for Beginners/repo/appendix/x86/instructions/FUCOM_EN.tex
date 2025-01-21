@@ -1,0 +1,10 @@
+\myindex{x86!\Instructions!FUCOM}
+\myindex{x86!\Instructions!FUCOMP}
+\myindex{x86!\Instructions!FUCOMPP}
+  \item[FUCOM] ST(i): compare ST(0) and ST(i)
+  \item[FUCOM] compare ST(0) and ST(1)
+  \item[FUCOMP] compare ST(0) and ST(1); pop one element from stack.
+  \item[FUCOMPP] compare ST(0) and ST(1); pop two elements from stack.
+ 
+The instructions perform just like FCOM, but an exception is raised only if one of the operands is SNaN,
+  while QNaN numbers are processed smoothly.

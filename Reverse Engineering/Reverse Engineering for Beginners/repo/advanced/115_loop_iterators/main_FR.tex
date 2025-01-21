@@ -1,0 +1,82 @@
+﻿\mysection{Boucles: quelques itérateurs}
+\label{loop_iterators}
+
+Dans la plupart des cas, les boucles ont un seul itérateur, mais elles peuvent en
+avoir plusieurs dans le code résultant.
+
+Voici un exemple très simple:
+
+\lstinputlisting[style=customc]{\CURPATH/iterators_FR.c}
+
+Il y a deux multiplications à chaque itération et ce sont des opérations coûteuses.
+Est-ce que ça peut être optimisé d'une certaine façon?
+
+Oui, si l'on remarque que les deux indices de tableau prennent des valeurs qui peuvent
+être facilement calculées sans multiplication.
+
+\subsection{Trois itérateurs}
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{\CURPATH/MSVC_2013_x64_Ox_FR.asm}
+
+Maintenant il y a 3 itérateurs: la variable \emph{cnt} et deux indices, qui sont incrémentés
+par 12 et 28 à chaque itération.
+Nous pouvons récrire ce code en \CCpp:
+
+\lstinputlisting[style=customc]{\CURPATH/iterators3_FR.c}
+
+Donc, au prix de la mise à jour de 3 itérateurs à chaque itération au lieu d'un,
+nous pouvons supprimer deux opérations de multiplication.
+
+\subsection{Deux itérateurs}
+
+GCC 4.9 fait encore mieux, en ne laissant que 2 itérateurs:
+
+\lstinputlisting[caption=GCC 4.9 x64 \Optimizing,style=customasmx86]{\CURPATH/GCC491_x64_O3_FR.asm}
+
+Il n'y a plus de variable \emph{counter}: GCC en a conclu qu'elle n'étais pas nécessaire.
+
+Le dernier élément du tableau \emph{a2} est calculé avant le début de la boucle (ce qui
+est facile: $cnt*7$) et c'est ainsi que la boucle est arrêtée: itérer jusqu'à ce que
+le second index atteignent cette valeur pré-calculée.
+
+Vous trouverez plus d'informations sur la multiplication en utilisant des décalages/additions/soustractions
+ici:
+\myref{multiplication_using_shifts_adds_subs}.
+
+Ce code peut être récrit en \CCpp comme ceci:
+
+\lstinputlisting[style=customc]{\CURPATH/iterators2_FR.c}
+
+GCC (Linaro) 4.9 pour ARM64 fait la même chose, mais il pré-calcule le dernier index
+de \emph{a1} au lieu de \emph{a2}, ce qui a bien sûr le même effet:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 ARM64 \Optimizing,label=GCC_no_number_sign,style=customasmARM]{\CURPATH/ARM64_GCC_49_O3_FR.s}
+
+% FIXME1 -> post-increment
+
+GCC 4.4.5 pour MIPS fait la même chose:
+
+\lstinputlisting[caption=GCC 4.4.5 for MIPS \Optimizing (IDA),style=customasmMIPS]{\CURPATH/MIPS_O3_IDA_FR.lst}
+
+\subsection{Cas Intel C++ 2011}
+\myindex{\CompilerAnomaly}
+\label{loops_iterators_loop_anomaly}
+
+Les optimisations du compilateur peuvent être bizarre, mais néanmoins toujours correctes.
+Voici ce qu le compilateur Intel C++ 2011 effectue:
+
+\lstinputlisting[caption=Intel C++ 2011 x64 \Optimizing,style=customasmx86]{\CURPATH/intel_2011_x64_Ox.asm}
+
+Tout d'abord, quelques décisions sont prises, puis une des routines est exécutée.
+
+Il semble qu'il teste si les tableaux se recoupent.
+
+C'est une façons très connue d'optimiser les routines de copie de blocs de mémoire.
+Mais les routines de copie sont les même!
+
+ça doit être une erreur de l'optimiseur Intel C++, qui produit néanmoins un code
+fonctionnel.
+
+Nous prenons volontairement en compte de tels exemples dans ce livre, afin que lecteur
+comprenne que le ce que génère un compilateur est parfois bizarre mais toujours correct,
+car lorsque le compilateur a été testé, il a réussi les tests.

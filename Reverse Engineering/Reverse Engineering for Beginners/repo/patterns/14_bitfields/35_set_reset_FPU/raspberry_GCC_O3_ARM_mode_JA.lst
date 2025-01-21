@@ -1,0 +1,26 @@
+﻿my_abs
+; S0からR2にコピー
+                FMRS    R2, S0
+; ビットをクリア
+                BIC     R3, R2, #0x80000000
+; R3からS0にコピー
+                FMSR    S0, R3
+                BX      LR
+
+set_sign
+; S0からR2にコピー
+                FMRS    R2, S0
+; ORを実行
+                ORR     R3, R2, #0x80000000
+; R3からS0にコピー
+                FMSR    S0, R3
+                BX      LR
+
+negate
+; S0からR2にコピー
+                FMRS    R2, S0
+; ADDを実行
+                ADD     R3, R2, #0x80000000
+; R3からS0にコピー
+                FMSR    S0, R3
+                BX      LR

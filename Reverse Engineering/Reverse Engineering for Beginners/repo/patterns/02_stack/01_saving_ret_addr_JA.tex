@@ -1,0 +1,76 @@
+\subsubsection{関数のリターンアドレスを保存する}
+
+\myparagraph{x86}
+
+\myindex{x86!\Instructions!CALL}
+\CALL 命令で別の関数を呼び出すと、 \CALL 命令の直後のポイントのアドレスがスタックに保存され、 
+\CALL オペランドのアドレスへの無条件ジャンプが実行されます。
+
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!JMP}
+\CALL 命令は、PUSHの\INS{PUSH address\_after\_call / JMP operand}命令対に相当する。
+
+\RET はスタックから値を取り出し、ジャンプします。これは\TT{POP tmp / JMP tmp}命令の対に相当します。
+
+\myindex{\Stack!\MLStackOverflow}
+\myindex{\Recursion}
+スタックのオーバーフローは簡単です。 永遠の再帰を実行するだけです：
+
+
+\begin{lstlisting}[style=customc]
+void f()
+{
+	f();
+};
+\end{lstlisting}
+
+MSVC 2008が問題をレポートします：
+
+\begin{lstlisting}
+c:\tmp6>cl ss.cpp /Fass.asm
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.21022.08 for 80x86
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+ss.cpp
+c:\tmp6\ss.cpp(4) : warning C4717: 'f' : recursive on all control paths, function will cause runtime stack overflow
+\end{lstlisting}
+
+\dots しかし、正しいコードを生成します。
+
+\lstinputlisting[style=customasmx86]{patterns/02_stack/1.asm}
+
+\dots また、コンパイラ最適化（\TT{\Ox}オプション）を有効にすると、最適化されたコードはスタックをオーバーフローせず、
+代わりに\emph{正しく}\footnote{ここの皮肉}動作します。
+
+\lstinputlisting[style=customasmx86]{patterns/02_stack/2.asm}
+
+GCC 4.4.1はどちらの場合も問題の警告を出さずに同様のコードを生成します。
+
+\myparagraph{ARM}
+
+\myindex{ARM!\Registers!Link Register}
+また、ARMプログラムはスタックを使用してリターンアドレスを保存しますが、別の方法でスタックを使用します。 
+\q{\HelloWorldSectionName}~(\myref{sec:hw_ARM})で述べたように、\ac{RA}は\ac{LR}（\gls{link register}）に保存されます。 
+ただし、別の関数を呼び出してもう一度\ac{LR}レジスタを使用する必要がある場合は、その値を保存する必要があります。 
+\myindex{Function prologue}
+通常、関数プロローグに保存されます。
+
+\myindex{ARM!\Instructions!PUSH}
+\myindex{ARM!\Instructions!POP}
+多くの場合、\INS{PUSH {R4-R7,LR}}のような命令が、エピローグで\INS{POP {R4-R7,PC}}とともに見られます。
+したがって、関数で使用されるレジスタ値は、\ac{LR}を含めてスタックに保存されます。
+
+\myindex{ARM!Leaf function}
+それにもかかわらず、ある関数が他の関数を呼び出すことがなければ、\ac{RISC}の用語ではそれを
+\emph{\gls{leaf function}}\footnote{\href{http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka13785.html}{infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka13785.html}}と呼びます。
+その結果、リーフ関数は\ac{LR}レジスタを保存しません（\ac{LR}レジスタを変更しないため）。 
+このような関数が小さく、少数のレジスタを使用する場合は、スタックをまったく使用しないことがあります。 
+したがって、スタックを使用せずにリーフ関数を呼び出すことができます。
+\footnote{いくつかの時間前、PDP-11とVAXでは、CALL命令（他の関数を呼び出す）は高価でした。 
+実行時間の50％までが費やされる可能性があるため、小さな機能を多数持つことは\gls{anti-pattern} \InSqBrackets{\TAOUP Chapter 4, Part II}}
+これは、外部RAMがスタックに使用されないため、古いx86マシンよりも高速になる可能性があります。これは、スタックのメモリがまだ割り当てられていない状況 または利用できません。
+
+リーフ関数のいくつかの例：
+\myref{ARM_leaf_example1}, \myref{ARM_leaf_example2}, 
+\myref{ARM_leaf_example3}, \myref{ARM_leaf_example4}, \myref{ARM_leaf_example5},
+\myref{ARM_leaf_example6}, \myref{ARM_leaf_example7}, \myref{ARM_leaf_example10}.

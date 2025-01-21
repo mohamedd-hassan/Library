@@ -1,0 +1,23 @@
+\subsection{一般的な間違い}
+
+\emph{x}へのポインタではなく、\emph{x}の値を渡すのは極めて一般的な間違い（および/またはタイプミス）です。
+
+\lstinputlisting[style=customc]{patterns/04_scanf/error.c}
+
+% TBT: was incorrect "not uninitialized"
+% correct:
+% \emph{x} is not initialized and contains some random noise from local stack.
+では、何が起こるでしょうか？ 
+\emph{x}は初期化されておらず、ローカルスタックからのランダムノイズを含んでいます。 
+\scanf が呼び出されると、ユーザーから文字列を受け取り、数値に解析し、\emph{x}に書き込んでメモリ内のアドレスとして扱います。 
+しかしランダムなノイズがあるので、 \scanf はランダムなアドレスに書き込もうとします。 
+おそらく、プロセスがクラッシュするでしょう。
+
+\myindex{0xCCCCCCCC}
+\myindex{0x0BADF00D}
+興味深いことに、デバッグビルドのいくつかの \ac{CRT} ライブラリは、
+視覚的に特徴的なパターンを 0xCCCCCCCC や 0x0BADF00D のように割り当てられたメモリに入れています。 
+この場合、\emph{x}は0xCCCCCCCCを含むことができ、\scanf はアドレス0xCCCCCCCCに書き込みを試みます。 
+また、プロセス内の何かがアドレス0xCCCCCCCCに書き込もうとすると、
+初期化されていない変数（またはポインタ）が事前初期化なしで使用されることがわかります。 
+これは、新しく割り当てられたメモリがちょうどクリアされた場合よりも優れています。

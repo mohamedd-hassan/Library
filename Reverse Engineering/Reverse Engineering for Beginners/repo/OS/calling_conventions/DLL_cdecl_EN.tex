@@ -1,0 +1,29 @@
+\subsection{Cdecl example: a DLL}
+\label{cdecl_DLL}
+
+Let's back to the fact that this is not very important how to declare the \verb|main()| function: \myref{main_arguments}.
+
+This is a real story: once upon a time I wanted to replace an original DLL file in some software by mine.
+First I enumerated names of all DLL exports and made a function in my own replacement DLL for each function in the original DLL, like:
+
+\begin{lstlisting}[style=customc]
+void function1 ()
+{
+	write_to_log ("function1() called\n");
+};
+\end{lstlisting}
+
+I wanted to see, which functions are called during run, and when.
+However, I was in hurry and had no time to deduce arguments count for each function, let alone data types.
+So each function in my replacement DLL had no argument whatsoever.
+But everything worked, because all functions had \emph{cdecl} calling convention.
+(It wouldn't work if functions had \emph{stdcall} calling convention.)
+It also worked for x64 version.
+
+And then I did a next step: I deduced argument types for some functions.
+But I made several mistakes, for example, the original function took 3 arguments, but I knew only about 2, etc.
+
+Still, it worked.
+At the beginning, my replacement DLL just ignored all arguments.
+Then, it ignored the 3rd argument.
+

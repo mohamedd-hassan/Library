@@ -1,0 +1,46 @@
+\mysection{Impossible shutdown practical joke (Windows 7)}
+
+\myindex{Windows 98}
+\myindex{user32.dll}
+I don't quite remember how I found the \verb|ExitWindowsEx()| function in Windows 98's (it was late 1990s) user32.dll file.
+Probably, I just spotted its self-describing name.
+And then I tried to \emph{block} it by patching its beginning by 0xC3 byte (\INS{RETN}).
+
+The result was funny: Windows 98 cannot be shutted down anymore.
+Had to press reset button.
+
+These days I tried to do the same in Windows 7, that was created almost 10 years later and based on completely different Windows NT
+base.
+Still, \verb|ExitWindowsEx()| function present in user32.dll file and serves the same purpose.
+
+First, I turned off \emph{Windows File Protection} by adding this to registry
+(Windows would silently restore modified system files otherwise):
+
+\myindex{Windows File Protection}
+\begin{lstlisting}
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+"SFCDisable"=dword:ffffff9d
+\end{lstlisting}
+
+\myindex{Hiew}
+\myindex{IDA}
+Then I renamed \verb|c:\windows\system32\user32.dll| to \verb|user32.dll.bak|.
+I found \verb|ExitWindowsEx()| export entry using Hiew (IDA can help as well) and put 0xC3 byte here.
+I restarted by Windows 7 and now it can't be shutted down.
+"Restart" and "Logoff" buttons don't work anymore.
+
+I don't know if it's funny today or not, but back then, in late 1990s, my friend took patched user32.dll file
+on a floppy diskette and copied it to all the computers
+(within his reach, that worked under Windows 98 (almost all))
+at his university.
+No Windows can be shutted down after and his computer science teacher was lurid.
+(Hopefully he can forgive us if he is reading this right now.)
+
+% A note to translators: the "lurid" word here is in this sense:
+% "lighted or shining with an unnatural, fiery glow; wildly or garishly red:" ( https://www.dictionary.com/browse/lurid )
+
+If you do this, backup everything.
+The best idea is to run Windows under a virtual machine.
+

@@ -1,0 +1,209 @@
+\mysection{\MinesweeperWinXPExampleChapterName}
+\label{minesweeper_winxp}
+\myindex{Windows!Windows XP}
+
+Pour ceux qui ne sont pas très bons avec le jeu démineur, nous pouvons essayer de
+révéler les mines cachées dans le débogueur.
+
+\myindex{\CStandardLibrary!rand()}
+\myindex{Windows!PDB}
+
+Comme on le sait, le démineur place des mines aléatoirement, donc il doit y avoir
+une sorte de générateur de nombre aléatoire ou un appel à la fonction C standard
+\TT{rand()}.
+
+Ce qui est vraiment cool en rétro-ingénierant des produits Microsoft c'est qu'il
+y a les fichiers \gls{PDB} avec les symboles (nom de fonctions, etc.)
+Lorsque nous chargeons \TT{winmine.exe} dans \IDA, il télécharge le fichier \gls{PDB}
+exact pour cet exécutable et affiche tous les noms.
+
+Donc le voici, le seul appel à \TT{rand()} est cette fonction:
+
+\lstinputlisting[style=customasmx86]{examples/minesweeper/tmp1.lst}
+
+\IDA l'a appelé ainsi, et c'est le nom que lui ont donné les développeurs du démineur.
+
+La fonction est très simple:
+
+\begin{lstlisting}[style=customc]
+int Rnd(int limit)
+{
+    return rand() % limit;
+};
+\end{lstlisting}
+
+(Il n'y a pas de nom \q{limit} dans le fichier \gls{PDB}; nous avons nommé manuellement
+les arguments comme ceci.)
+
+Donc elle renvoie une valeur aléatoire entre 0 et la limite spécifiée.
+
+\TT{Rnd()} est appelée depuis un seul endroit, la fonction appelée \TT{StartGame()},
+et il semble bien que ce soit exactement le code qui place les mines:
+
+\begin{lstlisting}[style=customasmx86]
+.text:010036C7                 push    _xBoxMac
+.text:010036CD                 call    _Rnd@4          ; Rnd(x)
+.text:010036D2                 push    _yBoxMac
+.text:010036D8                 mov     esi, eax
+.text:010036DA                 inc     esi
+.text:010036DB                 call    _Rnd@4          ; Rnd(x)
+.text:010036E0                 inc     eax
+.text:010036E1                 mov     ecx, eax
+.text:010036E3                 shl     ecx, 5          ; ECX=ECX*32
+.text:010036E6                 test    _rgBlk[ecx+esi], 80h
+.text:010036EE                 jnz     short loc_10036C7
+.text:010036F0                 shl     eax, 5          ; EAX=EAX*32
+.text:010036F3                 lea     eax, _rgBlk[eax+esi]
+.text:010036FA                 or      byte ptr [eax], 80h
+.text:010036FD                 dec     _cBombStart
+.text:01003703                 jnz     short loc_10036C7
+\end{lstlisting}
+
+Le démineur vous permet de définir la taille du plateau, donc les dimensions X (xBoxMac)
+et Y (yBoxMac) du plateau sont des variables globales.
+Elles sont passées à \TT{Rnd()} et des coordonnées aléatoires sont générées.
+Une mine est placée par l'instruction \TT{OR} en \TT{0x010036FA}.
+Et si une mine y a déjà été placée avant (il est possible que la fonction \TT{Rnd()}
+génère une paire de coordonnées qui a déjà été générée), alors les instructions \TT{TEST}
+et \TT{JNZ} en \TT{0x010036E6} bouclent sur la routine de génération.
+
+\TT{cBombStart} est la variable globale contenant le nombre total de mines. Donc
+ceci est une boucle.
+
+La largeur du tableau est 32 (nous pouvons conclure ceci en regardant l'instruction
+\TT{SHL}, qui multiplie l'une des coordonnées par 32).
+
+La taille du tableau global \TT{rgBlk} peut facilement être déduite par la différence
+entre le label \TT{rgBlk} dans le segment de données et le label suivant. Il s'agit
+de 0x360 (864):
+
+\begin{lstlisting}[style=customasmx86]
+.data:01005340 _rgBlk          db 360h dup(?)          ; DATA XREF: MainWndProc(x,x,x,x)+574
+.data:01005340                                         ; DisplayBlk(x,x)+23
+.data:010056A0 _Preferences    dd ?                    ; DATA XREF: FixMenus()+2
+...
+\end{lstlisting}
+
+$864/32=27$.
+
+Donc, la taille du tableau est-elle $27*32$?
+C'est proche de ce que nous savons: lorsque nous essayons de définir la taille du
+plateau à $100*100$ dans les préférences du démineur, il corrige à une taille de
+plateau de $24*30$.
+Donc ceci est la taille maximale du plateau.
+Et le tableau a une taille fixe, pour toutes les tailles de plateau.
+
+REgardons tout ceci dans \olly.
+Nous allons lancer le démineur, lui attacher \olly et nous allons pouvoir voir le
+contenu de la mémoire à l'adresse du tableau \TT{rgBlk} (\TT{0x01005340})\footnote{Toutes
+les adresses ici sont pour le démineur de Windows XP SP3 English. Elles peuvent être
+différentes pour d'autres services packs.}.
+Donc nous avons ceci à l'emplacement mémoire du tableau:
+
+\lstinputlisting[style=customasmx86]{examples/minesweeper/1.lst}
+
+\olly, comme tout autre éditeur hexadécimal, affiche 16 octets par ligne.
+Donc chaque ligne de tableau de 32-octet occupe exactement 2 lignes ici.
+
+Ceci est le niveau débutant (plateau de 9*9).
+
+Il y a une sorte de structure carré que l'on voit ici (octets 0x10).
+
+Nous cliquons \q{Run} dans \olly pour débloquer le processus du démineur, puis nous
+cliquons au hasard dans la fenêtre du démineur et nous tombons sur une mine, mais
+maintenant, toutes les mines sont visibles:
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{examples/minesweeper/1.png}
+\caption{Mines}
+\label{fig:minesweeper1}
+\end{figure}
+
+En comparant les emplacements des mines et le dump, nous pouvons en conclure que
+0x10 correspond au bord, 0x0F---bloc vide, 0x8F---mine.
+Peut-être que 0x10 est simplement une \emph{valeur sentinelle}.
+
+Maintenant nous allons ajouter des commentaires et aussi mettre tous les octets à
+0x8F entre parenthèses droites:
+
+\lstinputlisting[style=customasmx86]{examples/minesweeper/2.lst}
+
+Maintenant nous allons supprimer tous les \emph{octet de bord} (0x10) et ce qu'il
+y a après:
+
+\lstinputlisting[style=customasmx86]{examples/minesweeper/3.lst}
+
+Oui, ce sont des mines, maintenant ça peut être vu clairement et comparé avec la
+copie d'écran.
+
+\clearpage
+Ce qui est intéressant, c'est que nous pouvons modifier le tableau directement dans
+\olly.
+Nous pouvons supprimer toutes les mines en changeant les octets à 0x8F par 0x0F,
+et voici ce que nous obtenons dans le démineur:
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{examples/minesweeper/3.png}
+\caption{Toutes les mines sont supprimées depuis le débogueur}
+\label{fig:minesweeper3}
+\end{figure}
+
+Nous pouvons aussi toutes les déplacer à la première ligne:
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{examples/minesweeper/2.png}
+\caption{Mines mises dans le débogueur}
+\label{fig:minesweeper2}
+\end{figure}
+
+Bon, le débogueur n'est pas très pratique pour espionner (ce qui est notre but),
+donc nous allons écrire un petit utilitaire pour afficher le contenu du plateau:
+
+\lstinputlisting[style=customc]{examples/minesweeper/minesweeper_cheater.c}
+
+Simplement donner le \ac{PID}
+\footnote{Le PID peut être vu dans le Task Manager
+(l'activer avec \q{View $\rightarrow$ Select Columns})}
+et l'adresse du tableau (\TT{0x01005340} pour Windows XP SP3 English)
+et il l'affichera
+\footnote{L'exécutable compilé est ici:
+\href{http://beginners.re/examples/minesweeper_WinXP/minesweeper_cheater.exe}{beginners.re}}.
+
+Il s'attache à un processus win32 par le \ac{PID} et lit la mémoire du processus
+à l'adresse.
+
+\subsection{Trouver la grille automatiquement}
+
+C'est pénible de mettre l'adresse à chaque fois que nous lançons notre utilitaire.
+Aussi, différentes versions du démineur peuvent avoir le tableau à des adresses différentes.
+Sachant qu'il a toujours un bord (octets 0x10), nous pouvons le trouver facilement
+en mémoire:
+
+\lstinputlisting[style=customc]{examples/minesweeper/cheater2_fragment.c}
+
+Code source complet: \url{\RepoURL/examples/minesweeper/minesweeper_cheater2.c}.
+
+\subsection{\Exercises}
+
+\begin{itemize}
+
+\item 
+Pourquoi est-ce que les \emph{octets de bord} (ou \emph{valeurs sentinelles}) (0x10)
+existent dans le tableau?
+
+À quoi servent-elles si elles ne sont pas visibles dans l'interface du démineur?
+Comment est-ce qu'il pourrait fonctionner sans elles?
+
+\item 
+Comme on s'en doute, il y a plus de valeurs possible (pour les blocs ouverts, ceux
+flagués par l'utilisateur, etc.).
+Essayez de trouver la signification de chacune d'elles.
+
+\item 
+Modifiez mon utilitaire afin qu'il puisse supprimer toutes les mines ou qu'il les
+place suivant un schéma fixé de votre choix dans le démineur.
+
+\end{itemize}

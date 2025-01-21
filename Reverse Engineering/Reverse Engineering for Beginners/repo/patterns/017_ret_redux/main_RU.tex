@@ -1,0 +1,9 @@
+\mysection{Еще кое-что о возвращаемых значениях}
+
+Теперь, когда мы уже знаем о прологе и эпилоге ф-ции, попробуем скомпилировать пример, возвращающий значение
+(\myref{ret_val_func}, \myref{lst:ret_val_func}), используя неоптимизирующий GCC:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/017_ret_redux/1.s}
+
+Рабочие здесь инструкции это \INS{MOV} и \INS{RET}, остальные -- пролог и эпилог.
+

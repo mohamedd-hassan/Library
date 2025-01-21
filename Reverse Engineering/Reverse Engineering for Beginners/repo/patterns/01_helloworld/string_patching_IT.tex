@@ -1,0 +1,75 @@
+\subsubsection{String patching (Win32)}
+
+Possiamo facilmente trovare la stringa ``hello, world'' all'interno del file eseguibile utilizzando Hiew:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hola_edit1.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+E possiamo cercare di tradurre il messaggio in spagnolo:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hola_edit2.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Il testo in spagnolo è più corto di un byte rispetto a quello inglese, quindi abbiamo aggiunto anche il byte 0x0A al fondo (\TT{\textbackslash{}n}) con un byte zero.
+
+Funziona.
+
+E se volessimo inserire un messaggio più lungo?
+Ci sono alcuni byte a zero dopo il testo in inglese.
+E' difficile stabilire se possono essere sovrascritti: potrebbero essere utilizzati da qualche parte all'interno del codice \ac{CRT}, oppure no.
+Ad ogni modo, sovrascrivili solo se sai esattamente cosa stai facendo.
+
+\subsubsection{String patching (Linux x64)}
+
+\myindex{\radare}
+Proviamo a modificare un eseguibile Linux x64 utilizzando \radare{}:
+
+\lstinputlisting[caption=\radare{} session]{patterns/01_helloworld/radare.lst}
+
+Questo è il procedimento: ho cercato la stringa \q{hello} utilizzando il comando \TT{/},
+poi ho impostato il \emph{cursore} (\emph{seek}, in \radare{}) a quell'indirizzo.
+Poi voglio essere sicuro di essere veramente nel posto giusto: \TT{px} mostra un dump dei dati locali.
+\TT{oo+} imposta \radare{} in modalità \emph{read-write}.
+\TT{w} scrive una stringa ASCII nel \emph{seek} corrente.
+Nota il \TT{\textbackslash{}00} al fondo---è un byte zero.
+\TT{q} esce (quit).
+
+
+\subsubsection{Questa è una vera storia di cracking di software}
+\myindex{\SoftwareCracking}
+
+Un software di processamento immagini, quando non registrato, aggiungeva trame,
+come ``Questa immagine è stata processata da una versione di prova di [nome del software]'', sopra l'immagine.
+Provando a caso: trovammo la stringa nel file eseguibile e mettemmo degli spazi al suo posto.
+Le trame scomparirono.
+Tecnicamente parlando, continuavamo ad essere presenti. 
+\myindex{Qt}
+Tramite le funzioni Qt, le trame continuavano ad essere aggiunte all'immagine risultante.
+Ma aggiungendo spazi l'immagine non era alterata...
+
+\subsubsection{La \emph{traduzione} del software all'epoca del MS-DOS}
+\myindex{MS-DOS}
+
+Questo era un metodo comune per tradurre i software per MS-DOS durante gli anni '80 e '90.
+%TBT
+%This technique is available even for those who are not aware of machine code and executable file formats.
+%The new string has not to be bigger than the old one, because there's a risk of overwriting another value or code
+%there.
+A volte le parole e le frasi sono leggermente più lunghe rispetto ai corrispettivi in inglese, per questo motivo i software \emph{adattati}
+hanno molti acronimi strani ed abbreviazioni difficili da comprendere.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{patterns/01_helloworld/Norton_Commander_v5_51.png}
+\caption{\ITph{}}
+\end{figure}
+
+Probabilmente questo è successo in molti Paesi durante quel periodo.

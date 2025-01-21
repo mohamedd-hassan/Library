@@ -1,0 +1,173 @@
+\subsubsection{x64: 8つの引数}
+% to be sync: \subsubsection{x64: 8 integer arguments}
+
+\myindex{x86-64}
+\label{example_printf8_x64}
+他の引数がスタックを介してどのように渡されているかを知るために、
+引数の数を9（ \printf の書式文字列+ 8の \Tint 変数）に増やして、この例を再度変更してみましょう。
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{MSVC}
+
+前に述べたように、最初の4つの引数は、Win64の \RCX 、 \RDX 、\Reg{8}、\Reg{8}レジスタに渡されなければなりません。 
+それはまさに私たちがここに見るものです。 
+ただし、 \PUSH ではなく \MOV 命令がスタックの準備に使用されるため、値は直接的にスタックに格納されます。
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/03_printf/x86/2_MSVC_x64_JA.asm}
+
+注意深い読者は、4が十分であるときになぜ \Tint 値のために8バイトが割り振られているのか尋ねるかもしれません。
+はい、思い出す必要があります：64バイトより短い任意のデータ型に対して8バイトが割り当てられます。 
+これは便宜上確立されています。任意の引数のアドレスを簡単に計算できます。 
+また、それらはすべて整列したメモリアドレスに配置されています。 
+32ビット環境でも同じです。すべてのデータ型に4バイトが予約されています。
+
+% also for local variables?
+
+\myparagraph{GCC}
+
+最初の6つの引数が \RDI 、 \RSI 、 \RDX 、 \RCX 、\Reg{8}、\Reg{9}レジスタを通過する点を除いて、
+画像はx86-64 *NIX OSの場合と似ています。 
+残りすべてはスタックを介して。
+GCCは、 \RDI{} の代わりに \EDI に文字列ポインタを格納するコードを生成しています。これまでは：
+\myref{hw_EDI_instead_of_RDI}
+
+また、以前は \printf 呼び出しの前に \EAX レジスタがクリアされていることに注意してください：\myref{SysVABI_input_EAX}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/03_printf/x86/2_GCC_x64_JA.s}
+
+\myparagraph{GCC + GDB}
+\myindex{GDB}
+
+\ac{GDB}でこの例を試してみましょう
+
+\begin{lstlisting}
+$ gcc -g 2.c -o 2
+\end{lstlisting}
+
+\begin{lstlisting}
+$ gdb 2
+GNU gdb (GDB) 7.6.1-ubuntu
+...
+Reading symbols from /home/dennis/polygon/2...done.
+\end{lstlisting}
+
+\begin{lstlisting}[caption=ブレークポイントを \printf{} に設定して実行しましょう]
+(gdb) b printf
+Breakpoint 1 at 0x400410
+(gdb) run
+Starting program: /home/dennis/polygon/2 
+
+Breakpoint 1, __printf (format=0x400628 "a=%d; b=%d; c=%d; d=%d; e=%d; f=%d; g=%d; h=%d\n") at printf.c:29
+29	printf.c: No such file or directory.
+\end{lstlisting}
+
+Registers \RSI/\RDX/\RCX/\Reg{8}/\Reg{9} have the expected values.
+\RIP has the address of the very first instruction of the \printf function.
+
+レジスタ \RSI/\RDX/\RCX/\Reg{8}/\Reg{9}は期待値を持っています。
+\RIP には、 \printf 関数の最初の命令のアドレスがあります。
+
+\begin{lstlisting}
+(gdb) info registers
+rax            0x0	0
+rbx            0x0	0
+rcx            0x3	3
+rdx            0x2	2
+rsi            0x1	1
+rdi            0x400628	4195880
+rbp            0x7fffffffdf60	0x7fffffffdf60
+rsp            0x7fffffffdf38	0x7fffffffdf38
+r8             0x4	4
+r9             0x5	5
+r10            0x7fffffffdce0	140737488346336
+r11            0x7ffff7a65f60	140737348263776
+r12            0x400440	4195392
+r13            0x7fffffffe040	140737488347200
+r14            0x0	0
+r15            0x0	0
+rip            0x7ffff7a65f60	0x7ffff7a65f60 <__printf>
+...
+\end{lstlisting}
+
+\begin{lstlisting}[caption=let's inspect the format string]
+(gdb) x/s $rdi
+0x400628:	"a=%d; b=%d; c=%d; d=%d; e=%d; f=%d; g=%d; h=%d\n"
+\end{lstlisting}
+
+今度はx/gコマンドでスタックをダンプしましょう。\emph{g}は、\emph{giant words}、つまり64ビットの単語を表します。
+
+\begin{lstlisting}
+(gdb) x/10g $rsp
+0x7fffffffdf38:	0x0000000000400576	0x0000000000000006
+0x7fffffffdf48:	0x0000000000000007	0x00007fff00000008
+0x7fffffffdf58:	0x0000000000000000	0x0000000000000000
+0x7fffffffdf68:	0x00007ffff7a33de5	0x0000000000000000
+0x7fffffffdf78:	0x00007fffffffe048	0x0000000100000000
+\end{lstlisting}
+
+最初のスタック要素は、前の例と同様、\ac{RA}です。 
+3の値もスタックに通されます：6,7,8。
+また、クリアされていない32ビットの8がが渡されたことがわかります：\GTT{0x00007fff00000008}。
+値は \Tint 型（32ビット）なので、それは問題ありません。 
+したがって、上位レジスタまたはスタック要素の部分には\q{ランダムなゴミ}が含まれている可能性があります。
+
+\printf の実行後にコントロールが返る場所を見れば、\ac{GDB}は \main 関数全体を表示します：
+
+\begin{lstlisting}[style=customasmx86]
+(gdb) set disassembly-flavor intel
+(gdb) disas 0x0000000000400576
+Dump of assembler code for function main:
+   0x000000000040052d <+0>:	push   rbp
+   0x000000000040052e <+1>:	mov    rbp,rsp
+   0x0000000000400531 <+4>:	sub    rsp,0x20
+   0x0000000000400535 <+8>:	mov    DWORD PTR [rsp+0x10],0x8
+   0x000000000040053d <+16>:	mov    DWORD PTR [rsp+0x8],0x7
+   0x0000000000400545 <+24>:	mov    DWORD PTR [rsp],0x6
+   0x000000000040054c <+31>:	mov    r9d,0x5
+   0x0000000000400552 <+37>:	mov    r8d,0x4
+   0x0000000000400558 <+43>:	mov    ecx,0x3
+   0x000000000040055d <+48>:	mov    edx,0x2
+   0x0000000000400562 <+53>:	mov    esi,0x1
+   0x0000000000400567 <+58>:	mov    edi,0x400628
+   0x000000000040056c <+63>:	mov    eax,0x0
+   0x0000000000400571 <+68>:	call   0x400410 <printf@plt>
+   0x0000000000400576 <+73>:	mov    eax,0x0
+   0x000000000040057b <+78>:	leave  
+   0x000000000040057c <+79>:	ret    
+End of assembler dump.
+\end{lstlisting}
+
+\printf の実行を終了し、 \EAX をゼロにする命令を実行し、 
+\EAX レジスタが正確にゼロの値を持つことに注意してください。 
+\RIP は、\INS{LEAVE}命令、すなわち \main 関数の最後から2番目の命令を指すようになりました。
+
+\begin{lstlisting}
+(gdb) finish
+Run till exit from #0  __printf (format=0x400628 "a=%d; b=%d; c=%d; d=%d; e=%d; f=%d; g=%d; h=%d\n") at printf.c:29
+a=1; b=2; c=3; d=4; e=5; f=6; g=7; h=8
+main () at 2.c:6
+6		return 0;
+Value returned is $1 = 39
+(gdb) next
+7	};
+(gdb) info registers
+rax            0x0	0
+rbx            0x0	0
+rcx            0x26	38
+rdx            0x7ffff7dd59f0	140737351866864
+rsi            0x7fffffd9	2147483609
+rdi            0x0	0
+rbp            0x7fffffffdf60	0x7fffffffdf60
+rsp            0x7fffffffdf40	0x7fffffffdf40
+r8             0x7ffff7dd26a0	140737351853728
+r9             0x7ffff7a60134	140737348239668
+r10            0x7fffffffd5b0	140737488344496
+r11            0x7ffff7a95900	140737348458752
+r12            0x400440	4195392
+r13            0x7fffffffe040	140737488347200
+r14            0x0	0
+r15            0x0	0
+rip            0x40057b	0x40057b <main+78>
+...
+\end{lstlisting}

@@ -1,0 +1,106 @@
+\subsubsection{std::map and std::set}
+\myindex{\Cpp!STL!std::map}
+\myindex{\Cpp!STL!std::set}
+\myindex{Arbre binaire}
+
+L'arbre binaire est une autre structure de données fondamentale.
+
+Comme son nom l'indique, c'est un arbre où chaque n\oe{}ud a au plus 2 liens sur un autre n\oe{}ud.
+Chaque n\oe{}ud a une clef et/ou un valeur:
+\TT{std::set} fourni seulement une clef dans chaque n\oe{}ud,
+\TT{std::map} fourni à la fois une clef et une valeur dans chaque n\oe{}ud
+
+Les arbres binaire sont générallement la structure utilisée dans l'implémentation
+des dictionnaires de clef-valeurs ((\ac{AKA} \q{tableaux associatifs}).
+
+Il y a au moins ces trois propriétés importante qu'un arbre binaire possède:
+\begin{itemize}
+\item Toutes les clefs sont toujours stockées sous une forme triée.
+\item Les clefs de tout type peuvent être stockées facilement.
+Les algorithmes de l'arbre binaire ne sont pas conscients du type de clef, seule
+une fonction de comparaison de clef est nécessaire.
+\item 
+Trouver une clef particulière est relativement rapide comparé aux listes chaînées
+et tableaux.
+\end{itemize}
+
+Voici un exemple très simple: stockons ces nombres dans un arbre binaire:
+0, 1, 2, 3, 5, 6, 9, 10, 11, 12, 20, 99, 100, 101, 107, 1001, 1010.
+
+\input{\CURPATH/STL/map_set/example_tikz}
+
+Toutes les clefs qui sont plus petites que la valeur de la clef du n\oe{}ud sont
+stockées du côté gauche.
+
+Toutes les clefs qui sont plus grandes que la valeur de la clef du n\oe{}ud sont
+stockées du côté droit.
+
+Ainsi, l'algorithme de recherche est simple: si la valeur que vous cherchez est plus
+petite que la valeur de la clef du n\oe{}ud courant:
+déplacez à gauche, si elle plus grande: déplacez à droite, stoppez si la valeur cherchée
+est égale à la valeur de la clef du n\oe{}ud.
+
+C'est pourquoi l'algorithme de recherche peut chercher des nombres, des chaînes de
+texte, etc., tant que la fonction de comparaison de clef est fourni.
+
+Toutes les clefs ont des valeurs uniques.
+
+En ayant cela, il faut $\approx \log_{2} n$ itérations pour trouver une clef dans
+un arbre binaire équilibré avec $n$ clef.
+Ceci implique que $\approx 10$ itérations sont pour $\approx 1000$ keys, ou $\approx 13$
+itérations pour $\approx 10000$ clefs.
+
+Pas mal, mais l'arbre doit toujours être équilibré pour cela: i.e., les clefs doivent
+être distribuées uniformément à chaque niveaux.
+Les opérations d'insertion et de suppression font un peut de maintenance pour garder
+l'arbre dans un état équilibré.
+
+Il y a plusieurs algorithme d'équilibrage disponible, incluant l'arbre AVL et l'arbre red-black.
+
+La dernière étend chaque n\oe{}ud avec une valeur de \q{couleur} opur simplifier
+le processus de rééquilibrage, de ce fait, chaque n\oe{}ud peut être rouge ou noir.
+
+À la fois les implémentations des templates \TT{std::map} et \TT{std::set} de GCC
+et MSVC utilisent les arbres red-black.
+
+\TT{std::set} a seulement des clefs.
+\TT{std::map} est la version étendue de \TT{std::set}: il a aussi une valeur à chaque
+n\oe{}ud.
+
+\myparagraph{MSVC}
+
+\lstinputlisting[style=customc]{\CURPATH/STL/map_set/MSVC_FR.cpp}
+
+\lstinputlisting[caption=MSVC 2012]{\CURPATH/STL/map_set/MSVC.txt}
+
+La structure n'est pas paquée, donc chaque valeur \Tchar occupe 4 octets.
+
+\TT{std::set} 
+
+
+
+
+[Cormen, Thomas H. and Leiserson, Charles E. and Rivest, Ronald L. and Stein, Clifford,
+\emph{Introduction to Algorithms, Third Edition}, (2009)].
+
+\footnote{\url{http://www.ethoberon.ethz.ch/WirthPubl/AD.pdf}}.
+
+
+\myparagraph{GCC}
+
+\lstinputlisting[style=customc]{\CURPATH/STL/map_set/GCC.cpp}
+
+\lstinputlisting[caption=GCC 4.8.1]{\CURPATH/STL/map_set/GCC.txt}
+
+\footnote{\url{http://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.1/stl__tree_8h-source.html}}.
+
+
+\myparagraph{Démo de rééquilibrage (GCC)}
+
+Il y a aussi une démo nous montrant comment un arbre est rééquilibré après quelques
+insertions.
+
+\lstinputlisting[caption=GCC,style=customc]{\CURPATH/STL/map_set/GCC_rebalancing_demo.cpp}
+
+\lstinputlisting[caption=GCC 4.8.1]{\CURPATH/STL/map_set/GCC_rebalancing_demo.txt}
+

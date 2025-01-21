@@ -1,0 +1,203 @@
+\mysection{\oracle: fichiers .MSB-files}
+\myindex{\oracle}
+\epigraph{When working toward the solution of a problem, it always helps if you know the answer.}{Murphy's Laws, Rule of Accuracy}
+
+Ceci est un fichier binaire qui contient les messages d'erreur avec leur numéro
+correspondant.
+Essayons de comprendre son format et de trouver un moyen de les extraire.
+
+Il y a des fichiers de messages d'erreur d'\oracle au format texte,
+donc nous pouvons comparer le texte et les fichiers binaires paqués\footnote{Les
+fichiers texte open-source n'existent pas dans \oracle pour chaque fichier .MSB,
+c'est donc pourquoi nous allons travailler sur leur format de fichier}.
+
+Ceci est le début du fichier texte ORAUS.MSG avec des commentaires non pertinents
+supprimés:
+
+\begin{lstlisting}[caption=Beginning of ORAUS.MSG file without comments]
+00000, 00000, "normal, successful completion"
+00001, 00000, "unique constraint (%s.%s) violated"
+00017, 00000, "session requested to set trace event"
+00018, 00000, "maximum number of sessions exceeded"
+00019, 00000, "maximum number of session licenses exceeded"
+00020, 00000, "maximum number of processes (%s) exceeded"
+00021, 00000, "session attached to some other process; cannot switch session"
+00022, 00000, "invalid session ID; access denied"
+00023, 00000, "session references process private memory; cannot detach session"
+00024, 00000, "logins from more than one process not allowed in single-process mode"
+00025, 00000, "failed to allocate %s"
+00026, 00000, "missing or invalid session ID"
+00027, 00000, "cannot kill current session"
+00028, 00000, "your session has been killed"
+00029, 00000, "session is not a user session"
+00030, 00000, "User session ID does not exist."
+00031, 00000, "session marked for kill"
+...
+\end{lstlisting}
+
+Le premier nombre est le code d'erreur.
+Le second contient peut-être des flags supplémentaires.
+
+\clearpage
+Maintenant ouvrons le fichier binaire ORAUS.MSB et trouvons ces chaînes de teste.
+Et elles y sont:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_MSB/1.png}
+\caption{Hiew: first block}
+\label{fig:oracle_MSB_1}
+\end{figure}
+
+Nous voyons les chaînes de texte (celles du début du fichier ORAUS.MSG inclues)
+imbriquées avec d'autres sortes de valeurs binaire.
+Avec un examen rapide, nous pouvons voir que la partie principale du fichier
+binaire est divisée en bloc de taille 0x200 (512) octets.
+
+\clearpage
+Regardons le contenu du premier bloc:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_MSB/2.png}
+\caption{Hiew: first block}
+\label{fig:oracle_MSB_2}
+\end{figure}
+
+Ici nous voyons les textes des premiers messages d'erreur.
+Ce que nous voyons aussi, c'est qu'il n'y a pas d'octet à zéro entre les messages d'erreur.
+Ceci implique que ce ne sont pas des chaînes C terminées par null.
+Par conséquent, la longueur de chaque message d'erreur doit être encodée
+d'une façon ou d'une autre.
+Essayons aussi de trouver le numéro d'erreur.
+Le fichier ORAUS.MSG débute par ceci:
+0, 1, 17 (0x11), 18 (0x12), 19 (0x13), 20 (0x14), 21 (0x15), 22 (0x16), 23 (0x17), 24 (0x18)...
+Nous allons trouver ces nombres au début du bloc et les marquer avec des lignes
+rouge.
+La période entre les codes d'erreur est de 6 octets.
+
+Ceci implique qu'il y a probablement 6 octets d'information alloués pour chaque
+message d'erreur.
+
+La première valeur 16-bit (0xA ici ou 10) indique le nombre de messages dans chaque
+bloc: ceci peut être vérifié en examinant d'autres blocs.
+En effet: les messages d'erreur ont une taille arbitraire.
+Certains sont plus long, d'autres plus court.
+Mais la taille du bloc est toujours fixée, ainsi, vous ne savez jamais combien
+de messages d'erreur sont stockés dans chaque bloc.
+
+Comme nous l'avons déjà noté, puisqu'il ne s'agit pas de chaîne C terminée par null,
+leur taille doit être encodée quelque part.
+La taille de la première chaîne \q{normal, successful completion} est de 29
+(0x1D) octets.
+La taille de la seconde chaîne \q{unique constraint (\%s.\%s) violated} est de 34
+(0x22) octets.
+Nous ne trouvons pas ces valeurs (0x1D ou/et 0x22) dans le bloc.%
+
+Il y a aussi une autre chose.
+\oracle 
+doit déterminer la position de la chaîne qu'il y a besoin de charger dans le bloc, exact?
+La première chaîne \q{normal, successful completion} débute à la position 0x1444
+(si nous comptons depuis le début du fichier) ou en 0x44 (depuis le début du bloc).
+La seconde chaîne \q{unique constraint (\%s.\%s) violated} débute à la position
+0x1461 (depuis le début du fichier) ou en 0x61 (depuis le début du bloc).
+Ces nombres nous sont quelque peu familier!
+Nous pouvons clairement les voir au début du bloc.
+
+Donc, chaque bloc de 6 octets est:
+
+\begin{itemize}
+\item 16-bit numéro d'erreur;
+\item 16-bit à zéro (peut-être des flags additionnels);
+\item position du début de la chaîne de texte dans le bloc courant.
+\end{itemize}
+
+Nous pouvons rapidement vérifier les autres valeurs et être sûr que notre supposition
+est correcte.
+Et il y a aussi le dernier bloc \q{factice} de 6 octets avec un numéro d'erreur à
+zéro et débutant après le dernier caractère du dernier message d'erreur.
+Peut-être est-ce ainsi que la longueur du texte du message est déterminée?
+Nous énumérons juste les blocs de 6 octets pour trouver le numéro d'erreur
+dont nous avons besoin, puis nous obtenons la position de la chaîne de texte, puis
+la longueur de la chaîne de texte en cherchant le bloc de 6 octets suivant!
+De cette façon nous déterminons les limites de la chaîne!
+Cette méthode nous permet d'économiser un peu d'espace en ne sauvegardant pas
+la taille de la chaîne de texte dans le fichier!
+
+Il n'est pas possible de dire si ça sauve beaucoup d'espace, mais c'est un truc
+astucieux.
+
+\clearpage
+Revenons à l'entête de fichier .MSB:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_MSB/3.png}
+\caption{Hiew: entête de fichier}
+\label{fig:oracle_MSB_3}
+\end{figure}
+
+Maintenant nous pouvons trouver rapidement le nombre de blocs dans le fichier
+(marqué en rouge).
+Nous pouvons vérifier d'autres fichiers .MSB et nous voyons que c'est vrai pour
+chacun d'entre eux.
+
+Il y a de nombreuses autres valeurs, mais nous ne voulons pas les examiner,
+puisque notre job (un utilitaire d'extraction) est fait.
+
+Si nous devions écrire un générateur de fichier .MSB, nous devrions probablement
+comprendre la signification des autres valeurs.
+
+\clearpage
+Il y a aussi une table qui vient après l'entête, qui contient probablement des
+valeurs 16-bit:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_MSB/4.png}
+\caption{Hiew: table last\_errnos}
+\label{fig:oracle_MSB_4}
+\end{figure}
+
+Leurs tailles peuvent être déterminées visuellement (les lignes rouges sont
+dessinées ici).
+
+En regardant ces valeurs, nous avons trouvé que chaque nombre 16-bit est le dernier
+code d'erreur pour chaque bloc.
+
+C'est donc ainsi qu'\oracle trouve rapidement le message d'erreur:
+
+\begin{itemize}
+\item charger la table que nous appellerons last\_errnos (qui contient le dernier
+numéro d'erreur pour chaque bloc);
+
+\item trouver un bloc qui contient le numéro d'erreur que nous cherchons, en assumant
+que les codes d'erreur augmentent dans les blocs et aussi dans le fichier;
+
+\item charger le bloc spécifique;
+
+\item énumérer les structures de 6 octets jusqu'à trouver le numéro d'erreur;
+
+\item obtenir la position du premier du bloc de 6 octets courant;
+
+\item obtenir la position du dernier caractère du bloc de 6 octets suivant;
+
+\item charger tous les caractères du message dans cet intervalle.
+\end{itemize}
+
+Ceci est un programme C que nous avons écrit qui extrait les fichiers .MSB:
+\href{http://beginners.re/examples/oracle/MSB/oracle_msb.c}{beginners.re}.
+
+Voici aussi les deux fichiers que nous avons utilisé dans l'exemple
+(\oracle 11.1.0.6):
+\href{http://beginners.re/examples/oracle/MSB/oraus.msb}{beginners.re},
+\href{http://beginners.re/examples/oracle/MSB/oraus.msg}{beginners.re}.
+
+\subsection{Résumé}
+
+Cette méthode est probablement désuète pour les ordinateurs moderne.
+Je suppose que ce format de fichier a été développé au milieu des années 80 par
+quelqu'un qui a aussi codé pour les \emph{big iron}\footnote{NDT: Gros ordinateur
+de type mainframe.} en ayant à l'esprit l'économie d'espace et de mémoire.
+Néanmoins, ça a été une tâche intéressante mais facile de comprendre
+un format de fichier propriétaire sans regarder dans le code d'\oracle.

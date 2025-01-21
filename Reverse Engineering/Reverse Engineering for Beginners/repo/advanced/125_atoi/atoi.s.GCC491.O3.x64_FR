@@ -1,0 +1,23 @@
+my_atoi:
+; charger le caractère en entrée dans EDX
+	movsx	edx, BYTE PTR [rdi]
+; EAX est alloué pour la variable "rt"
+	xor	eax, eax
+; sortir, si le caractère chargé est l'octet nul
+	test	dl, dl
+	je	.L4
+.L3:
+	lea	eax, [rax+rax*4]
+; EAX=RAX*5=rt*5
+; décaler le pointeur sur le caractère suivant:
+	add	rdi, 1
+	lea	eax, [rdx-48+rax*2]
+; EAX=caractère en entrée - 48 + RAX*2 = caractère en entrée - '0' + rt*10
+; charger le caractère suivant:
+	movsx	edx, BYTE PTR [rdi]
+; sauter au début de la boucle, si le caractère chargé n'est pas l'octet nul
+	test	dl, dl
+	jne	.L3
+	rep ret
+.L4:
+	rep ret

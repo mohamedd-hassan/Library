@@ -1,0 +1,88 @@
+\subsection{GDB}
+\myindex{GDB}
+\label{sec:GDB_cheatsheet}
+
+% FIXME: in Russian table doesn't fit!
+
+\RU{Некоторые команды, которые были использованы в книге}\EN{Some of commands we used in this book}\DE{Einige nützliche Optionen die in diesem Buch genutzt werden}%
+\FR{Quelques commandes que nous avons utilisées dans ce livre}:
+
+\small
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\HeaderColor \RU{опция}\EN{option}\DE{Option}\FR{option} & 
+\HeaderColor \RU{значение}\EN{meaning}\DE{Bedeutung} \\
+\hline
+break filename.c:number		& \RU{установить точку останова на номере строки в исходном файле}
+					\EN{set a breakpoint on line number in source code}
+                    \DE{Setzen eines Breakpoints in der angegebenen Zeile}%
+					\FR{mettre un point d'arrêt à la ligne number du code source} \\
+break function			& \RU{установить точку останова на функции}\EN{set a breakpoint on function}\DE{Setzen eines Breakpoints in der Funktion}%
+\FR{mettre un point d'arrêt sur une fonction} \\
+break *address			& \RU{установить точку останова на адресе}\EN{set a breakpoint on address}\DE{Setzen eines Breakpoints auf Adresse}%
+\FR{mettre un point d'arrêt à une adresse} \\
+b				& \dittoclosing \\
+p variable			& \RU{вывести значение переменной}\EN{print value of variable}\DE{Ausgabe eines Variablenwerts}%
+\FR{afficher le contenu d'une variable} \\
+run				& \RU{запустить}\EN{run}\DE{Starten}\FR{démarrer} \\
+r				& \dittoclosing \\
+cont				& \RU{продолжить исполнение}\EN{continue execution}\DE{Ausführung fortfahren}\FR{continuer l'exécution} \\
+c				& \dittoclosing \\
+bt				& \RU{вывести стек}\EN{print stack}\DE{Stack ausgeben}\FR{afficher la pile} \\
+set disassembly-flavor intel	& \RU{установить Intel-синтаксис}\EN{set Intel syntax}\DE{Intel-Syntax nutzen}%
+\FR{utiliser la syntaxe Intel} \\
+disas				& disassemble current function \\
+disas function			& \RU{дизассемблировать функцию}\EN{disassemble function}\DE{Funktion disassemblieren}\FR{désassembler la fonction} \\
+disas function,+50		& disassemble portion \\
+disas \$eip,+0x10		& \dittoclosing \\
+disas/r				& \EN{disassemble with opcodes}\RU{дизассемблировать с опкодами}\DE{mit OpCodes disassemblieren}%
+\FR{désassembler avec les opcodes} \\
+info registers			& \RU{вывести все регистры}\EN{print all registers}\DE{Ausgabe aller Register}\FR{afficher tous les registres} \\
+info float			& \RU{вывести FPU-регистры}\EN{print FPU-registers}\DE{Ausgabe der FPU-Register}\FR{afficher les registres FPU} \\
+info locals			& \RU{вывести локальные переменные (если известны)}\EN{dump local variables (if known)}\DE{(bekannte) lokale Variablen ausgeben}%
+\FR{afficher les variables locales} \\
+x/w ...				& \RU{вывести память как 32-битные слова}\EN{dump memory as 32-bit word}\DE{Speicher als 32-Bit-Wort ausgeben}%
+\FR{afficher la mémoire en mot de 32-bit} \\
+x/w \$rdi			& \RU{вывести память как 32-битные слова}\EN{dump memory as 32-bit word}\DE{Speicher als 32-Bit-Wort ausgeben}%
+\FR{afficher la mémoire en mot de 32-bit} \\
+				& \RU{по адресу в \TT{RDI}}\EN{at address in \TT{RDI}}\DE{an Adresse in \TT{RDI}}\FR{à l'adresse dans \TT{RDI}} \\
+
+x/10w ...			& \RU{вывести 10 слов памяти}\EN{dump 10 memory words}\DE{10 Speicherworte ausgeben}%
+\FR{afficher 10 mots de la mémoire} \\
+x/s ...				& \RU{вывести строку из памяти}\EN{dump memory as string}\DE{Speicher als Zeichenkette ausgeben}%
+\FR{afficher la mémoire en tant que chaîne} \\
+x/i ...				& \RU{трактовать память как код}\EN{dump memory as code}\DE{Speicher als Code ausgeben}%
+\FR{afficher la mémoire en tant que code} \\
+x/10c ...			& \RU{вывести 10 символов}\EN{dump 10 characters}\DE{10 Zeichen ausgeben}%
+\FR{afficher 10 caractères} \\
+x/b ...				& \RU{вывести байты}\EN{dump bytes}\DE{Bytes ausgeben}\FR{afficher des octets} \\
+x/h ...				& \RU{вывести 16-битные полуслова}\EN{dump 16-bit halfwords}\DE{16-Bit-Halbworte ausgeben}%
+\FR{afficher en demi-mots de 16-bit} \\
+x/g ...				& \RU{вывести 64-битные слова}\EN{dump giant (64-bit) words}\DE{große (64-Bit-) Worte ausgeben}%
+\FR{afficher des mots géants (64-bit)} \\
+finish				& \RU{исполнять до конца функции}\EN{execute till the end of function}\DE{bis Funktionsende fortfahren}%
+\FR{exécuter jusqu'à la fin de la fonction} \\
+next				& \RU{следующая инструкция (не заходить в функции)}
+					\EN{next instruction (don't dive into functions)}
+					\DE{Nächste Anweisung (nicht in Funktion springen)}
+					\FR{instruction suivante (ne pas descendre dans les fonctions)} \\
+step				& \RU{следующая инструкция (заходить в функции)}
+					\EN{next instruction (dive into functions)}
+					\DE{Nächste Anweisung (in Funktion springen)}
+					\FR{instruction suivante (descendre dans les fonctions)} \\
+set step-mode on		& \RU{не использовать информацию о номерах строк при использовании команды step}
+					\EN{do not use line number information while stepping}
+					\DE{Beim schrittweisen Ausführen keine Zeilennummerninfos nutzen}
+					\FR{ne pas utiliser l'information du numéro de ligne en exécutant pas à pas} \\
+frame n				& \RU{переключить фрейм стека}\EN{switch stack frame}\DE{Stack-Frame tauschen}\FR{échanger la stack frame} \\
+info break			& \RU{список точек останова}\EN{list of breakpoints}\DE{Breakpoints schauen}%
+\FR{afficher les points d'arrêt} \\
+del n				& \RU{удалить точку останова}\EN{delete breakpoint}\DE{Breakpoints löschen}\FR{effacer un point d'arrêt} \\
+set args ...			& \RU{установить аргументы командной строки}\EN{set command-line arguments}\DE{Aufrufparameter setzen}%
+\FR{définir les arguments de la ligne de commande} \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+

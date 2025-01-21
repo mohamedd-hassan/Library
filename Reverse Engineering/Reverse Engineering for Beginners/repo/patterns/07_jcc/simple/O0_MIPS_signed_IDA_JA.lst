@@ -1,0 +1,85 @@
+.text:00000000 f_signed:  # CODE XREF: main+18
+.text:00000000
+.text:00000000 var_10  = -0x10
+.text:00000000 var_8   = -8
+.text:00000000 var_4   = -4
+.text:00000000 arg_0   =  0
+.text:00000000 arg_4   =  4
+.text:00000000
+.text:00000000         addiu   $sp, -0x20
+.text:00000004         sw      $ra, 0x20+var_4($sp)
+.text:00000008         sw      $fp, 0x20+var_8($sp)
+.text:0000000C         move    $fp, $sp
+.text:00000010         la      $gp, __gnu_local_gp
+.text:00000018         sw      $gp, 0x20+var_10($sp)
+; 入力値をローカルスタックに格納する
+.text:0000001C         sw      $a0, 0x20+arg_0($fp)
+.text:00000020         sw      $a1, 0x20+arg_4($fp)
+; リロードする
+.text:00000024         lw      $v1, 0x20+arg_0($fp)
+.text:00000028         lw      $v0, 0x20+arg_4($fp)
+; \$v0=b
+; \$v1=a
+.text:0000002C         or      $at, $zero ; NOP
+; これは疑似命令です。実際は、"slt \$v0,\$v0,\$v1"です。
+; \$v0<\$v1 (b<a)なら\$v0に1が設定され、そうでなければ0が設定されます
+.text:00000030         slt     $v0, $v1
+; 条件が真でない場合、loc\_5cにジャンプします。
+; これは疑似命令です。 実際は、"beq \$v0,\$zero,loc\_5c"です。
+.text:00000034         beqz    $v0, loc_5C
+; "a>b"を表示して終了します
+.text:00000038         or      $at, $zero ; 分岐遅延スロット、NOP
+.text:0000003C         lui     $v0, (unk_230 >> 16) # "a>b"
+.text:00000040         addiu   $a0, $v0, (unk_230 & 0xFFFF) # "a>b"
+.text:00000044         lw      $v0, (puts & 0xFFFF)($gp)
+.text:00000048         or      $at, $zero ; NOP
+.text:0000004C         move    $t9, $v0
+.text:00000050         jalr    $t9
+.text:00000054         or      $at, $zero ; 分岐遅延スロット、NOP
+.text:00000058         lw      $gp, 0x20+var_10($fp)
+.text:0000005C
+.text:0000005C loc_5C:                          # CODE XREF: f\_signed+34
+.text:0000005C         lw      $v1, 0x20+arg_0($fp)
+.text:00000060         lw      $v0, 0x20+arg_4($fp)
+.text:00000064         or      $at, $zero ; NOP
+; a==bであるかどうかを調べ、真でなければloc\_90にジャンプします。
+.text:00000068         bne     $v1, $v0, loc_90
+.text:0000006C         or      $at, $zero ; 分岐遅延スロット、NOP
+; 条件が真なので、 "a==b"をプリントして終了する
+.text:00000070         lui     $v0, (aAB >> 16)  # "a==b"
+.text:00000074         addiu   $a0, $v0, (aAB & 0xFFFF)  # "a==b"
+.text:00000078         lw      $v0, (puts & 0xFFFF)($gp)
+.text:0000007C         or      $at, $zero ; NOP
+.text:00000080         move    $t9, $v0
+.text:00000084         jalr    $t9
+.text:00000088         or      $at, $zero ; 分岐遅延スロット、NOP
+.text:0000008C         lw      $gp, 0x20+var_10($fp)
+.text:00000090
+.text:00000090 loc_90:                          # CODE XREF: f\_signed+68
+.text:00000090         lw      $v1, 0x20+arg_0($fp)
+.text:00000094         lw      $v0, 0x20+arg_4($fp)
+.text:00000098         or      $at, $zero ; NOP
+; \$v1<\$v0（a <b）かどうかをチェックし、条件が真であれば\$v0を1に設定する
+.text:0000009C         slt     $v0, $v1, $v0
+; 条件が真でない場合（すなわち、\$v0==0）、loc\_c8にジャンプします
+.text:000000A0         beqz    $v0, loc_C8
+.text:000000A4         or      $at, $zero ; 分岐遅延スロット、NOP
+; 条件が真であれば、 "a<b"をプリントして終了します
+.text:000000A8         lui     $v0, (aAB_0 >> 16)  # "a<b"
+.text:000000AC         addiu   $a0, $v0, (aAB_0 & 0xFFFF)  # "a<b"
+.text:000000B0         lw      $v0, (puts & 0xFFFF)($gp)
+.text:000000B4         or      $at, $zero ; NOP
+.text:000000B8         move    $t9, $v0
+.text:000000BC         jalr    $t9
+.text:000000C0         or      $at, $zero ; 分岐遅延スロット、NOP
+.text:000000C4         lw      $gp, 0x20+var_10($fp)
+.text:000000C8
+; 3つの条件はすべて偽でした。
+.text:000000C8 loc_C8:                                  # CODE XREF: f\_signed+A0
+.text:000000C8         move    $sp, $fp
+.text:000000CC         lw      $ra, 0x20+var_4($sp)
+.text:000000D0         lw      $fp, 0x20+var_8($sp)
+.text:000000D4         addiu   $sp, 0x20
+.text:000000D8         jr      $ra
+.text:000000DC         or      $at, $zero ; 分岐遅延スロット、NOP
+.text:000000DC  # End of function f\_signed

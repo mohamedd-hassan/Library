@@ -1,0 +1,96 @@
+\mysection{\Stack}
+\label{sec:stack}
+\myindex{\Stack}
+
+スタックは、コンピュータサイエンスにおける最も基本的なデータ構造の1つです。
+\footnote{\href{http://en.wikipedia.org/wiki/Call_stack}{wikipedia.org/wiki/Call\_stack}}.
+\ac{AKA} \ac{LIFO}.
+
+技術的には、それは、プロセスメモリ内のメモリのブロックであり、x86またはx64の \ESP または \RSP レジスタ、またはARMの\ac{SP}レジスタをそのブロック内のポインタとして使用します。
+
+\myindex{ARM!\Instructions!PUSH}
+\myindex{ARM!\Instructions!POP}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!POP}
+最も頻繁に使用されるスタックアクセス命令は、 \PUSH と \POP （x86およびARM Thumbモードの両方）です。 
+\PUSH は、32ビットモード（または64ビットモードでは8）で \ESP/\RSP/\ac{SP} 4を減算し、その単独オペランドの内容を \ESP/\RSP/\ac{SP}が指すメモリアドレスに書き込みます。
+
+\POP は逆の操作です：\ac{SP}が指し示すメモリ位置からデータを取り出し、命令オペランド（しばしばレジスタ）にロードし、\gls{stack pointer}に4（または8）を追加します。
+
+スタック割り当ての後、\gls{stack pointer}はスタックの一番下を指します。 \PUSH は\gls{stack pointer}を減らし、 \POP はそれを増やします。 
+スタックの最下部は実際にスタックブロックに割り当てられたメモリの先頭にあります。 それは奇妙に見えますが、それはそうです。
+
+ARMは降順スタックと昇順スタックの両方をサポートしています。
+
+\myindex{ARM!\Instructions!STMFD}
+\myindex{ARM!\Instructions!LDMFD}
+\myindex{ARM!\Instructions!STMED}
+\myindex{ARM!\Instructions!LDMED}
+\myindex{ARM!\Instructions!STMFA}
+\myindex{ARM!\Instructions!LDMFA}
+\myindex{ARM!\Instructions!STMEA}
+\myindex{ARM!\Instructions!LDMEA}
+
+例えば、\ac{STMFD}/\ac{LDMFD}、\ac{STMED}/\ac{LDMED}命令は、降順のスタックを扱うことを意図しています（下位に向かって、高いアドレスから始まり、低いアドレスに進む）。 \ac{STMFA}/\ac{LDMFA}、\ac{STMEA}/\ac{LDMEA}命令は、昇順のスタックを扱うことを意図しています（上位アドレスから始まり、上位アドレスに向かって進みます）。
+
+% It might be worth mentioning that STMED and STMEA write first,
+% and then move the pointer,
+% and that LDMED and LDMEA move the pointer first, and then read.
+% In other words, ARM not only lets the stack grow in a non-standard direction,
+% but also in a non-standard order.
+% Maybe this can be in the glossary, which would explain why E stands for "empty".
+
+\subsection{スタックはなぜ後方に進むのか}
+\label{stack_grow_backwards}
+
+直感的には、他のデータ構造と同様に、スタックが上方に、すなわちより高いアドレスに向かって成長すると考えるかもしれません。
+
+スタックが後方に成長する理由はおそらく歴史的なものです。 
+コンピュータが大きくて部屋全体を占有していた時代、メモリを2つの部分に分けるのは簡単でした。1つは \gls{heap} 用、もう1つはスタック用です。 
+もちろん、プログラムの実行中に\gls{heap}とスタックがどれだけ大きくなるかは不明であったため、この解決策は最も簡単でした。
+
+\input{patterns/02_stack/stack_and_heap}
+
+\RitchieThompsonUNIX では、以下のように書かれています。
+
+\begin{framed}
+\begin{quotation}
+画像のユーザコア部分は、3つの論理セグメントに分割される。 プログラムテキストセグメントは仮想アドレス空間の位置0で始まります。 実行中、このセグメントは書き込み保護されており、同じプログラムを実行しているすべてのプロセス間でこのセグメントが共有されます。 仮想アドレス空間のプログラムテキストセグメントの上の最初の8Kバイト境界では、共有されない書き込み可能なデータセグメントが開始されます。このデータセグメントのサイズはシステムコールによって拡張されます。 仮想アドレス空間の最上位アドレスから始まるスタックセグメントは、ハードウェアのスタックポインタが変動すると自動的に下に向かって成長します。
+\end{quotation}
+\end{framed}
+
+これは、一部の学生が1つのノートブックを使用して2つの講義ノートを書く方法を思い出させます。
+最初の講義のノートはいつものように書かれ、
+2つ目のノートはノートブックの最後からそれを反転させて書き込まれます。 
+空き領域がない場合に、ノートはその間のどこかで互いに会うことになります。
+
+% I think if we want to expand on this analogy,
+% one might remember that the line number increases as as you go down a page.
+% So when you decrease the address when pushing to the stack, visually,
+% the stack does grow upwards.
+% Of course, the problem is that in most human languages,
+% just as with computers,
+% we write downwards, so this direction is what makes buffer overflows so messy.
+
+\subsection{スタックは何に使用されるか}
+
+% subsections
+\input{patterns/02_stack/01_saving_ret_addr_JA}
+\input{patterns/02_stack/02_args_passing_JA}
+\input{patterns/02_stack/03_local_vars_JA}
+\input{patterns/02_stack/04_alloca/main}
+\input{patterns/02_stack/05_SEH}
+\input{patterns/02_stack/06_BO_protection}
+
+\subsubsection{スタック内のデータの自動解放}
+
+おそらく、ローカル変数とSEHレコードをスタックに格納する理由は、スタックポインタを修正するための命令を1つだけ使用して（通常は \ADD です）、
+関数が終了すると自動的に解放されるからです。 
+関数の引数は、関数の終わりに自動的に割り当て解除されます。 
+対照的に、ヒープに格納されているものはすべて明示的に割り当て解除する必要があります。
+
+% subsections
+\input{patterns/02_stack/07_layout_JA}
+\input{patterns/02_stack/08_noise/main}
+\input{patterns/02_stack/exercises}
+

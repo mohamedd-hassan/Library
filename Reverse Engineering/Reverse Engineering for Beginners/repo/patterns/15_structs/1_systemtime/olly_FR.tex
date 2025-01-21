@@ -1,0 +1,64 @@
+﻿\clearpage
+\subsubsection{\olly}
+\myindex{\olly}
+
+Compilons cet exemple avec MSVC 2010 et les options \TT{/GS- /MD}, puis exécutons le avec \olly.
+
+Ouvrons la fenêtre des données et celle de la pile à l'adresse du premier argument fourni à la 
+fonction \TT{GetSystemTime()}, puis attendons que cette fonction se termine. Nous constatons :
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/1_systemtime/olly_systemtime1.png}
+\caption{\olly: Juste après l'appel à \TT{GetSystemTime()}}
+\label{fig:struct_olly_1}
+\end{figure}
+
+Sur mon ordinateur, le résultat de l'appel à la fonction est 9 décembre 2014, 22:29:52:
+
+\lstinputlisting[caption=\printf output]{patterns/15_structs/1_systemtime/console.txt}
+
+Nous observons donc ces 16 octets dans la fenêtre de données:
+\begin{lstlisting}
+DE 07 0C 00 02 00 09 00 16 00 1D 00 34 00 D4 03
+\end{lstlisting}
+
+Chaque paire d'octets représente l'un des champs de la structure. 
+Puisque nous sommes en mode petit-boutien l'octet de poids faible est situé en premier, suivi de 
+l'octet de poids fort.
+
+Les valeurs effectivement présentes en mémoire sont donc les suivantes:
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} nombre hexadécimal & 
+\headercolor{} nombre décimal & 
+\headercolor{} nom du champ \\
+\hline
+0x07DE & 2014	& wYear \\
+\hline
+0x000C & 12	& wMonth \\
+\hline
+0x0002 & 2	& wDayOfWeek \\
+\hline
+0x0009 & 9	& wDay \\
+\hline
+0x0016 & 22	& wHour \\
+\hline
+0x001D & 29	& wMinute \\
+\hline
+0x0034 & 52	& wSecond \\
+\hline	
+0x03D4 & 980	& wMilliseconds \\
+\hline
+\end{tabular}
+\end{center}
+
+Les mêmes valeurs apparaissent dans la fenêtre de la pile, mais elle y sont regroupées sous forme 
+de valeurs 32 bits.
+
+La fonction \printf utilise les valeurs qui lui sont nécessaires et les affiche à la console.
+
+Bien que certaines valeurs telles que (\TT{wDayOfWeek} et \TT{wMilliseconds}) ne soient pas 
+affichées par \printf, elles sont bien présentes en mémoire, prêtes à être utilisées.

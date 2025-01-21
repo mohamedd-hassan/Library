@@ -1,0 +1,16 @@
+\mysection{O método}
+
+Quando o autor deste livro começou a aprender C e depois C++, ele escrevia pequenos pedaços de código, os compilava e então observava o output em Assembly. Isso fez com que ele entendesse facilmente o que acontecia com o código que ele tinha escrito. Ele fez isso várias vezes, vendo que  relação havia entre o código em C/C++ e o que o compilador produzia, gravando assim profundamente em sua mente. Agora é fácil para ele imaginar instantaneamente a aparência e a função de um esboço de um código em C/C++. Talvez essa técnica possa ser útil para outras pessoas.
+
+A propósito, há um ótimo site onde você pode fazer o mesmo, com vários compiladores, em vez de instalá-los: \url{http://godbolt.org/}.
+
+\section*{\Exercises}
+
+Quando o autor deste livro estudou a linguagem Assembly, ele também frequentemente compilou pequenas funções em C e então as reescreveu gradativamente em Assembly, tentando deixar os códigos o menor possível. Isso provavelmente não vale a pena ser feito no cotidiano, por que é difícil competir com os últimos compiladores em termos de eficiência. No entanto, isso é um bom meio de adquirir um melhor entendimento de Assembly. Sinta-se a vontade, portanto, para pegar qualquer código Assembly desse livro e tentar deixá-lo menor. No entanto, não se esqueça de testar o que você escreveu.
+
+\section*{Níveis de otimização e informações de debug (depuração)}
+
+Código fonte pode ser compilado por diferentes compiladores com vários níveis de otimização. Um típico compilador tem praticamente esses três tipos níveis, onde o nível zero significa que a otimização é completamente deficiente. Otimização pode ser também direcionada ao tamanho do código ou à sua velocidade. Um compilador não otimizado é mais rápido e produz mais  códigos inteligíveis (embora extensos), no entanto, um compilador otimizado é mais lento e tenta produzir códigos que rodem mais rápidos (mas não necessariamente mais compacto). Ainda em relação aos níveis de otimização, um compilador pode incluir algumas informações de debug (depuração) nos resultados do arquivo, produzindo um código  que é fácil depurar. Uma das mais importantes características do código ‘debug’ é que ele deve conter ligações entre linha do código fonte e seus respectivos endereços de código de máquina. Compiladores otimizados, por outro lado, tendem a produzir uma saída (output) onde linhas inteiras de código podem ser otimizadas e portanto nem mesmo estar presente no resultado do código de máquina. Engenheiros reversos pode encontrar cada versão, simples por que alguns desenvolvedores ligam os marcadores de otimização do compilador enquanto outros não. O por que disso, nós vamos tentar trabalhar no exemplo de ambos ‘debug’ e lançar versões de código apresentados neste livro, sempre que possível.
+	As vezes alguns antigos compiladores são usados neste livro, a fim de obter menores (ou mais simples) trechos de códigos possível.
+	De fato, ele ainda faz isso quando ele não pode entender o que um pedaço em particular de código faz.
+

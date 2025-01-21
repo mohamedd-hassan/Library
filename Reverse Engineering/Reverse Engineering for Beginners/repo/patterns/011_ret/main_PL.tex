@@ -1,0 +1,69 @@
+\mysection{Zwracanie wartości}
+\label{ret_val_func}
+
+Inną prostą funkcją jest taka, która zwraca stałą wartość.
+
+\lstinputlisting[label=lst:ret_val_func,caption=Kod w \CCpp,style=customc]{patterns/011_ret/1.c}
+
+Skompilujmy ją.
+
+\subsection{x86}
+
+Poniżej efekt kompilacji z optymalizacją kompilatorami GCC i MSVC na x86:
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/011_ret/1.s}
+
+\myindex{x86!\Instructions!RET}
+Są tu tylko dwie instrukcje: pierwsza zapisuje wartość 123 do rejestru EAX,
+który umownie jest używany do przechowywania wartości zwracanej,
+a drugą jest \RET, która zwraca sterowanie do \glslink{caller}{funkcji wywołującej}.
+
+Funkcja wywołująca pobierze wynik z rejestru \EAX.
+
+\subsection{ARM}
+
+W kodzie maszynowym na ARM widać kilka różnic:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode) (\assemblyOutput),style=customasmARM]{patterns/011_ret/1_Keil_ARM_O3.s}
+
+ARM używa rejestru \Reg{0} do zwracania wartości z funkcji, więc 123 kopiowane jest do \Reg{0}.
+
+\myindex{ARM!\Instructions!MOV}
+\myindex{x86!\Instructions!MOV}
+Warto zaznaczyć, że nazwa instrukcji \MOV jest myląca, zarówno na x86 jak i na ARM.
+
+Dane nie są \emph{przenoszone}, tylko \emph{kopiowane}.
+
+\subsection{MIPS}
+
+\label{MIPS_leaf_function_ex1}
+
+Wyjście asemblera GCC oznacza rejestry numerami:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/011_ret/MIPS.s}
+
+\dots a \IDA używa nazw umownych:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/011_ret/MIPS_IDA.lst}
+
+Rejestr \$2 (nazwa umowna - \$V0) używany jest do przechowywanie wartości zwracanej z funkcji.
+\myindex{MIPS!\Pseudoinstructions!LI}
+\INS{LI} to skrót od ``Load Immediate'' i w architekturze MIPS jest odpowiednikiem instrukcji \MOV z x86.
+
+\myindex{MIPS!\Instructions!J}
+Drugą instrukcją jest instrukcja skoku (J lub JR), która zwraca sterowanie do \glslink{caller}{funkcji wywołującej}.
+
+\myindex{MIPS!Branch delay slot}
+Możesz się zastanawiać, dlaczego instrukcje LI i J/JR są w odwrotnej kolejności.
+Jest to efekt optymalizacji przetwarzania potokowego w architekturze \ac{RISC}, zwanej \q{branch delay slot}.
+
+Przyczyną wprowadzanie takiego rozwiązania jest dziwactwo w niektórych architekturach typu RISC
+i nie jest to dla nas istotne - po prostu przyjmijmy, że w asemblerze MIPS instrukcja następująca po instrukcji skoku jump/branch
+jest wykonywana przed samym skokiem.
+
+W rezultacie instrukcje typu branch są zawsze zamienione z instrukcją, która jest wykonywana przed nimi.
+
+W praktyce często występują funkcje, które jedynie zwracają 1 (\emph{true - prawdę}) lub 0 (\emph{false - fałsz}).
+
+Najmniejsze UNIXowe narzędzia, \emph{/bin/true} i \emph{/bin/false} zwracają odpowiednio 0 i 1, jako kod wyjścia.
+(Zero, jako kod wyjścia, oznacza zwykle sukces, natomiast kod niezerowy oznacza błąd.)

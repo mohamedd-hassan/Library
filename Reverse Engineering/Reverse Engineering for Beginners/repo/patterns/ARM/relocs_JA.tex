@@ -1,0 +1,66 @@
+﻿\newcommand{\ARMELF}{\InSqBrackets{\emph{ELF for the ARM 64-bit Architecture (AArch64)}, (2013)}\footnote{\AlsoAvailableAs \url{http://infocenter.arm.com/help/topic/com.arm.doc.ihi0056b/IHI0056B_aaelf64.pdf}}}
+
+\subsection{ARM64での再配置}
+\label{ARM64_relocs}
+
+ご存じのとおり、ARM64には4バイトの命令があるため、単一の命令を使用して大きな数をレジスタに
+書き込むことは不可能です。
+
+それにもかかわらず、実行可能イメージはメモリ内の任意のランダムアドレスに読み込むことができるので、relocsが存在するのはそのためです。
+（Win32 PEに関して）relocsについてもっと読む：\myref{subsec:relocs}
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+アドレスはARM64の\TT{ADRP}と \ADD 命令のペアを使用して形成されます。
+
+1つ目は4KiBページのアドレスをロードし、2つ目は残りを追加します。
+win32でGCC（Linaro）4.9の \q{\HelloWorldSectionName}（\lstref{hw_c}）から
+例をコンパイルしましょう：
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 and objdump of object file,style=customasmARM]{patterns/ARM/relocs1.lst}
+
+そのため、このオブジェクトファイルには3つの再配置(relocs)があります。
+
+\begin{itemize}
+\item 
+最初のページアドレスはページアドレスを取り、最下位の12ビットを切り捨て、残りの上位21ビットを
+\TT{ADRP}命令のビットフィールドに書き込みます。 これは、下位12ビットをエンコードする必要がないためで、
+\INS{ADRP}命令には21ビットのスペースしかありません。
+
+\item 
+2番目のものは、ページ開始に関連するアドレスの12ビットを \ADD 命令のビットフィールドに入れます。
+
+\item 
+最後の26ビットの1は、 \printf 関数へのジャンプがあるアドレス\TT{0x10}の
+命令に適用されます。
+
+すべてのARM64（およびARMモードのARM）命令アドレスは、下位2ビットにゼロがあるため
+（すべての命令のサイズが4バイトであるため）、
+28ビットアドレス空間の最大26ビット（$\pm 128$MB）のみをエンコードする必要があります。 
+
+\end{itemize}
+
+実行可能ファイルにはそのような再配置はありません。なぜなら、\q{Hello!}の文字列がどこにあるか、
+どのページにあるか、 \puts のアドレスもわかっているからです。
+
+そのため、\TT{ADRP}、 \ADD 、および\TT{BL}命令にはすでに値が設定されています
+（リンカはリンク中にそれらを書き込みました）。
+
+\lstinputlisting[caption=objdump of executable file,style=customasmARM]{patterns/ARM/relocs2.lst}
+
+\myindex{ARM!\Instructions!BL}
+
+例として、BL命令を手動で逆アセンブルしてみましょう。\\
+\TT{0x97ffffa0}は $0b10010111111111111111111110100000$ です。 
+\InSqBrackets{\ARMSixFourRef C5.6.26} によると、\emph{imm26}は最後の26ビットです。\\
+$imm26 = 0b11111111111111111110100000$
+それは\TT{0x3FFFFA0}ですが、 \ac{MSB}は1です。
+従って数は負数です。そして私達のために便利な形式に手動で変換できます。
+否定の規則に従って、すべてのビットを反転します（\TT{0b1011111=0x5F}）。そして、1を加算します（\TT{0x5F+1=0x60}）。
+そのため、符号付き形式の数は\TT{-0x60}です。 
+\TT{-0x60}に4を掛けてみましょう。（オペコードに格納されているアドレスは4で除算されているため）\TT{-0x180}になります。 
+それでは、宛先アドレスを計算しましょう：\TT{0x4005a0} + (\TT{-0x180}) = \TT{0x400420}
+（注意：現在の\ac{PC}の値ではなく、BL命令のアドレスを考慮します。異なるかもしれません！）
+ そのため、宛先アドレスは\TT{0x400420}です。\\
+\\
+ARM64関連の再配置の詳細： \ARMELF

@@ -1,0 +1,77 @@
+﻿\mysection[線形合同生成器]{擬似乱数生成器としての線形合同生成器}
+\myindex{\CStandardLibrary!rand()}
+\label{LCG_simple}
+
+おそらく、線形合同ジェネレータは、乱数を生成するための最も簡単な方法です。
+
+今日では\footnote{メルセンヌツイスターの方がいいです}選択されませんが、とても単純です
+（1回の乗算、1回の加算とAND演算）。
+これを例として使用できます。
+
+\lstinputlisting[style=customc]{patterns/145_LCG/rand_JA.c}
+
+2つの関数があります：最初のものは内部状態を初期化するために使用され、2つ目は
+擬似乱数を生成するために呼び出されます。
+
+アルゴリズムでは2つの定数が使用されていることがわかります。 
+それらは[William H. Press and Saul A. Teukolsky and William T. Vetterling and Brian P. Flannery, \emph{Numerical Recipes}, (2007)]
+から取られています。
+
+\TT{\#define} \CCpp 命令文を使ってそれらを定義しましょう。 これはマクロです。
+
+\CCpp マクロと定数の違いは、すべてのマクロが \CCpp プリプロセッサでその値に置換され、
+変数と異なりメモリを使用しないことです。
+
+対照的に、定数は読み取り専用変数です。
+
+定数変数のポインタ（またはアドレス）を取ることは可能ですが、マクロではできません。
+
+C標準の\TT{my\_rand()}は0から32767の範囲の値を返さなければならないため、
+最後のAND演算が必要です。
+
+32ビットの擬似乱数値を取得する場合は、最後のAND演算を省略してください。
+
+\subsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2013,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x86_Ox.asm}
+
+ここでは、両方の定数がコードに埋め込まれています。 
+割り当てられたメモリはありません。
+
+\TT{my\_srand()}関数は入力値を内部の
+\TT{rand\_state}変数にコピーするだけです。
+
+\TT{my\_rand()}はそれを受け取り、次の\TT{rand\_state}を計算し、それを切り取り、EAXレジスタに残します。
+
+最適化されていないバージョンはより冗長です。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2013,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x86.asm}
+
+\subsection{x64}
+
+x64のバージョンはほとんど同じで、64ビットではなく32ビットのレジスタを使用しています。
+（ここで \Tint 値を使用しているためです）
+
+しかし、\TT{my\_srand()}は入力引数をスタックからではなく \ECX レジスタから取ります：
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x64_Ox_JA.asm}
+
+GCCコンパイラはほとんど同じコードを生成します。
+
+\subsection{32ビットARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/145_LCG/rand.s_Keil_ARM_O3_JA.s}
+
+32ビット定数をARM命令に埋め込むことはできないため、Keilはそれらを外部に配置して追加する必要があります。 
+興味深いことに、0x7FFF定数も埋め込むことはできません。
+Keilがやっているのは、\TT{rand\_state}を17ビット左にシフトし、右に17ビットシフトすることです。 
+これは、 \CCpp の $(rand\_state \ll 17) \gg 17$ 命令文に似ています。
+それは役に立たない操作だと思われますが、それは17ビットをクリアして15ビットをそのままにして、これが結局のところ私たちの目標です。\\
+\\
+Thumbモードの \Optimizing Keil はほとんど同じコードが生成します。
+
+\input{patterns/145_LCG/MIPS_JA}
+
+\subsection{スレッドセーフ版の例}
+
+この例のスレッドセーフ版は、後で説明します：\myref{LCG_TLS}

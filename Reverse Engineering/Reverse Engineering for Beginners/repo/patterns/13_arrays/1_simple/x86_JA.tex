@@ -1,0 +1,52 @@
+﻿\subsubsection{x86}
+
+\myparagraph{MSVC}
+
+コンパイルしてみましょう。
+
+\lstinputlisting[caption=MSVC 2008,style=customasmx86]{patterns/13_arrays/1_simple/simple_msvc.asm}
+
+\myindex{x86!\Instructions!SHL}
+
+% TBT:
+特別なことは何もなくて、2つのループだけです。1つめは配列に値を詰めるループで2つめは値を表示するループです。
+\TT{shl ecx, 1}命令は \ECX の値を2倍するのに使用されます。詳細はこちら~\myref{SHR}
+
+80バイトは4バイトの20要素分の配列用としてスタック上に確保されます。
+
+\clearpage
+\olly でこの例を試してみましょう。
+\myindex{\olly}
+
+配列がどのように埋まるのか見ていきます。
+
+各要素は32ビットの \Tint 型で値はインデックスを2倍したものです。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/1_simple/olly.png}
+\caption{\olly: 要素を埋めた後}
+\label{fig:array_simple_olly}
+\end{figure}
+
+この配列はスタックに位置しているので、20要素すべてを見ることができます。
+
+\myparagraph{GCC}
+
+GCC 4.4.1ではこのようになります。
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/13_arrays/1_simple/simple_gcc.asm}
+
+なお、変数 $a$ は\emph{int*}型です
+（\Tint{} へのポインタ）---別の関数に配列へのポインタを渡すことができます。
+しかし、もっと正確には、配列の最初の要素へのポインタが渡されます。
+（要素の残りのアドレスは明確なやり方で計算されます）
+
+もしこのポインタを\emph{a[idx]}としてインデックスするなら、\emph{idx}はポインタに加算されるだけで、
+配置されている要素（計算されたポインタが示されている）がリターンされます。
+
+面白い例：\emph{string}のような文字列は(1)文字の配列で\emph{const char[]}の型を持ちます。
+
+インデックスもこのポインタに適用されます。
+
+そしてこれが\TT{\q{string}[i]}のように書き込みが可能な理由です。これは \CCpp の正しい表現です！

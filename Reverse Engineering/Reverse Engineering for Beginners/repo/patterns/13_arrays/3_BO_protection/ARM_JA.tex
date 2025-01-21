@@ -1,0 +1,25 @@
+﻿\subsubsection{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+単純な配列の例に戻りましょう（\myref{arrays_simple}）。
+
+繰り返しますが、LLVMが\q{カナリア}の正しさをどのようにチェックするのか見ることができます。
+
+% TODO shorten the listing a bit? is full display of unrolled loop necessary?
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/3_BO_protection/simple_Xcode_thumb_O3_JA.asm}
+
+\myindex{Unrolled loop}
+
+まず最初に、見てきたように、LLVMはループを\q{展開し}、LLVMは高速になると結論づけて、
+事前に計算されて値はすべて配列に1つ1つ書かれます。
+なお、ARMモードでの命令はこれをより高速にする手助けをするかもしれません。
+これを見つけるのは宿題にします。
+
+関数の最後で\q{カナリア}の比較を見ます。ローカルスタックのカナリアと \Reg{8}で指し示した正しいものとの。
+
+\myindex{ARM!\Instructions!IT}
+
+それぞれが一致していれば、4命令ブロックが\INS{ITTTT EQ}で実行され、
+\Reg{0}に0が書かれ、関数エピローグが終了します。
+\q{カナリア}が一致していなければ、ブロックがスキップされ、
+\TT{\_\_\_stack\_chk\_fail}関数へのジャンプが実行され、おそらく実行が停止されます。
+% TODO1 illustrate this!

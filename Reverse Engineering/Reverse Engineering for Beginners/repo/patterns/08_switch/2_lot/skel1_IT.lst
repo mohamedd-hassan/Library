@@ -1,0 +1,36 @@
+MOV REG, input
+CMP REG, 4 ; numero massimo di casi
+JA default
+SHL REG, 2 ; trova l'elemento nella tabella. Shift di 3 bit in x64.
+MOV REG, jump_table[REG]
+JMP REG
+
+case1:
+    ; gestione del caso
+    JMP exit
+case2:
+    ; gestione del caso
+    JMP exit
+case3:
+    ; gestione del caso
+    JMP exit
+case4:
+    ; gestione del caso
+    JMP exit
+case5:
+    ; gestione del caso 
+    JMP exit
+
+default:
+
+    ...
+
+exit:
+
+    ....
+
+jump_table dd case1
+           dd case2
+           dd case3
+           dd case4
+           dd case5

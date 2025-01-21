@@ -1,0 +1,54 @@
+\subsubsection{Lire en dehors des bornes du tableau}
+
+Donc, indexer un tableau est juste \emph{array\lbrack{}index\rbrack}.
+Si vous étudiez le code généré avec soin, vous remarquerez sans doute l'absence de
+test sur les bornes de l'index, qui devrait vérifier \emph{si il est inférieur à 20}.
+Que ce passe-t-il si l'index est supérieur à 20?
+C'est une des caractéristiques de \CCpp qui est souvent critiquée.
+
+Voici un code qui compile et fonctionne:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/2_BO/r.c}
+
+Résultat de la compilation (MSVC 2008):
+
+\lstinputlisting[caption=MSVC 2008 \NonOptimizing,style=customasmx86]{patterns/13_arrays/2_BO/r_msvc.asm}
+
+Le code produit ce résultat:
+
+\lstinputlisting[caption=\olly: sortie sur la console]{patterns/13_arrays/2_BO/console.txt}
+
+C'est juste \emph{quelque chose} qui se trouvait sur la pile à côté du tableau, 80 octets
+après le début de son premier élément.
+
+\clearpage
+\myindex{\olly}
+Essayons de trouver d'où vient cette valeur, en utilisant \olly.
+
+Chargeons et trouvons la valeur située juste après le dernier élément du tableau:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_r1.png}
+\caption{\olly: lecture du 20ème élément et exécution de \printf}
+\label{fig:array_BO_olly_r1}
+\end{figure}
+
+Qu'est-ce que c'est?
+D'après le schéma de la pile, c'est la valeur sauvegardée du registre EBP.
+\clearpage
+Exécutons encore et voyons comment il est restauré:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_r2.png}
+\caption{\olly: restaurer la valeur de EBP}
+\label{fig:array_BO_olly_r2}
+\end{figure}
+
+En effet, comment est-ce ça pourrait être différent?
+Le compilateur pourrait générer du code supplémentaire pour vérifier que la valeur
+de l'index est toujours entre les bornes du tableau (comme dans les langages de
+programmation de plus haut-niveau\footnote{Java, Python, etc.}) mais cela rendrait
+le code plus lent.
+

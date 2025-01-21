@@ -1,0 +1,134 @@
+\subsection{Entropie de fichiers variés}
+
+L'entropie de données aléatoires est proche de 8:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | ent
+Entropy = 7.999803 bits per byte.
+\end{lstlisting}
+
+Ceci signifie que presque tout l'espace disponible d'un octet est rempli d'information.
+
+256 octets répartis dans l'intervalle 0..255 donnent exactement une valeur de 8:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys
+
+for i in range(256):
+    sys.stdout.write(chr(i))
+\end{lstlisting}
+
+\begin{lstlisting}
+% python 1.py | ent
+Entropy = 8.000000 bits per byte.
+\end{lstlisting}
+
+L'ordre des octets est sans importance.
+Ceci signifie que tout l'espace dans un octet est rempli.
+
+L'entropie de tout bloc rempli d'octets à zéro est 0:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/zero | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+L'entropie d'une chaîne constituée d'un seul (n'importe lequel) octet est 0:
+
+\begin{lstlisting}
+% echo -n "aaaaaaaaaaaaaaaaaaa" | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+\myindex{base64}
+L'entropie d'une chaîne en base64 est la même que la données source, mais multiplié
+par $\frac{3}{4}$.
+Ceci car l'encodage base64 utilise 64 symboles au lieu de 256.
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | base64 | ent
+Entropy = 6.022068 bits per byte.
+\end{lstlisting}
+
+Peut-être que 6.02, assez proche de 6, est dû au caractère de remplissage (\TT{=}) qui
+fausse un peu nos statistiques.
+
+\myindex{Uuencode}
+Uuencode utilise aussi 64 symboles:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | uuencode - | ent
+Entropy = 6.013162 bits per byte.
+\end{lstlisting}
+
+Ceci signifie que les chaînes base64 et Uuencode peuvent être transmises en utilisant
+des octets ou caractères sur 6-bit.
+
+Toute information aléatoire au format hexadécimal a une entropie de 4 bits par octet:
+
+\begin{lstlisting}
+% openssl rand -hex $\$$(( 2**16 )) | ent
+Entropy = 4.000013 bits per byte.
+\end{lstlisting}
+
+L'entropie d'un texte en anglais pris au hasard dans la bibliothèque Gutenbert a
+une entropie de $\approx 4.5$.
+La raison de ceci est que les textes anglais utilisent principalement 26 symboles,
+et $log_2(26)=\approx 4.7$, i.e., vous aurez besoin d'octets de 5-bit pour transmettre
+des textes en anglais non compressés, ça sera suffisant (ça l'était en effet au temps
+du télétype).
+
+Le texte choisi au hasard dans la bibliothèque \url{http://lib.ru} est l'``Idiot''\footnote{\url{http://az.lib.ru/d/dostoewskij_f_m/text_0070.shtml}},
+de F.M.Dostoevsky qui est encodé en CP1251.
+
+Et ce fichier a une entropie de $\approx 4.98$.
+Le russe comporte 33 caractères et $log_2(33)=\approx 5.04$.
+Mais il le caractère ``ё'' est impopulaire et rare.
+% FIXME YO letter isn't rendered in Eng version
+Et $log_2(32)=5$ (l'alphabet russe sans ce caractère rare)---maintenant ceci est
+proche de ce que nous avons obtenu.
+
+Quoiqu'il en soit, le texte dont nous parlons utilise la lettre ``ё', mais, sans
+doute y est-elle rarement utilisée.
+
+\myindex{UTF-8}
+Le même fichier transcodé de CP1251 en UTF-8 donne une entropie de $\approx 4.23$.
+Chaque caractère cyrillique encodé en UTF-8 est généralement encodé en une paire,
+et le premier octet est toujours: 0xD0 ou 0xD1.
+C'est peut-être ce qui cause ce biais.
+
+Générons des bits aléatoirement et écrivons les avec les caractères ``T'' et ``F'':
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    if random.randint(0,1)==1:
+        rt=rt+"T"
+    else:
+        rt=rt+"F"
+print rt
+\end{lstlisting}
+
+Échantillon: \TT{...TTTFTFTTTFFFTTTFTTTTTTFTTFFTTTFTFTTFTTFFFFFF...}.
+
+L'entropie est très proche de 1 (i.e., 1 bit par octet).
+
+Générons des chiffres décimaux aléatoirement:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    rt=rt+"%d" % random.randint(0,9)
+print rt
+\end{lstlisting}
+
+Échantillon: \TT{...52203466119390328807552582367031963888032...}.
+
+L'entropie sera proche de 3.32, en effet, c'est $log_2(10)$.

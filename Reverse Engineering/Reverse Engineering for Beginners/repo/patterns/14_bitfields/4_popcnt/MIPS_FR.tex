@@ -1,0 +1,29 @@
+\subsubsection{MIPS}
+
+\myparagraph{GCC \NonOptimizing}
+
+\lstinputlisting[caption=GCC 4.4.5 \NonOptimizing (IDA),style=customasmMIPS]{patterns/14_bitfields/4_popcnt/MIPS_O0_IDA_FR.lst}
+
+\myindex{MIPS!\Instructions!SLL}
+\myindex{MIPS!\Instructions!SLLV}
+
+C'est très verbeux: toutes les variables locales sont situées dans la pile locale
+et rechargées à chaque fois que l'on en a besoin.
+
+L'instruction \SLLV est \q{Shift Word Left Logical Variable}, elle diffère de \SLL
+seulement de ce que la valeur du décalage est encodée dans l'instruction \SLL (et
+par conséquent fixée) mais \SLLV lit cette valeur depuis un registre.
+
+\myparagraph{GCC \Optimizing}
+
+C'est plus concis.
+Il y a deux instructions de décalage au lieu d'une.
+Pourquoi?
+
+Il est possible de remplacer la première instruction \SLLV avec une instruction de
+branchement inconditionnel qui saute directement au second \SLLV.
+Mais cela ferait une autre instruction de branchement dans la fonction, et il est
+toujours favorable de s'en passer: \myref{branch_predictors}.
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/14_bitfields/4_popcnt/MIPS_O3_IDA_FR.lst}
+

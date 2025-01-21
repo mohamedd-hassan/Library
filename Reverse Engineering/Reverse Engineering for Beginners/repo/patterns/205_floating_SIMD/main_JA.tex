@@ -1,0 +1,264 @@
+﻿% FIXME1 divide this file into separate ones...
+\mysection{SIMDを使用した浮動小数点数の取り扱い}
+
+\label{floating_SIMD}
+\myindex{IEEE 754}
+\myindex{SIMD}
+\myindex{SSE}
+\myindex{SSE2}
+
+もちろん、\ac{SIMD}拡張機能が追加されたとき、\ac{FPU}はx86互換プロセッサに残っていました。
+
+\ac{SIMD}拡張（SSE2）は、浮動小数点数を扱うためのより簡単な方法を提供します。
+
+数値のフォーマットは変わりません（IEEE 754）。
+
+\myindex{x86-64}
+そのため、現代のコンパイラ（x86-64用に生成されたものも含む）
+は通常、FPUの代わりに\ac{SIMD}命令を使用します。
+
+彼らと一緒に動作する方が簡単なので、それは良いニュースだと言えます。
+
+ここではFPUセクションの例を再利用します：\myref{sec:FPU}
+
+\subsection{単純な例}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/1_simple/simple.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x64_Ox.asm}
+
+入力浮動小数点値は\XMM{0}-\XMM{3}レジスタに渡され、
+残りはすべてスタックを介して渡されます。
+\footnote{\href{http://msdn.microsoft.com/en-us/library/zthk2dkh.aspx}{MSDN: Parameter Passing}}.
+
+$a$ は\XMM{0}に渡され、$b$は\XMM{1}を介して渡されます。
+
+XMMレジスタは128ビットです（SIMDに関するセクションからわかるように：\myref{SIMD_x86}）。
+しかし \Tdouble 値は64ビットですので、下位半分のレジスタだけが使用されます。
+
+\myindex{x86!\Instructions!DIVSD}
+\TT{DIVSD}は\q{Divide Scalar Double-Precision Floating-Point Values}
+を表すSSE命令です。
+これは、
+オペランドの下半分に格納された \Tdouble 型の値を別の値で除算するだけです。
+
+定数は、コンパイラによってIEEE 754形式でエンコードされています。
+
+\myindex{x86!\Instructions!MULSD}
+\myindex{x86!\Instructions!ADDSD}
+\TT{MULSD}と\TT{ADDSD}はまったく同じように機能しますが、乗算と加算を行います。
+
+関数が \Tdouble 型で実行された結果は、\XMM{0}レジスタに残ります。\\
+\\
+これが、最適化されていないMSVCの仕組みです。
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x64.asm}
+
+\myindex{Shadow space}
+少し冗長です。 
+入力引数は\q{シャドースペース}（\myref{shadow_space}）に保存されますが、
+それらの下位レジスタのみが半分になります。つまり、 \Tdouble 型の64ビット値だけです。 
+GCCは同じコードを生成します。
+
+\subsubsection{x86}
+
+この例もx86用にコンパイルしましょう。 x86用に生成されているという事実にもかかわらず、MSVC 2012はSSE2命令を使用します。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2012 x86,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x86.asm}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x86,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x86_Ox.asm}
+
+これはほぼ同じコードですが、呼び出し規約に関していくつかの違いがあります。
+1）引数はXMMレジスタではなくスタックに渡されます（FPUの例（\myref{sec:FPU}）のように）。 
+2）関数の結果が\ST{0}に返されます。 そのためには、
+XMMレジスタの1つから\ST{0}に（ローカル変数\TT{tv}を介して）コピーします。
+
+\clearpage
+最適化された例を \olly で試してみましょう
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly1.png}
+\caption{\olly: \TT{MOVSD} は $a$ の値を\XMM{1}にロード}
+\label{fig:FPU_SIMD_simple_olly1}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly2.png}
+\caption{\olly: \TT{DIVSD} \gls{quotient} を計算し、
+結果を\XMM{1}に保存する}
+\label{fig:FPU_SIMD_simple_olly2}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly3.png}
+\caption{\olly: \TT{MULSD} calculated \gls{product}を計算し、
+\XMM{0}に保存する}
+\label{fig:FPU_SIMD_simple_olly3}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly4.png}
+\caption{\olly: \TT{ADDSD} は値を\XMM{0}と\XMM{1}に追加する}
+\label{fig:FPU_SIMD_simple_olly4}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly5.png}
+\caption{\olly: \FLD は関数の結果を\ST{0}に残す}
+\label{fig:FPU_SIMD_simple_olly5}
+\end{figure}
+
+\olly はXMMレジスタを \Tdouble 型の数のペアとして示していますが、
+使用されているのはその低位の部分だけです。
+
+SSE2命令（接尾辞\TT{-SD}）が現在実行されているため、明らかに、
+\olly はそれらをその形式で表示します。
+
+しかし、もちろん、レジスタフォーマットを切り替えて、その内容を4つの \Tfloat{} 数
+またはちょうど16バイトとして表示することは可能です。
+
+\clearpage
+\subsection{引数を介して浮動小数点数を渡す}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/2_passing_floats/pow.c}
+
+それらは\XMM{0}-\XMM{3}レジスタの
+下位半分に渡されます。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/pow_MSVC_2012_x64_Ox.asm}
+
+\myindex{x86!\Instructions!MOVSD}
+\myindex{x86!\Instructions!MOVSDX}
+IntelおよびAMDのマニュアルには\TT{MOVSDX}命令がなく（\myref{x86_manuals}）、単に\TT{MOVSD}と呼ばれています。 
+そのため、x86では同じ名前を共有する2つの命令があります（他のものについては \myref{REP_MOVSx} を参照）。
+どうやら、Microsoftの開発者たちはこの混乱を取り除きたかったので、\TT{MOVSDX}に改名しました。 
+XMMレジスタの下半分に値をロードするだけです。
+
+\TT{pow()}は\XMM{0}と\XMM{1}から引数を取り、結果を\XMM{0}に返します。 
+その後 \printf のために \RDX に移動されます。 
+なぜでしょうか？
+おそらく \
+printf が可変引数関数だからでしょう。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/205_floating_SIMD/pow_GCC446_x64_O3_JA.s}
+
+GCCはより明確な出力を生成します。 
+\printf の値は\XMM{0}に渡されます。 
+ところで、 \printf のために \EAX に1が書かれている場合は、
+標準で要求されているように \SysVABI 、1つの引数がベクトルレジスタに渡されることを意味します。
+
+\subsection{Comparison example}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/3_comparison/d_max.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x64_Ox.asm}
+
+\Optimizing MSVCはとても理解しやすいコードを生成します。
+
+\myindex{x86!\Instructions!COMISD}
+\TT{COMISD} は \q{Compare Scalar Ordered Double-Precision Floating-Point 
+Values and Set EFLAGS}です。 本質的に、命令が示すそのもののことをします。\\
+\\
+\NonOptimizing MSVC はもっと冗長なコードを生成します。
+しかし、これもそんなに理解するのが難しくないです。
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x64.asm}
+
+\myindex{x86!\Instructions!MAXSD}
+しかしながら、GCC 4.4.6は
+もっと最適化して\TT{MAXSD}（\q{Return Maximum Scalar 
+Double-Precision Floating-Point Value}）命令を使用します。
+これは単に最大値を選択します！
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/205_floating_SIMD/d_max_GCC446_x64_O3.s}
+
+\clearpage
+\subsubsection{x86}
+
+この例をMSVC 2012の最適化オプションをONにしてコンパイルしてみましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x86,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x86_Ox.asm}
+
+ほとんど同じですが、 $a$ と $b$ の値はスタックからとられて、関数の結果は
+\ST{0}に残ります。
+
+\olly でこの例をロードした場合、
+\TT{COMISD}命令が値を比較して \CF と \PF フラグをどうやってセット／クリアするのかみることができます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/d_max_olly.png}
+\caption{\olly: \TT{COMISD} は \CF と \PF フラグを変更}
+\label{fig:FPU_SIMD_d_max_olly}
+\end{figure}
+
+\subsection{計算機イプシロンを計算する: x64 と SIMD}
+\label{machine_epsilon_x64_and_SIMD}
+
+\q{計算機イプシロンを計算する}の例を \Tdouble 型で再訪しましょう：\lstref{machine_epsilon_double_c}
+
+x64でコンパイルします。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/epsilon_double_MSVC_2012_x64_Ox.asm}
+
+128ビットXMMレジスタに値を1加える方法がないので、メモリ上に配置しなければなりません。
+
+しかしながら、\INS{ADDSD}命令（\IT{Add Scalar Double-Precision Floating-Point Values}）があります。
+高位64ビットを無視しつつ、これは低位64ビットのXMMレジスタに値を加えることができます。
+しかし、MSVC 2012はおそらくそれほど良くないです。
+\footnote{練習として、ローカルスタックの使用を取り除く
+ためにこのコードを書き直してもいいかもしれません。}
+
+それでも、値はXMMレジスタに再ロードされ、減算が行われます。
+\INS{SUBSD}は\q{Subtract Scalar Double-Precision Floating-Point Values}です。
+つまり、128ビットXMMレジスタの下位64ビット部に対して動作します。
+結果はXMM0レジスタに返されます。
+
+\input{patterns/205_floating_SIMD/FPU_PRNG/main_JA}
+
+\subsection{概要}
+
+ここに示すすべての例では、数値をIEEE 754形式で格納するために、
+XMMレジスタの下半分だけが使用されています。
+
+本質的に、\TT{-SD}（\q{Scalar Double-Precision}）
+の接頭語がついた命令はすべて、IEEE 754形式の浮動小数点数として動作します。
+そして、XMMレジスタの下位64ビット半分に格納されます。
+
+そしてそれは、おそらくSIMD拡張が過去のFPU拡張よりも混沌としていない
+方法で進化したために、FPUよりも簡単です。
+スタックレジスタモデルは使用されません。
+
+\myindex{x86!\Instructions!ADDSS}
+\myindex{x86!\Instructions!MOVSS}
+\myindex{x86!\Instructions!COMISS}
+% TODO1: do this!
+\Tdouble を \Tfloat に置き換えようとした場合
+
+% FIXME1 ... but their -SS versions
+これらの例では、同じ命令が使用されますが、\TT{-SS}（\q{Scalar Single-Precision}）接頭語が
+つきます。例えば、\TT{MOVSS}、\TT{COMISS}、\TT{ADDSS}などです。
+
+\q{Scalar} 
+は、SIMDレジスタに複数の値ではなく1つの値しか含まれていないことを意味します。
+
+レジスタ内の複数の値を同時に扱う命令は、それらの名前に\q{パック}されています。
+
+言うまでもなく、SSE2命令は64ビットのIEEE 754形式の数（ \Tdouble ）で機能しますが、
+FPUの浮動小数点数の内部表現は80ビットの数値です。
+
+したがって、FPUは丸め誤差を少なくすることができ、その結果、FPUはより正確な計算結果を
+得られます。

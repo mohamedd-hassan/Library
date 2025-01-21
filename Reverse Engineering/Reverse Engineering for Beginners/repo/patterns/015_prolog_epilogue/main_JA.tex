@@ -1,0 +1,37 @@
+\mysection{関数のプロローグとエピローグ}
+\label{sec:prologepilog}
+\myindex{Function epilogue}
+\myindex{Function prologue}
+
+関数プロローグは、関数の先頭にある一連の命令です。 それはしばしば以下のコード断片のように見えます。
+
+\begin{lstlisting}[style=customasmx86]
+    push    ebp
+    mov     ebp, esp
+    sub     esp, X
+\end{lstlisting}
+
+これらの命令が行うこと： \EBP レジスタに値を保存し、
+\EBP レジスタの値をESPの値に設定し、
+ローカル変数のためにスタック上に領域を割り当てます。
+
+\EBP の値は、関数実行の期間にわたって同じままであり、ローカル変数および引数アクセスに使用されます。 
+同じ目的のために \ESP を使うことができますが、時間の経過とともに変化するので、この方法はあまり便利ではありません。
+
+関数のエピローグは、スタック内の割り当てられた領域を解放し、 \EBP レジスタの値を初期状態に戻し、制御フローを\gls{caller}に返します。
+
+\begin{lstlisting}[style=customasmx86]
+    mov    esp, ebp
+    pop    ebp
+    ret    0
+\end{lstlisting}
+
+% what about calling convention?
+関数のプロローグとエピローグは、通常、逆アセンブラで関数の区切りとして検出されます。
+
+\subsection{\Recursion}
+
+\myindex{\Recursion}
+エピローグとプロローグは、再帰のパフォーマンスに悪影響を及ぼします。
+
+この本の再帰の詳細は下記を参照: \myref{Recursion_and_tail_call}

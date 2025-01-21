@@ -1,0 +1,74 @@
+\subsubsection{ARM64}
+
+\myparagraph{GCC (Linaro) 4.9 \Optimizing}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_O3_FR.lst}
+
+L'ARM64 \ac{ISA} possède des instructions FPU qui mettent les flags CPU \ac{APSR}
+au lieu de \ac{FPSCR}, par commodité.
+Le \ac{FPU} n'est plus un device séparé (au moins, logiquement).
+\myindex{ARM!\Instructions!FCMPE}
+Ici, nous voyons \INS{FCMPE}. Ceci compare les deux valeurs passées dans \RegD{0}
+et \RegD{1} (qui sont le premier et le second argument de la fonction) et met les
+flags \ac{APSR} (N, Z, C, V).
+
+\myindex{ARM!\Instructions!FCSEL}
+\INS{FCSEL} (\emph{Floating Conditional Select} (sélection de flottant conditionnelle)
+copie la valeur de \RegD{0} ou \RegD{1} dans \RegD{0} suivant le résultat de la comparaison
+(\GTT{GT}---Greater Than), et de nouveau, il utilise les flags dans le registre \ac{APSR}
+au lieu de \ac{FPSCR}.
+
+Ceci est bien plus pratique, comparé au jeu d'instructions des anciens CPUs.
+
+Si la condition est vraie (\GTT{GT}), alors la valeur de \RegD{0} est copiée dans
+\RegD{0} (i.e., il ne se passe rien).
+Si la condition n'est pas vraie, la valeur de \RegD{1} est copiée dans \RegD{0}.
+
+\myparagraph{GCC (Linaro) 4.9 \NonOptimizing}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_FR.lst}
+
+GCC sans optimisation est plus verbeux.
+
+Tout d'abord, la fonction sauve la valeur de ses arguments en entrée dans la pile
+locale (\emph{Register Save Area}, espace de sauvegarde des registres).
+Ensuite, le code recharge ces valeurs dans les registres \RegX{0}/\RegX{1} et finalement
+les copie dans \RegD{0}/\RegD{1} afin de les comparer en utilisant \INS{FCMPE}.
+Beaucoup de code redondant, mais c'est ainsi que fonctionne les compilateurs sans
+optimisation.
+\INS{FCMPE} compare les valeurs et met les flags du registre \ac{APSR}.
+À ce moment, le compilateur ne pense pas encore à l'instruction plus commode \INS{FCSEL},
+donc il procède en utilisant de vieilles méthodes:
+en utilisant l'instruction \INS{BLE} (\emph{Branch if Less than or Equal} branchement si
+inférieur ou égal).
+Dans le premier cas ($a>b$), la valeur de $a$ est chargée dans \RegX{0}.
+Dans les autres cas ($a<=b$), la valeur de $b$ est chargée dans \RegX{0}.
+Enfin, la valeur dans \RegX{0} est copiée dans \RegD{0}, car la valeur de retour
+doit être dans ce registre.
+
+\mysubparagraph{\Exercise}
+
+À titre d'exercice, vous pouvez essayer d'optimiser ce morceau de code manuellement
+en supprimant les instructions redondantes et sans en introduire de nouvelles (incluant
+\INS{FCSEL}).
+
+\myparagraph{GCC (Linaro) 4.9 \Optimizing---float}
+
+Ré-écrivons cet exemple en utilisant des \Tfloat à la place de \Tdouble.
+
+\begin{lstlisting}[style=customc]
+float f_max (float a, float b)
+{
+	if (a>b)
+		return a;
+
+	return b;
+};
+\end{lstlisting}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_O3_float_FR.lst}
+
+C'est le même code, mais des S-registres sont utilisés à la place de D-registres.
+C'est parce que les nombres de type \Tfloat sont passés dans des S-registres de 32-bit
+(qui sont en fait la partie basse des D-registres 64-bit).
+

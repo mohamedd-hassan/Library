@@ -1,0 +1,46 @@
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=IDA,style=customasmARM]{patterns/04_scanf/2_global/ARM.lst}
+
+Zmienna \TT{x} jest teraz globalna i z tego powodu znajduje się w innym segmencie - w segmencie danych \emph{.data}.
+Można by zapytać - dlaczego w takim razie łańcuch znaków jest w segmencie kodu (\emph{.text})?
+Ponieważ \TT{x} jest zmienną i z definicji jej wartość może się zmienić, co może dziać się dość często.
+Łańcuch znaków jest stały, nie zostanie zmieniony, więc znajduje się w segmencie \emph{.text}.
+\myindex{\RAM}
+\myindex{\ROM}
+
+Segment kodu czasami może znajdować się w układzie \ac{ROM} (pamiętaj, że mamy teraz do czynienia
+z systemami wbudowanymi, gdzie często występuje deficyt pamięci), a \emph{zmienialne} zmienne w \ac{RAM}.
+
+Nie byłoby to racjonalne, gdybyśmy trzymali stałe zmienne w pamięci RAM, gdy dostępny jest ROM.
+
+Co więcej, stałe zmienne w pamięci RAM powinny być zainicjalizowane przed rozpoczęciem pracy, ponieważ po włączeniu zasilania w pamięci RAM znajduję się przypadkowe dane.
+
+\myindex{Linker}
+
+Przechodząc dalej, widzimy wskaźnik z segmentu kodu (\TT{off\_2C}) do zmiennej \TT{x}, i że wszystkie operacje na zmiennej zachodzą z użyciem tego wskaźnika.
+
+Dzieje się tak, gdyż \TT{x} może być w pamięci dość daleko od danej instrukcji, a więc jej adres musi być zapisany gdzieś blisko samego kodu.
+\myindex{ARM!\Instructions!LDR}
+
+Instrukcja \INS{LDR} w trybie Thumb może adresować zmienne w przedziale 1020 bajtów od swojej lokalizacji,
+a w trybie ARM~---w przedziale $\pm{}4095$ bajtów.
+
+Więc adres \TT{x}
+musi być dość blisko, ponieważ nie ma gwarancji, że linker będzie mógł umieścić samą zmienną w pobliżu kodu. Może ona trafić nawet do zewnętrznego układu!
+
+\myindex{\CLanguageElements!const}
+\myindex{\ROM}
+
+Jeszcze jedna rzecz: jeśli zmienna jest zadeklarowana jako \emph{const}, kompilator Keil zaalokuje ją w segmencie \TT{.constdata}.
+
+Być może linker później umieści ten segment w pamięci ROM, razem z segmentem kodu.
+
+\subsubsection{ARM64}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,numbers=left,style=customasmARM]{patterns/04_scanf/2_global/ARM64_GCC491_O0_PL.s}
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+W tym przypadku zmienna $x$ jest zadeklarowana jako globalna a jej adres jest wyliczany za pomocą pary instrukcji \INS{ADRP}/\INS{ADD} (linia 21. i 25.).
+

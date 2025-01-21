@@ -1,0 +1,14 @@
+\mysection{Une fonction vide: redux}
+
+Revenons sur l'exemple de la fonction vide \myref{empty_func}.
+Maintenant que nous connaissons le prologue et l'épilogue de fonction, ceci est
+une fonction vide \myref{lst:empty_func} compilée par GCC sans optimisation:
+
+\lstinputlisting[caption=GCC 8.2 x64 \NonOptimizing (\assemblyOutput),style=customasmx86]{patterns/016_empty_redux/1.s}
+
+C'est \INS{RET}, mais le prologue et l'épilogue de la fonction, probablement, n'ont
+pas été optimisés et laissés tels quels.
+\INS{NOP} semble être un autre artefact du compilateur.
+De toutes façons, la seule instruction effective ici est \INS{RET}.
+Toutes les autres instructions peuvent être supprimées (ou optimisées).
+

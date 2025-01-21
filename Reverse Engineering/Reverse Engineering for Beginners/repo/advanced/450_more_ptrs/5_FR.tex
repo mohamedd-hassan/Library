@@ -1,0 +1,56 @@
+\subsection{Tableaux comme argument de fonction}
+
+On peut se demander quelle est la différence entre déclarer le type d'un argument
+de fonction en tant que tableau et en tant que pointeur?
+
+Il semble qu' il n'y ai pas du tout de différence:
+
+\begin{lstlisting}[style=customc]
+void write_something1(int a[16])
+{
+	a[5]=0;
+};
+
+void write_something2(int *a)
+{
+	a[5]=0;
+};
+
+int f()
+{
+	int a[16];
+	write_something1(a);
+	write_something2(a);
+};
+\end{lstlisting}
+
+GCC 4.8.4 \Optimizing:
+
+\begin{lstlisting}[style=customasmx86]
+write_something1:
+        mov     DWORD PTR [rdi+20], 0
+        ret
+
+write_something2:
+        mov     DWORD PTR [rdi+20], 0
+        ret
+\end{lstlisting}
+
+Mais vous pouvez toujours déclarer un tableau au lieu d'un pointeur à des fins d'auto-documentation,
+si la taille du tableau est toujours fixée.
+Et peut-être, des outils d'analyse statique seraient capable de vous avertir d'un
+possible débordement de tampon.
+Ou est-ce possible avec des outils aujourd'hui?
+
+Certaines personnes, incluant Linux Torvalds, critiquent cette possibilité de \CCpp:
+\url{https://lkml.org/lkml/2015/9/3/428}.
+
+Le standard C99 a aussi le mot-clef \emph{static} \InSqBrackets{\CNineNineStd{} 6.7.5.3}:
+
+\begin{framed}
+\begin{quotation}
+If the keyword static also appears  within the [ and ] of the array type derivation, then for each call to the function, the value of the corresponding actual argument shall provide access to the first element of an array with at least as many elements as specified by the size expression.
+\end{quotation}
+\end{framed}
+Si le mot-clef static apparaît entre les [ et ] du tableau de dérivation de type, alors pour chaque appel à la fonction,
+

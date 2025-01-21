@@ -1,0 +1,178 @@
+\subsection{\TT{V\$VERSION} table in the \oracle}
+
+\myindex{\oracle}
+\myindex{Linux}
+\myindex{Windows!ntoskrnl.exe}
+\oracle 11.2 is a huge program, its main module \TT{oracle.exe} contain approx. 124,000 functions. For comparison, the Windows 7 x86 kernel (ntoskrnl.exe) contains approx. 11,000 functions and the Linux 3.9.8 kernel
+(with default drivers compiled)---31,000 functions.
+
+Let's start with an easy question. Where does \oracle get all this information, when we execute this simple statement in SQL*Plus:
+
+\lstinputlisting{examples/oracle/1_version/0.txt}
+
+And we get:
+
+\lstinputlisting{examples/oracle/1_version/1.txt}
+
+Let's start. Where in the \oracle can we find the string \TT{V\$VERSION}?
+
+In the win32-version, \TT{oracle.exe} file contains the string,
+it's easy to see.
+But we can also use the object (.o) files from the Linux version of \oracle since, unlike the win32 version \TT{oracle.exe}, the function names (and global variables as well) are preserved there.
+
+So, the \TT{kqf.o} file contains the \TT{V\$VERSION} string.
+The object file is in the main Oracle-library \TT{libserver11.a}.
+
+A reference to this text string can find in the \TT{kqfviw} table stored in the same file, \TT{kqf.o}:
+
+\lstinputlisting[caption=kqf.o,style=customasmx86]{examples/oracle/1_version/2.lst}
+
+By the way, often, while analyzing \oracle's internals, you may ask yourself, why are the names of the functions and global variable so weird.
+
+Probably, because \oracle is a very old product and was developed in C in the 1980s.
+
+And that was a time when the C standard guaranteed that the function names/variables can support only up to 6 characters inclusive: <<6 significant initial characters in an external identifier>>\footnote{\href{https://yurichev.com/ref/Draft%20ANSI%20C%20Standard%20(ANSI%20X3J11-88-090)%20(May%2013,%201988).txt}{Draft ANSI C Standard (ANSI X3J11/88-090) (May 13, 1988) (yurichev.com)}}
+
+Probably, the table \TT{kqfviw} contains most (maybe even all) views prefixed with V\$, these are \emph{fixed views}, present all the time.
+Superficially, by noticing the cyclic recurrence of data, we can easily see that each \TT{kqfviw} table element has 12 32-bit fields.
+It is very simple to create a 12-elements structure in \IDA and apply it to all table elements.
+As of \oracle version 11.2, there are 1023 table elements, i.e., in it are described 1023 of all possible \emph{fixed views}.
+
+We are going to return to this number later.
+
+As we can see, there is not much information in these numbers in the fields. The first field is always equals to the name of the view (without the terminating zero).
+This is correct for each element. But this information is not very useful.
+
+We also know that the information about all fixed views can be retrieved from a \emph{fixed view} named \TT{V\$FIXED\_VIEW\_DEFINITION}
+(by the way, the information for this view is also taken from the \TT{kqfviw} and \TT{kqfvip} tables.)
+Incidentally, there are 1023 elements in those too. Coincidence? No.
+
+\lstinputlisting{examples/oracle/1_version/3.txt}
+
+So, \TT{V\$VERSION} is some kind of a \emph{thunk view} for another view, named \TT{GV\$VERSION}, which is, in turn:
+
+\lstinputlisting{examples/oracle/1_version/4.txt}
+
+The tables prefixed with X\$ in the \oracle are service tables too, undocumented, cannot be changed by the user and are refreshed dynamically.
+
+If we search for the text \\
+\lstinputlisting{examples/oracle/1_version/5.txt}
+...  in the \TT{kqf.o} file, we find it in the \TT{kqfvip} table:
+
+\lstinputlisting[caption=kqf.o,style=customasmx86]{examples/oracle/1_version/6.lst}
+
+The table appear to have 4 fields in each element. By the way, there are 1023 elements in it, again, the number we already know.
+
+The second field points to another table that contains the table fields for this \emph{fixed view}.
+As for \TT{V\$VERSION}, this table has only two elements, the first is 6 and the second is 
+the \TT{BANNER} string (the number 6 is this string's length) and after, a \emph{terminating} element that contains 
+0 and a \emph{null} C string:
+
+\begin{lstlisting}[caption=kqf.o,style=customasmx86]
+.rodata:080BBAC4 kqfv133_c_0 dd 6     ; DATA XREF: .rodata:08019574
+.rodata:080BBAC8             dd offset _2__STRING_5017_0 ; "BANNER"
+.rodata:080BBACC             dd 0
+.rodata:080BBAD0             dd offset _2__STRING_0_0
+\end{lstlisting}
+
+By joining data from both \TT{kqfviw} and \TT{kqfvip} tables, we can get the SQL statements which are executed when the user wants to query information from a specific \emph{fixed view}.
+
+So we can write an \oracletables program, to gather all this information from \oracle for Linux's object files.
+For \TT{V\$VERSION}, we find this:
+
+\begin{lstlisting}[caption=Result of \OracleTablesName]
+kqfviw_element.viewname: [V$VERSION] ?: 0x3 0x43 0x1 0xffffc085 0x4
+kqfvip_element.statement: [select  BANNER from GV$VERSION where inst_id = USERENV('Instance')]
+kqfvip_element.params:
+[BANNER] 
+\end{lstlisting}
+
+And:
+
+\begin{lstlisting}[caption=Result of \OracleTablesName]
+kqfviw_element.viewname: [GV$VERSION] ?: 0x3 0x26 0x2 0xffffc192 0x1
+kqfvip_element.statement: [select inst_id, banner from x$version]
+kqfvip_element.params:
+[INST_ID] [BANNER] 
+\end{lstlisting}
+
+The \TT{GV\$VERSION} \emph{fixed view} is different from \TT{V\$VERSION} only in that it has one more field with the identifier \emph{instance}.
+
+Anyway, we are going to stick with the \TT{X\$VERSION} table. Just like any other X\$-table, it is undocumented, however, we can query it:
+
+\lstinputlisting{examples/oracle/1_version/7.txt}
+
+This table has some additional fields, like \TT{ADDR} and \TT{INDX}.
+
+While scrolling \TT{kqf.o} in \IDA we can spot another table that contains a pointer to the \TT{X\$VERSION} string, this is \TT{kqftab}:
+
+\lstinputlisting[caption=kqf.o,style=customasmx86]{examples/oracle/1_version/8.lst}
+
+There are a lot of references to the X\$-table names, apparently, to all \oracle 11.2 X\$-tables.
+But again, we don't have enough information.
+
+It's not clear what does the \TT{kqvt} string stands for. 
+
+The \TT{kq} prefix may mean \emph{kernel} or \emph{query}. 
+
+\TT{v} apparently stands for \emph{version} and \TT{t}---\emph{type}? 
+Hard to say.
+
+A table with a similar name can be found in \TT{kqf.o}:
+
+\lstinputlisting[caption=kqf.o,style=customasmx86]{examples/oracle/1_version/9.lst}
+
+It contains information about all fields in the \TT{X\$VERSION} table.
+The only reference to this table is in the \TT{kqftap} table:
+
+\begin{lstlisting}[caption=kqf.o]
+.rodata:08042680                 kqftap_element <0, offset kqvt_c_0, offset kqvrow, 0> ; element 0x1f6
+\end{lstlisting}
+
+It is interesting that this element here is \TT{0x1f6th} (502nd), just like the pointer to the \TT{X\$VERSION} string in 
+the \TT{kqftab} table.
+
+Probably, the \TT{kqftap} and \TT{kqftab} tables complement each other, just like \TT{kqfvip} and \TT{kqfviw}.
+
+We also see a pointer to the \TT{kqvrow()} function. Finally, we got something useful!
+
+So we will add these tables to our \oracletables utility too. For \TT{X\$VERSION} we get:
+
+\begin{lstlisting}[caption=Result of \OracleTablesName]
+kqftab_element.name: [X$VERSION] ?: [kqvt] 0x4 0x4 0x4 0xc 0xffffc075 0x3
+kqftap_param.name=[ADDR] ?: 0x917 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[INDX] ?: 0xb02 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[INST_ID] ?: 0xb02 0x0 0x0 0x0 0x4 0x0 0x0
+kqftap_param.name=[BANNER] ?: 0x601 0x0 0x0 0x0 0x50 0x0 0x0
+kqftap_element.fn1=kqvrow
+kqftap_element.fn2=NULL
+\end{lstlisting}
+
+\myindex{tracer}
+With the help of \tracer, it is easy to check that this function is called 6 times in row (from the \TT{qerfxFetch()} function) while querying the \TT{X\$VERSION} table.
+
+Let's run \tracer in \TT{cc} mode (it comments each executed instruction):
+
+\begin{lstlisting}
+tracer -a:oracle.exe bpf=oracle.exe!_kqvrow,trace:cc
+\end{lstlisting}
+
+\lstinputlisting[style=customasmx86]{examples/oracle/1_version/VERSION_kqvrow.asm}
+
+Now it is easy to see that the row number is passed from outside. The function returns the string, constructing it as follows:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline                        
+String 1	& Using \TT{vsnstr}, \TT{vsnnum}, \TT{vsnban} global variables. \\
+                                & Calls \TT{sprintf()}. \\
+String 2	& Calls \TT{kkxvsn()}. \\
+String 3	& Calls \TT{lmxver()}. \\
+String 4	& Calls \TT{npinli()}, \TT{nrtnsvrs()}. \\
+String 5	& Calls \TT{lxvers()}. \\
+\hline  
+\end{tabular}
+\end{center}
+
+That's how the corresponding functions are called for determining each module's version.
+

@@ -1,0 +1,38 @@
+﻿my_abs:
+; コプロセッサ1から移動
+                mfc1    $v1, $f12
+                li      $v0, 0x7FFFFFFF
+; \$v0=0x7FFFFFFF
+; ANDを実行
+                and     $v0, $v1
+; コプロセッサ1に移動:
+                mtc1    $v0, $f0
+; リターン
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット
+
+set_sign:
+; コプロセッサ1から移動
+                mfc1    $v0, $f12
+                lui     $v1, 0x8000
+; \$v1=0x80000000
+; ORを実行
+                or      $v0, $v1, $v0
+; コプロセッサ1に移動:
+                mtc1    $v0, $f0
+; リターン
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット
+
+negate:
+; コプロセッサ1から移動
+                mfc1    $v0, $f12
+                lui     $v1, 0x8000
+; \$v1=0x80000000
+; XORを実行
+                xor     $v0, $v1, $v0
+; コプロセッサ1に移動
+                mtc1    $v0, $f0
+; リターン
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット

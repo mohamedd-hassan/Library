@@ -1,0 +1,19 @@
+﻿\subsubsection{MIPS}
+% FIXME better start at non-optimizing version?
+
+関数は保存しなくてはならないたくさんの S- レジスタを使用します。よって、
+値は関数プロローグで保存され、エピローグでリストアされます。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/13_arrays/1_simple/MIPS_O3_IDA_JA.lst}
+
+面白いこと：2つのループがあり、最初のループは $i$ がいりません。$i*2$が必要なだけです
+（各イテレーションで2をインクリメントする）。それとメモリ上のアドレスが必要です（各イテレーションで4を増やす）。
+
+だから、2つの変数を確認します。1つは（\$V0）毎回2を増やし、もう1つは4増やします（\$V1）。
+
+次のループは \printf が呼び出されるところです。 $i$ の値をユーザに報告します。
+毎回1増やす変数があり（\$S0）、そしてメモリアドレス（\$S1）も毎回4増えます。
+
+前に検討したループ最適化を私たちに思いださせます：\myref{loop_iterators}
+
+目的は乗算を取り除くことです。

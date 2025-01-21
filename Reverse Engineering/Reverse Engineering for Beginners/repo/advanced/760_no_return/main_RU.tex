@@ -1,0 +1,83 @@
+\mysection{Случай с забытым return}
+\label{ForgottenReturn}
+
+Еще раз вернемся к части ``Попытка использовать результат функции возвращающей \Tvoid'' \myref{UseResultOfVoidFunc}.
+
+Вот ошибка которую я однажды видел.
+
+И это также еще и демонстрация того факта, что \CCpp возвращает значение в регистре \EAX/\RAX{}.
+
+В коде вроде этого я забыл добавить \TT{return}:
+
+\lstinputlisting[style=customc]{\CURPATH/1_RU.c}
+
+Неоптимизирующий GCC 5.4 молча компилирует это без всяких предупреждения.
+И код работает!
+Посмотрим, почему:
+
+\lstinputlisting[style=customasmx86,caption=\NonOptimizing GCC 5.4]{\CURPATH/O0_no_return_works_RU.lst}
+
+Если я добавляю \TT{return rt;}, только одна инструкция добавляется в конца, и она избыточна:
+
+\lstinputlisting[style=customasmx86,caption=\NonOptimizing GCC 5.4]{\CURPATH/O0_return_works_RU.lst}
+
+Ошибки вроде этой очень опасны, иногда они появляются, иногда пропадают.
+Это как heisenbug-и.
+
+Попробуем оптимизирующий GCC:
+
+\lstinputlisting[style=customasmx86,caption=\Optimizing GCC 5.4]{\CURPATH/O3_no_return_crash_RU.lst}
+
+Компилятор определяет, что ф-ция ничего не возвращает, и оптимизирует всю ф-цию.
+И он считает, что ф-ция возвращает 0 по умолчанию. Этот ноль затем используется как адрес структуры в main().
+Конечно, код падает.
+
+GCC в режиме C++ также не выдет никаких предупреждений.
+
+Попробуем неоптимизирующий MSVC 2015 x86.
+Он предупреждает о проблеме:
+
+\begin{lstlisting}
+c:\tmp\3.c(19) : warning C4716: 'create_color': must return a value                                                               
+\end{lstlisting}
+
+И генерирует код, который упадет:
+
+\lstinputlisting[style=customasmx86,caption=\NonOptimizing MSVC 2015 x86]{\CURPATH/MSVC_x86_crash_RU.lst}
+
+Оптимизирующий MSVC 2015 x86 также генерирует падающий код, но по другой причине:
+
+\lstinputlisting[style=customasmx86,caption=\Optimizing MSVC 2015 x86]{\CURPATH/MSVC_Ox_x86_crash_RU.lst}
+
+Хотя, неоптимизирующий MSVC 2015 x64 генерирует работающий код:
+
+\lstinputlisting[style=customasmx86,caption=Non-optimizing MSVC 2015 x64]{\CURPATH/MSVC_x64_works_RU.lst}
+
+Оптимизирующий MSVC 2015 x64 также вставляет код ф-ции в другую ф-цию (inline), как в случае с x86, и итоговый код также падает.
+
+\myhrule{}
+
+% FIXME URL to octothorpe
+Это реальный фрагмент из моей библиотеки \emph{octothorpe}, который работал, и все тесты нормально проходили.
+Так оно и было, какое-то время без \verb|return|..
+
+\begin{lstlisting}
+uint32_t LPHM_u32_hash(void *key)
+{
+        jenkins_one_at_a_time_hash_u32((uint32_t)key);
+}
+\end{lstlisting}
+
+\myhrule{}
+
+Мораль истории: предупреждения очень важны, используйте \TT{-Wall}, итд, итд...
+Без директивы \TT{return}, компилятор может просто ничего не делать в этом месте.
+
+Такая ошибка, если незамечена, может испортить целый день.
+
+Также, \emph{shotgun debugging}
+это плохо, опять же потому что такая ошибка может затеряться
+(``сейчас всё работает, ну пусть так оно и остается, ничего не надо менять'').
+
+См.также: обсуждение на Hacker News\footnote{\url{https://news.ycombinator.com/item?id=18671609}}
+и архивированный пост в блоге\footnote{\url{https://web.archive.org/web/20190317231721/https://yurichev.com/blog/no_return/}}.

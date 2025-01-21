@@ -1,0 +1,179 @@
+\subsection{Sistemas Numéricos}
+
+\epigraph{Nowadays octal numbers seem to be
+used for exactly one purpose---file permissions on POSIX systems---but hexadecimal numbers
+are widely used to emphasize the bit pattern of a number over its numeric value.}
+{Alan A. A. Donovan, Brian W. Kernighan ---  The Go Programming Language}
+
+Los seres humanos se han acostumbrado a usar un sistema de numérico decimal, probablemente porque casi todos tenemos 10 dedos.
+Sin embargo, el número \q{10} no tiene un significado especial en ciencias y en matemáticas.
+El sistema de numérico natural en electrónica digital es el binario: 0 es por la ausencia de corriente en un cable y 1 por su presencia.
+
+% This sentence is a bit unweildy - maybe try 'Our ten-digit system would be described as having a radix...' - Renaissance
+Si un sistema numérico tiene 10 dígitos, esto significa que un \emph{radix} (o \emph{base}) de 10.
+El sistema numérico binario tiene un \emph{radix} de 2.
+
+Cosas importantes para recordar:
+
+Un \IT {número} es un número tradicional, mientras que un \emph{dígito} es un término empleado por los sistemas de escritura, y que corresponde a un carácter
+
+% The original is 'number' is not changed; I think the intent is value, and changed it - Renaissance
+2) El valor de un número no cambia cuando este se convierte a otro radix; solo su notación de escritura cambia (y por lo tanto la forma de representarlo en \ac {RAM}).
+
+\subsection{Conversión de una Base a Otra}
+
+La notación posicional se usa en casi todos los sistemas numéricos. Esto significa que un dígito tiene un peso relativo dependiendo del lugar donde este se ubica dentro del número.
+Si colocaramos un 2 en el lugar más a la derecha, su valor seria 2, en cambio si se colocara justo al lado izquierdo del dígito mas a la derecha, tendria el valor 20.
+
+¿Qué significa $1234$?
+
+$10^3 \cdot 1 + 10^2 \cdot 2 + 10^1 \cdot 3 + 1 \cdot 4 = 1234$ o
+$1000 \cdot 1 + 100 \cdot 2 + 10 \cdot 3 + 4 = 1234$
+
+Es la misma historia para los números binarios, pero la base es 2 en vez de 10.
+¿Qué significa 0b101011?
+
+$2^5 \cdot 1 + 2^4 \cdot 0 + 2^3 \cdot 1 + 2^2 \cdot 0 + 2^1 \cdot 1 + 2^0 \cdot 1 = 43$ o
+$32 \cdot 1 + 16 \cdot 0 + 8 \cdot 1 + 4 \cdot 0 + 2 \cdot 1 + 1 = 43$
+
+Existe una notación no posicional, como es el sistema de numeración romano.
+\footnote {Acerca de la evolución del sistema numérico, consulte \InSqBrackets {\TAOCPvolII {}, 195-213.}}.
+% Maybe add a sentence to fill in that X is always 10, and is therefore non-positional, even though putting an I before subtracts and after adds, and is in that sense positional
+Quizás, la humanidad cambió a la notación posicional porque le resultaba más fácil realizar operaciones básicas (adición, multiplicación, etc.) a mano sobre un papel.
+
+Los números binarios se pueden sumar, restar, etc., de la misma manera como te enseñaron en la escuela, pero solo hay 2 dígitos disponibles.
+
+Los números binarios son voluminosos cuando se representan en un código fuente y en un volcado, por lo que es aquí en donde el sistema numerico hexadecimal resulta ser de utilidad.
+Una base hexadecimal usa los dígitos 0..9 y también 6 caracteres latinos: A..F.
+Cada dígito hexadecimal toma 4 bits o 4 dígitos binarios, por lo que es muy fácil convertir un número binario a hexadecimal y viceversa, incluso mentalmente.
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor hexadecimal & \HeaderColor binario & \HeaderColor decimal \\
+\hline
+0	&0000	&0 \\
+1	&0001	&1 \\
+2	&0010	&2 \\
+3	&0011	&3 \\
+4	&0100	&4 \\
+5	&0101	&5 \\
+6	&0110	&6 \\
+7	&0111	&7 \\
+8	&1000	&8 \\
+9	&1001	&9 \\
+A	&1010	&10 \\
+B	&1011	&11 \\
+C	&1100	&12 \\
+D	&1101	&13 \\
+E	&1110	&14 \\
+F	&1111	&15 \\
+\hline
+\end{longtable}
+\end{center}
+
+¿Cómo se puede saber qué base se está utilizando en un ejemplo específico?
+
+Los números decimales generalmente se escriben tal como son, es decir, 1234. Algunos ensambladores permiten agregar un identificador al número expresado en base decimal, en los que el número se escribiría con un sufijo "d": 1234d.
+
+A veces, a un número binario se le antepone un prefijo "0b": 0b100110111 (\ac{GCC} tiene una extensión no estándar de idioma para esto \footnote {\url {https://gcc.gnu.org/onlinedocs/gcc/Binary- constants.html}}).
+También hay otra forma: usar un sufijo "b", por ejemplo: 100110111b.
+Este libro usará el prefijo "0b" consistentemente para todos los números binarios.
+
+A un número hexadecimal se le antepone un prefijo "0x" en \CCpp y en otros \ac{LP}s: 0x1234ABCD.
+Alternativamente, se les da un sufijo "h": 1234ABCDh. Esta es una forma común de representarlos en ensambladores y depuradores.
+En esta convención, si el número se inicia con un dígito latino (A..F), al inicio se le agrega un 0: 0ABCDEFh.
+También existio una convención muy  popular en la era de las computadoras caseras de 8 bits, que usaba el prefijo \$, como en \$ABCD.
+A lo largo del libro intentaremos mantener el prefijo "0x" para los números hexadecimales.
+
+¿Debería aprender a convertir números mentalmente? Una tabla de números hexadecimales de 1 dígito se puede memorizar fácilmente.
+En cuanto a números más grandes, probablemente no valga la pena atormentarse.
+
+Quizás los números hexadecimales más visibles estén en \ac {URL} s.
+Esta es la forma en que los caracteres no latinos están codificados.
+Por ejemplo:
+\url{https://en.wiktionary.org/wiki/na\%C3\%AFvet\%C3\%A9} es la \ac{URL} del artículo de Wiktionary sobre la palabra \q{naïveté}.
+
+\subsubsection{Base Octal}
+
+Otro sistema numérico muy empleado en el pasado para la programación de computadoras fue el octal. En octal hay 8 dígitos (0..7), y cada uno está mapeado a 3 bits, por lo que resulta ser fácil la conversión de números de base octal a binario y tambien en sentido contrario.
+Ha sido reemplazado ampliamente por el sistema hexadecimal, pero, sorprendentemente, hay una utilidad *NIX, utilizada a menudo por muchas personas, que toma números octales como argumento: \TT {chmod}.
+
+\myindex {UNIX! chmod}
+Como muchos usuarios de *NIX lo saben, el argumento \TT {chmod} puede tener un número de 3 dígitos. El primer dígito representa los derechos del propietario del archivo (leer, escribir y/o ejecutar), el segundo son los derechos del grupo al que pertenece el archivo y el tercero es para todo el resto del mundo.
+Cada dígito que \TT {chmod} toma puede representarse en forma binaria:
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor decimal & \HeaderColor binario & \HeaderColor significado \\
+\hline
+7	&111	&\textbf{rwx} \\
+6	&110	&\textbf{rw-} \\
+5	&101	&\textbf{r-x} \\
+4	&100	&\textbf{r-{}-} \\
+3	&011	&\textbf{-wx} \\
+2	&010	&\textbf{-w-} \\
+1	&001	&\textbf{-{}-x} \\
+0	&000	&\textbf{-{}-{}-} \\
+\hline
+\end{longtable}
+\end{center}
+
+Entonces, cada bit está asignado a un indicador/bandera: leer/escribir/ejecutar.
+
+La importancia de \TT{chmod} aquí es que el número entero como argumento se puede representar como número octal.
+Tomemos, por ejemplo, 644.
+Cuando ejecuta \TT{chmod 644 archivo}, se establecen los permisos de lectura/escritura para el propietario, los permisos de lectura para el grupo y nuevamente, los permisos de lectura para todos los demás.
+Si convertimos el número octal 644 a binario, sería \TT{110100100}, o, en grupos de 3 bits, \TT{110 100 100}.
+
+Ahora vemos que cada triplete describe los permisos para el propietario/grupo/otros: para el primero es \TT{rw-}, para el segundo es \TT{r--} y para el tercero es \TT{r--}.
+
+El sistema numerico octal también fue popular en las computadoras antiguas como PDP-8, porque la palabra podía ser de 12, 24 o 36 bits, y estos números son divisibles por 3, por lo que el sistema octal era natural en ese entorno.
+Hoy en día, todas las computadoras populares emplean tamaños de palabra/dirección de 16, 32 o 64 bits, y estos números son todos divisibles por 4, por lo que el sistema hexadecimal es más natural aquí.
+
+El sistema de numérico octal es compatible con todos los compiladores estándar de \CCpp.
+Esto a veces trae algo de confusión, ya que los números octales están codificados con un cero antepuesto, por ejemplo, 0377 es 255.
+A veces, esto puede conllevar un error tipográfico ya que podría escribir "09" en vez de 9, y el compilador informaría un error.
+GCC podría informar algo como esto: \\
+\TT {error: dígito inválido "9" en constante octal}.
+
+Además, el sistema octal es bastante popular en Java. Cuando el IDA muestra cadenas de caracteres de Java no imprimibles,
+estos están codificados en el sistema octal en vez del hexadecimal.
+\myindex{JAD}
+El decompilador JAD de Java se comporta de la misma manera.
+
+\subsubsection{Divisibilidad}
+
+Cuando ves un número decimal como 120, puedes deducir rápidamente que es divisible por 10, porque el último dígito es cero.
+De la misma manera, 123400 es divisible por 100, ya que los dos últimos dígitos son ceros.
+
+Del mismo modo, el número hexadecimal 0x1230 es divisible por 0x10 (o 16), 0x123000 es divisible por 0x1000 (o 4096), etc.
+
+El número binario 0b1000101000 es divisible por 0b1000 (8), etc.
+
+Esta propiedad a menudo se puede utilizar para que nos demos cuenta rápidamente si el tamaño de algún bloque en memoria se rellenará con algún límite.
+Por ejemplo, las secciones en archivos \ac {PE} casi siempre se inician en direcciones que terminan en 3 ceros hexadecimales: 0x41000, 0x10001000, etc.
+La razón de esto es el hecho de que casi todas las secciones \ac{PE} se rellenan con un límite de 0x1000 (4096) bytes.
+
+\subsubsection{La base y la Aritmética de  Multi-precisión }
+
+\myindex{RSA}
+La aritmética de  múltiple precisión puede usar números enormes, y cada uno puede almacenarse en varios bytes.
+Por ejemplo, las claves RSA, tanto públicas como privadas, abarcan hasta 4096 bits, y tal vez incluso más.
+
+% I'm not sure how to change this, but the normal format for quoting would be just to mention the author or book, and footnote to the full reference
+En \InSqBrackets{\TAOCPvolII, 265} encontramos la siguiente idea: cuando se almacena un número de  múltiple precisión en varios bytes,
+el número completo puede representarse en una base de $ 2 ^ 8 = 256 $, y cada dígito va al byte correspondiente.
+Del mismo modo, si se almacena un número de múltiple precisión en varios valores enteros de 32 bits, cada dígito va a cada ranura o slot de 32 bits,
+y puede pensarse que este número esta almacenado en base $ 2 ^ {32} $.
+
+\subsubsection {Cómo pronunciar números no decimales}
+
+Los números en una base no decimal generalmente se pronuncian dígito a dígito: `` uno-cero-cero-uno-uno -... ''.
+Palabras como `` diez '' y `` miles '' generalmente no se pronuncian, para evitar confusiones con el sistema de base decimal.
+
+\subsubsection {Números de punto flotante}
+
+Para distinguir los números de coma flotante de los enteros, generalmente estos se escriben con `` .0 '' al final,
+como $ 0.0 $, $ 123.0 $, etc.

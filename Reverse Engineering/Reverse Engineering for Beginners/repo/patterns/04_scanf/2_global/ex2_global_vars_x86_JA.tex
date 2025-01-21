@@ -1,0 +1,68 @@
+\subsubsection{MSVC: x86}
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/2_global/ex2_MSVC.asm}
+
+この場合、\emph{x}変数は\TT{\_DATA}セグメントに定義され、ローカルスタックにはメモリは割り当てられません。 スタックからではなく、直接アクセスされます。 
+初期化されていないグローバル変数は、実行可能ファイルにスペースを入れません
+（なぜ、最初に変数をゼロに設定する必要があるのでしょうか？）。
+しかし、誰かが自分のアドレスにアクセスすると、\ac{OS}は0で初期化されたブロック\footnote{これが\ac{VM}の動作です}を割り当てます。
+
+変数に明示的に値を割り当てましょう：
+
+\lstinputlisting[style=customc]{patterns/04_scanf/2_global/default_value_EN.c}
+
+以下を得ます。
+
+\begin{lstlisting}[style=customasmx86]
+_DATA	SEGMENT
+_x	DD	0aH
+
+...
+\end{lstlisting}
+
+ここでは、この変数のDWORDタイプの値\TT{0xA}（DDはDWORD = 32ビットを表します）が表示されます。
+
+\IDA にコンパイルされた.exeを開くと、\TT{\_DATA}セグメントの先頭に\emph{x}変数が配置されていて、
+その後にテキスト文字列が表示されます。
+
+\emph{x}の値が設定されていない前の例のコンパイル済み.exeを \IDA で開くと、次のように表示されます。
+
+\lstinputlisting[caption=\IDA,style=customasmx86]{patterns/04_scanf/2_global/IDA.lst}
+
+\label{BSSClearedByCStd}
+\TT{\_x}に\TT{?}がマークされていると、残りの変数は初期化する必要はありません。 
+これは、メモリに.exeをロードした後、これらすべての変数のための領域が割り当てられ、
+0で満たされる\InSqBrackets{\CNineNineStd 6.7.8p10}ことを意味します。 
+しかし、.exeファイルでは、これらの初期化されていない変数は何も占有しません。 
+これは、例えば、大きな配列の場合に便利です。
+
+\input{patterns/04_scanf/2_global/olly.tex}
+
+\subsubsection{GCC: x86}
+
+\myindex{ELF}
+Linuxの画像はほぼ同じですが、初期化されていない変数は\TT{\_bss}セグメントにあります。 
+\ac{ELF}ファイルでは、このセグメントには次の属性があります。
+
+\begin{lstlisting}
+; Segment type: Uninitialized
+; Segment permissions: Read/Write
+\end{lstlisting}
+
+ただし、変数をある値で初期化してください。 
+10の場合、次の属性を持つ\TT{\_data}セグメントに配置されます。
+
+\begin{lstlisting}
+; Segment type: Pure data
+; Segment permissions: Read/Write
+\end{lstlisting}
+
+\subsubsection{MSVC: x64}
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/04_scanf/2_global/ex2_MSVC_x64_JA.asm}
+
+コードはx86とほとんど同じです。 
+$x$変数のアドレスは、 \LEA 命令を使用して \scanf に渡され、
+変数の値は \MOV 命令を使用して2番目の \printf に渡されることに注意してください。 
+\TT{DWORD PTR}はアセンブリ言語の一部であり（マシンコードと無関係）、
+可変データサイズが32ビットであり、 \MOV 命令がそれに応じてエンコードされなければならないことを示します。

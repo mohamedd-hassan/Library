@@ -1,0 +1,19 @@
+﻿\subsection{フォールスルー}
+
+\TT{switch()}演算子の別のポピュラーな使い方は\q{フォールスルー}です。
+単純なサンプルがあります。\footnote{\url{https://github.com/azonalon/prgraas/blob/master/prog1lib/lecture_examples/is_whitespace.c}からコピーペースト}:
+
+\lstinputlisting[numbers=left,style=customc]{patterns/08_switch/4_fallthrough/fallthrough1.c}
+
+やや難しいものをLinuxカーネル\footnote{\url{https://github.com/torvalds/linux/blob/master/drivers/media/dvb-frontends/lgdt3306a.c}からコピーペースト}:
+
+\lstinputlisting[numbers=left,style=customc]{patterns/08_switch/4_fallthrough/fallthrough2.c}
+
+\lstinputlisting[caption=Optimizing GCC 5.4.0 x86,numbers=left,style=customasmx86]{patterns/08_switch/4_fallthrough/fallthrough2.s}
+
+関数の入力に3250という数字がある場合、\TT{.L5}ラベルを得ることができます。
+しかし、我々は反対側からこのラベルに行くことができます：
+\printf 呼び出しと\TT{.L5}ラベルの間にはジャンプがないことがわかります。
+
+\emph{switch()}文がバグの原因となることが理解できます。
+\emph{break}を1つ忘れるとはあなたの\emph{switch()}文を\emph{フォールスルー}に変換し、1つのブロックの代わりにいくつかのブロックが実行されます。

@@ -1,0 +1,29 @@
+﻿f:
+; \$a0=a
+; 変数rtは\$v0に存在する
+                move    $v0, $zero
+; 変数iは\$v1に存在する
+                move    $v1, $zero
+                li      $t0, 1
+                li      $a3, 32
+                sllv    $a1, $t0, $v1
+; \$a1 = \$t0<<\$v1 = 1<<i
+
+loc_14:
+                and     $a1, $a0
+; \$a1 = a\&(1<<i)
+; iをインクリメント
+                addiu   $v1, 1
+; a\&(1<<i)==0ならloc\_28にジャンプしrtをインクリメント
+                beqz    $a1, loc_28
+                addiu   $a2, $v0, 1
+; BEQZが実行されなければ、更新したrtを\$v0に保存
+                move    $v0, $a2
+
+loc_28:
+; i!=32なら、loc\_14にジャンプし、次のシフトした値を準備
+                bne     $v1, $a3, loc_14
+                sllv    $a1, $t0, $v1
+; リターン
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット、NOP

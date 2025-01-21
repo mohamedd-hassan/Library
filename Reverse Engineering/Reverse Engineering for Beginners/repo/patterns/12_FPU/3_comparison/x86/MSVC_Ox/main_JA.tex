@@ -1,0 +1,31 @@
+﻿\myparagraph{\Optimizing MSVC 2010}
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/12_FPU/3_comparison/x86/MSVC_Ox/MSVC_JA.asm}
+
+\myindex{x86!\Instructions!FCOM}
+
+\FCOM は、単に値を比較し、FPUスタックを変更しないという点で、 \FCOMP とは異なります。
+前の例とは異なり、ここではオペランドは逆順になっています。
+そのため、 \CThreeBits の比較結果は異なります。
+
+\begin{itemize}
+\item この例で $a>b$ の場合、 \CThreeBits ビットは0,0,0として設定されます。
+\item $b>a$ の場合、ビットは0,0,1です。
+\item $a=b$ の場合、ビットは1,0,0です。
+\end{itemize}
+% TODO: table?
+
+\INS{test ah, 65}命令は、2ビットの \Cthree と \Czero だけを残します。
+$a>b$ の場合は両方ともゼロになります。その場合、 \JNE ジャンプは実行されません。
+次に、\INS{FSTP ST(1)}が続きます。この命令は、\ST{0}の値をオペランドにコピーし、
+FPUスタックから1つの値をポップします。言い換えれば、命令は\ST{0}（ここでは\GTT{\_a}の値）
+が\ST{1}にコピーされます。その後、{\_a}の2つのコピーがスタックの一番上にあります。
+次に、1つの値がポップされます。その後、ST（0）には{\_a}が含まれ、機能は終了します。
+
+条件ジャンプ \JNE は、$b>a$ または $a=b$ の2つの場合に実行されます。 
+\ST{0}は\ST{0}にコピーされ、アイドル（\ac{NOP}）操作と同様に、1つの値がスタックからポップされ、
+スタックの先頭（\ST{0}）には\ST{1}前（つまり{\_b}）です。
+その後、関数は終了します。
+この命令がここで使用される理由は、\ac{FPU}にスタックから値をポップして破棄するための他の命令がないためです。
+
+\input{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly_JA.tex}

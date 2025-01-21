@@ -1,0 +1,21 @@
+\subsection{Häufiger Fehler}
+Ein häufiger (Tipp)-Fehler besteht darin, den Wert von \emph{x} anstatt eines Pointers auf \emph{x} zu übergeben.
+
+\lstinputlisting[style=customc]{patterns/04_scanf/error.c}
+
+Was geschieht hier?
+% TBT: was incorrect "not uninitialized"
+% correct:
+% \emph{x} is not initialized and contains some random noise from local stack.
+\emph{x} ist nicht uninitialisiert und enthält Zufallswerte vom lokalen Stack. Wenn \scanf aufgerufen wird, nimmt es den eingegebenen String vom Benutzer, wandelt ihn in eine Zahl um und versucht ihn nach \emph{x} zu schreiben, wobei \emph{x} wie eine Speicheradresse behandelt wird.
+Aber hier liegen Zufallswerte vor, sodass \scanf versucht an eine zufällige Speicherstelle zu schreiben. 
+Höchstwahrscheinlich wird der Prozess dadurch abstürzen.
+
+\myindex{0xCCCCCCCC}
+\myindex{0x0BADF00D}
+Bemerkenswert ist, dass manche \ac{CRT}-Bibliotheken im Debug Build gut erkennbare Muster in den gerade reservierten Speicher schreiben, wie z.B. 0xCCCCCCCC oder 0x0BADF00D usw.
+In diesem Fall könnte \emph{x} den Wert 0xCCCCCCCC enthalten und \scanf würde versuchen in die Adresse 0xCCCCCCCC zu schreiben. 
+Wenn man nun bemerkt, dass irgendein Code im Prozess in die Adresse 0xCCCCCCCC schreiben möchte, weiß man, dass eine uninitialisierte Variable (oder ein Pointer) verwendet werden.
+Dies ist besser als wenn der frisch reservierte Speicher einfach gelöscht würde.
+
+

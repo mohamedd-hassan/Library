@@ -1,0 +1,16 @@
+\section{Registre à zéro}
+
+Il manque un registre à zéro dans l'architecture x86, contrairement à MIPS et ARM.
+Toutefois, il arrive souvent que lorsqu'un compilateur assigne zéro à un registre,
+il y reste jusqu'à la fin de la fonction.
+
+C'est le cas dans le jeu Mahjong de Windows 7 x86.
+EBX mis à zéro (en 0x010281BF) est utilisé pour initialiser les variables locales,
+passer un argument à zéro aux autres fonctions et pour comparer des valeurs avec lui
+
+\lstinputlisting[caption=Mahjong.exe de Windows 7 x86, style=customasmx86]{\CURPATH/Mahjong.exe.win7x86.lst}
+
+À propos, \IDA peut renommer un registre à l'intérieur d'une fonction (presser \verb|n|):
+
+\lstinputlisting[caption=Mahjong.exe de Windows 7 x86, style=customasmx86]{\CURPATH/Mahjong.exe.win7x86_2.lst}
+

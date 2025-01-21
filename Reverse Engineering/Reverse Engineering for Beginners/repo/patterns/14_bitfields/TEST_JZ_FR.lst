@@ -1,0 +1,3 @@
+﻿TEST REG, 40h
+JZ is_cleared
+; le bit est mis (est à 1)

@@ -1,0 +1,41 @@
+\clearpage
+\subsubsection{MSVC: x86 + \olly}
+\myindex{\olly}
+
+ここではさらに単純です。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/2_global/ex2_olly_1.png}
+\caption{\olly: after \scanf execution}
+\label{fig:scanf_ex2_olly_1}
+\end{figure}
+
+変数はデータセグメントにあります。 
+\PUSH 命令（$x$のアドレスを押す）が実行されると、
+アドレスがスタックウィンドウに表示されます。 その行を右クリックし、\q{ダンプに従う}を選択します。 
+変数は、左側のメモリウィンドウに表示されます。 
+コンソールに123を入力すると、
+メモリウィンドウに\TT{0x7B}が表示されます（ハイライトされたスクリーンショット領域を参照）。
+
+しかし、最初のバイトはなぜ7Bでしょうか？ 
+論理的に考えると、\TT{00 00 00 7B}のはずです。 
+この原因は\gls{endianness}と呼ばれるもので、x86はリトルエンディアンを使用します。 
+これは、最下位バイトが最初に書き込まれ、最上位バイトが最後に書き込まれることを意味します。 
+これについての詳細：\myref{sec:endianness}
+この例では、32ビットの値がこのメモリアドレスから \EAX にロードされ、 \printf に渡されます。
+
+$x$のメモリアドレスは\TT{0x00C53394}です。
+
+\clearpage
+\olly では、プロセスメモリマップ（Alt-M）を見ることができ、
+このアドレスはプログラムの\TT{.data} PEセグメント内にあることがわかります。
+
+\label{olly_memory_map_example}
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/2_global/ex2_olly_2.png}
+\caption{\olly: process memory map}
+\label{fig:scanf_ex2_olly_2}
+\end{figure}
+

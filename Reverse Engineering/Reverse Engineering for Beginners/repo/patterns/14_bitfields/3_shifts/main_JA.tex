@@ -1,0 +1,12 @@
+﻿\subsection{\ShiftsSectionName}
+
+\CCpp でのビットシフトは $\ll$ と $\gg$ 演算子を使って実装されます。
+x86 \ac{ISA} はシフトのためにSHL (SHift Left) と SHR (SHift Right)命令を持っています。
+シフト命令はしばしば2のべき乗 $2^{n}$ において除算や乗算が使用されます（例えば1,2,4,8など）。
+\myref{subsec:mult_using_shifts}、
+\myref{division_by_shifting}。
+
+% FIXME: rework this
+
+シフト操作も非常に重要です。シフト演算は特定ビットの分離や複数の
+散在ビット値の構築に用いられることが多いからです。

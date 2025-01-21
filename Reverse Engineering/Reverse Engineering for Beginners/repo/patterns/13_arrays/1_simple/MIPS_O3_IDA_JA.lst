@@ -1,0 +1,67 @@
+﻿main:
+
+var_70          = -0x70
+var_68          = -0x68
+var_14          = -0x14
+var_10          = -0x10
+var_C           = -0xC
+var_8           = -8
+var_4           = -4
+; 関数プロローグ
+                lui     $gp, (__gnu_local_gp >> 16)
+                addiu   $sp, -0x80
+                la      $gp, (__gnu_local_gp & 0xFFFF)
+                sw      $ra, 0x80+var_4($sp)
+                sw      $s3, 0x80+var_8($sp)
+                sw      $s2, 0x80+var_C($sp)
+                sw      $s1, 0x80+var_10($sp)
+                sw      $s0, 0x80+var_14($sp)
+                sw      $gp, 0x80+var_70($sp)
+                addiu   $s1, $sp, 0x80+var_68
+                move    $v1, $s1
+                move    $v0, $zero
+; この値はループ終端として使用されます
+; コンパイル時にGCCコンパイラによって事前に計算されます
+                li      $a0, 0x28  # '('
+
+loc_34:                                  # CODE XREF: main+3C
+; 値をメモリに保存
+                sw      $v0, 0($v1)
+; 各イテレーション毎に値を2インクリメント
+                addiu   $v0, 2
+; ループ終端に到達した？
+                bne     $v0, $a0, loc_34
+; アドレスを4増やす
+                addiu   $v1, 4
+; 配列に詰め込むループが終了
+; 次のループを開始
+                la      $s3, $LC0        # "a[\%d]=\%d\textbackslash{}n"
+; "i"変数が\$s0に存在
+                move    $s0, $zero
+                li      $s2, 0x14
+
+loc_54:                                  # CODE XREF: main+70
+; printf()を呼び出す
+                lw      $t9, (printf & 0xFFFF)($gp)
+                lw      $a2, 0($s1)
+                move    $a1, $s0
+                move    $a0, $s3
+                jalr    $t9
+; "i"をインクリメント
+                addiu   $s0, 1
+                lw      $gp, 0x80+var_70($sp)
+; ループの終了に到達していなければループボディにジャンプ
+                bne     $s0, $s2, loc_54
+; メモリポインタを次の32ビットwordに移動する
+                addiu   $s1, 4
+; 関数エピローグ
+                lw      $ra, 0x80+var_4($sp)
+                move    $v0, $zero
+                lw      $s3, 0x80+var_8($sp)
+                lw      $s2, 0x80+var_C($sp)
+                lw      $s1, 0x80+var_10($sp)
+                lw      $s0, 0x80+var_14($sp)
+                jr      $ra
+                addiu   $sp, 0x80
+
+$LC0:           .ascii "a[%d]=%d\n"<0>   # DATA XREF: main+44

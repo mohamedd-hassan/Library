@@ -1,0 +1,124 @@
+\mysection{Взлом ПО}
+\myindex{\SoftwareCracking}
+
+Огромная часть ПО взламывается таким образом --- поиском того самого места, где проверяется защита, донгла (\myref{dongles}),
+лицензионный ключ, серийный номер, итд.
+
+Очень часто это так и выглядит:
+
+\begin{lstlisting}[style=customasmx86]
+...
+call check_protection
+jz   all_OK
+call message_box_protection_missing
+call exit
+all_OK:
+; proceed
+...
+\end{lstlisting}
+
+Так что если вы видите патч (или ``крэк''), взламывающий некое ПО,
+и этот патч заменяет байт(ы) 0x74/0x75 (JZ/JNZ) на 0xEB (JMP), то это оно и есть.
+
+Собственно, процесс взлома большинства ПО сводится к поиску того самого \INS{JMP}-а.
+
+\myhrule{}
+
+Но бывает и так, что ПО проверяет защиту время от времени, это может быть донгла,
+или ПО может через интернет проверять сервер лицензий.
+Тогда приходится искать ф-цию, проверяющую защиту.
+Затем пропатчить, вписав туда \TT{xor eax, eax / retn}, либо \TT{mov eax, 1 / retn}.
+
+Важно понимать, что пропатчив начало ф-ции двумя инструкциями, обычно, за ними остается некий мусор.
+Он состоит из куска одной из инструкций и нескольких последующих инструкций.
+
+Вот реальный пример.
+Начало некоей ф-ции, которую мы хотим \emph{заменить} на \TT{return 1;}
+
+\begin{lstlisting}[style=customasmx86,caption=Было]
+8BFF                           mov         edi,edi
+55                             push        ebp
+8BEC                           mov         ebp,esp
+81EC68080000                   sub         esp,000000868
+A110C00001                     mov         eax,[00100C010]
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86,caption=Стало]
+B801000000                     mov         eax,1
+C3                             retn
+EC                             in          al,dx
+68080000A1                     push        0A1000008
+10C0                           adc         al,al
+0001                           add         [ecx],al
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+Появляются несколько некорректных инструкций --- \INS{IN}, \INS{PUSH}, \INS{ADC}, \INS{ADD},
+затем дизассемблер Hiew (котором я только что воспользовался)
+синхронизируется и продолжает дизассемблировать корректно остальную часть ф-ции.
+
+Всё это не важно --- все эти инструкции следующие за \INS{RETN} не будут исполняться никогда, если только на какую-то из них не будет прямого
+перехода откуда-то, чего, конечно, в общем случае, не будет.
+
+\myhrule{}
+
+Также, нередко бывает некая глобальная булева переменная, хранящая флаг, зарегестрированно ли ПО или нет.
+
+\begin{lstlisting}[style=customasmx86]
+init_etc proc
+...
+call check_protection_or_license_file
+mov  is_demo, eax
+...
+retn
+init_etc endp
+
+...
+
+save_file proc
+...
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK1
+
+call message_box_it_is_a_demo_no_saving_allowed
+retn
+
+:all_OK1
+; continue saving file
+
+...
+
+save_proc endp
+
+somewhere_else proc
+
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK
+
+; check if we run for 15 minutes
+; exit if it is so
+; or show nagging screen
+
+:all_OK2
+; continue
+
+somewhere_else endp
+\end{lstlisting}
+
+Тут можно или патчить начало ф-ции \verb|check_protection_or_license_file()|,
+чтобы она всегда возвращала 1, либо, если вдруг так лучше,
+патчить все инструкции \INS{JZ}/\INS{JNZ}.
+
+Еще немного о модификации файлов: \ref{patching}.
+

@@ -1,0 +1,98 @@
+\mysection{setjmp/longjmp}
+
+\myindex{\CStandardLibrary!setjmp}
+\myindex{\CStandardLibrary!longjmp}
+
+Il s'agit d'un mécanisme en C qui est très similaire au mecanisme throw/catch en
+C++ ou d'autres \ac{PL}s de haut niveau.
+\myindex{zlib}
+Voici un exemple tiré de la zlib:
+
+\begin{lstlisting}[style=customc]
+...
+
+    /* return if bits() or decode() tries to read past available input */
+    if (setjmp(s.env) != 0)             /* if came back here via longjmp(), */
+        err = 2;                        /*  then skip decomp(), return error */
+    else
+	err = decomp(&s); /* decompress */
+
+...
+
+    /* load at least need bits into val */
+    val = s->bitbuf;
+    while (s->bitcnt < need) {
+        if (s->left == 0) {
+            s->left = s->infun(s->inhow, &(s->in));
+	    if (s->left == 0) longjmp(s->env, 1); /* out of input */
+
+...
+
+        if (s->left == 0) {
+            s->left = s->infun(s->inhow, &(s->in));
+	    if (s->left == 0) longjmp(s->env, 1); /* out of input */
+\end{lstlisting}
+( zlib/contrib/blast/blast.c )
+
+L'appel à \TT{setjmp()} sauve les valeurs courantes de \ac{PC}, \ac{SP} et autres
+registres dans une structure \TT{env}, puis renvoie 0.
+
+En cas d'erreur, \TT{longjmp()} vous \emph{téléporte} au point juste après l'appel
+à \TT{setjmp()}, comme si l'appel à \TT{setjmp()} avait renvoyé une valeur non nulle
+(qui avait été passée à \TT{longjmp()}).
+\myindex{UNIX!fork}
+Ceci nous rappel l'appel système \TT{fork()} sous UNIX.
+
+Maintenant, regardons un exemple épuré:
+
+\lstinputlisting[style=customc]{advanced/625_setjmp/1.c}
+
+Si nous le lançons, nous voyons:
+
+\begin{lstlisting}
+f1() begin
+f2() begin
+Error 1234
+\end{lstlisting}
+
+La structure \TT{jmp\_buf} est généralement non-documentée, pour préserver la compatibilité
+ascendante.
+
+Regardons comment setjmp() est implémenté dans MSVC 2013 x64:
+
+\lstinputlisting[style=customasmx86]{advanced/625_setjmp/setjmp_VC2013_x64.asm}
+
+Cela remplit juste la structure jmp\_buf avec la valeur courante de presque tous les registres.
+Aussi, la valeur courante de \ac{RA} est prise de la pile et sauvée dans jmp\_buf:
+elle sera utilisée comme nouvelle valeur de \ac{PC} dans le futur.
+
+Maintenant longjmp():
+
+\lstinputlisting[style=customasmx86]{advanced/625_setjmp/longjmp_VC2013_x64.asm}
+
+Cela restaure (presque) tous les registres, prend \ac{RA} dans la structure et y saute.
+Ceci fonctionne en effet comme si setjmp() retournait à l'appelant.
+Aussi, \TT{RAX} est mis pour être égal au second argument de longjmp().
+Ceci fonctionne comme si setjmp() renvoyait une valeur non-zéro en première place. % clarify
+
+Comme effet de bord de la restauration de \ac{SP}, toutes les valeurs dans la pile qui
+ont été définies et utilisées entre les appels à setjmp() et longjmp() sont laissées
+tomber.
+Elles ne seront plus utilisées du tout.
+Ainsi, longjmp() saute usuellement en arrière
+\footnote{Toutefois, il y a des gens qui l'utilisent pour des choses bien plus compliquées,
+imitation des coroutines, etc.: \url{https://www.embeddedrelated.com/showarticle/455.php},
+\url{http://fanf.livejournal.com/105413.html}}.
+
+Ceci implique que, contrairement au mécanisme throw/catch en \Cpp, aucune mémoire
+ne sera libérée, aucun destructeur ne sera appelé, etc.
+Ainsi, cette technique peut parfois être dangereuse.
+Néanmoins, elle est assez populaire. C'est toujours utilisé dans \oracle.
+
+Cela a aussi un effet de bord inattendu: si un buffer a été dépassé dans une des
+fonctions (peut-être à cause d'une attaque distante), et qu'une fonction veut signaler
+une erreur, et ça appelle longjmp(), la partie de la pile récrite ne sera pas utilisée.
+
+À titre d'exercice, vous pouvez essayer de comprendre pourquoi tous les registres
+ne sont pas sauvegardés.
+Pourquoi XMM0-XMM5 et d'autres registres sont évités?

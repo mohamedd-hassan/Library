@@ -1,0 +1,16 @@
+﻿\subsection{疑似乱数値の生成例を再訪}
+\label{FPU_PRNG_SIMD}
+
+\q{疑似乱数値の生成例}を再訪しましょう：\lstref{FPU_PRNG}
+
+MSVC 2012でコンパイルすると、FPU用にSIMD命令を使用します。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/205_floating_SIMD/FPU_PRNG/MSVC2012_Ox_Ob0_JA.asm}
+
+% FIXME1 rewrite!
+
+命令はすべて-SS接尾辞がついています。これは、\q{Scalar Single}を表します。
+
+\q{Scalar} は、1つの値だけがレジスタに格納されることを意味します。
+
+\q{Single}\footnote{すなわち、単精度}は \Tfloat データ型を表します。

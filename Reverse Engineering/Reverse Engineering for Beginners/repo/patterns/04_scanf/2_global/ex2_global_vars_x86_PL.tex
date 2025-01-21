@@ -1,0 +1,64 @@
+\subsubsection{MSVC: x86}
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/2_global/ex2_MSVC.asm}
+
+W tym przypadku zmienna \TT{x} jest zdefiniowana w segmencie \TT{\_DATA} i nie następuje alokacja pamięci na stosie lokalnym. Dostęp do zmiennej jest bezpośredni, z pominięciem stosu.
+Niezainicjalizowane zmienne globalne nie zajmują miejsca w pliku wykonywalnym (po co alokować wyzerowaną pamięć?), dopiero w momencie odwołania pod adres zmiennej, \ac{OS} alokuje blok pamięci, wypełniony zerami.
+
+Przypiszmy teraz wprost wartość do zmiennej:
+
+\lstinputlisting[style=customc]{patterns/04_scanf/2_global/default_value_PL.c}
+
+Otrzymamy:
+
+\begin{lstlisting}[style=customasmx86]
+_DATA	SEGMENT
+_x	DD	0aH
+
+...
+\end{lstlisting}
+
+Widać przypisaną wartość \TT{0xA} typu DWORD  (DD oznacza DWORD, czyli 32 bity).
+
+Jeśli otworzysz skompilowany plik .exe w programie \IDA, zobaczysz zmienną \emph{x} na początku segmentu \TT{\_DATA}, a zaraz za nią ciąg znaków.
+
+Gdybyś otworzył w programie \IDA skompilowany plik .exe z poprzedniego przykładu (gdy \emph{x} była niezainicjalizowana), zobaczyłbyś podobny wynik:
+
+\lstinputlisting[caption=\IDA,style=customasmx86]{patterns/04_scanf/2_global/IDA.lst}
+
+\label{BSSClearedByCStd}
+Zmienna \TT{\_x} razem z innymi zmiennymi, które nie muszą być zainicjalizowane, jest oznaczona za pomocą \TT{?}.
+To powoduje, że po załadowaniu pliku wykonalnego do pamięci, miejsce na te zmienne jest zaalokowane i wypełnione zerami \InSqBrackets{\CNineNineStd 6.7.8p10}.
+W samym pliku wykonywalnym niezainicjalizowane zmienne nie zajmują żadnego miejsca. Ma to swoje zalety, np. przy dużych tablicach.
+
+\input{patterns/04_scanf/2_global/olly.tex}
+
+\subsubsection{GCC: x86}
+
+\myindex{ELF}
+Wynik kompilacji na Linuksie jest prawi taki sam, różnicą jest to, że niezainicjalizowana zmienna jest umieszczona w segmencie \TT{\_bss}.
+W plikach \ac{ELF} ten segment ma następujące atrybuty:
+
+\begin{lstlisting}
+; Segment type: Uninitialized
+; Segment permissions: Read/Write
+\end{lstlisting}
+
+Jeśli jednak nadasz zmiennej jakość wartość, np. 10,
+zostanie umieszczona w segmencie \TT{\_data}, który z kolei ma atrybuty:
+
+\begin{lstlisting}
+; Segment type: Pure data
+; Segment permissions: Read/Write
+\end{lstlisting}
+
+\subsubsection{MSVC: x64}
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/04_scanf/2_global/ex2_MSVC_x64_PL.asm}
+
+Kod jest niemal taki sam jak na x86.
+Zauważ, że adres zmiennej $x$ jest przekazany do funkcji \TT{scanf()} za pomocą instrukcji \LEA,
+ale wartość zmiennej jest przekazywana do drugiego wywołania \printf za pomocą instrukcji \MOV.
+\TT{DWORD PTR}---to część kodu w asemblerze (bez związku z kodem maszynowym),
+pokazująca, że zmienna jest 32-bitowa i instrukcja \MOV musi być odpowiednio zakodowana (opcode stosowny do rozmiaru).
+

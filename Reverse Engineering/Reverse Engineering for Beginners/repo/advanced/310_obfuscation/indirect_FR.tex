@@ -1,0 +1,62 @@
+\subsubsection{Utilisation de pointeurs indirects}
+
+\begin{lstlisting}[style=customasmx86]
+dummy_data1	db	100h dup (0)
+message1	db	'hello world',0
+
+dummy_data2	db	200h dup (0)
+message2	db	'another message',0
+
+func		proc
+		...
+		mov	eax, offset dummy_data1 ; PE or ELF reloc here
+		add	eax, 100h
+		push	eax
+		call	dump_string
+		...
+		mov	eax, offset dummy_data2 ; PE or ELF reloc here
+		add	eax, 200h
+		push	eax
+		call	dump_string
+		...
+func		endp
+\end{lstlisting}
+
+\IDA{} montrera seulement les références à \TT{dummy\_data1} et \TT{dummy\_data2},
+mais pas aux chaînes de textes.
+
+Les variables globales et même les fonctions peuvent être accédées comme ça.
+
+Maintenant, quelque chose de légèrement plus avancé.
+
+Franchement, je ne connais pas con nom exact, mais je vais l'appeler \textit{pointeur décalés}.
+Cette technique est assez commune, au moins dans les systèmes de protection contre
+la copie.
+
+En bref: lorsque vous écrivez une valeur dans la mémoire globale, vous utilisez
+une adresse, mais lorsque vous lisez, vous utilisez la somme d'une (autre) adresse,
+ou peut-être une différence.
+Le but est de cacher l'adresse réelle au rétro-ingénieur qui débogue le code ou
+l'explore dans \IDA (ou un autre désassembleur).
+
+Ceci peut être pénible.
+
+\lstinputlisting[style=customc]{\CURPATH/indirect.c}
+
+Compiler avec MSVC 2015 sans optimisation:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/indirect.asm}
+
+Vous voyez, \IDA obtient seulement deux adresses: \verb|secret_array[]| (début du
+tableau) et \verb|point_passed_to_get_byte_at_0x6000|.
+
+Comment s'y prendre: vous pouvez utiliser les point d'arrêt matériel sur les opérations
+d'accès en mémoire, \tracer possède l'option \TT{BPMx}) ou des moteurs d'exécution
+symbolique ou peut-être écrire un module pour \IDA\dots
+
+C'est sûr, un tableau peut être utiliser pour des nombreuses valeurs, non limité
+aux booléennes\dots
+
+N.B.: MSVC 2015 avec optimisation est assez malin pour optimiser la fonction\\
+\verb|get_byte_at_0x6000()|.
+

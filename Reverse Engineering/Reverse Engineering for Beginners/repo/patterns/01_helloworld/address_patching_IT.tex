@@ -1,0 +1,68 @@
+\subsubsection{Address patching (Win64)}
+
+Se il nostro esempio venisse compilato in MSVC 2013 utilizzando lo switch \TT{/MD}
+(che significa un eseguibile più piccolo a causa del link dei file \TT{MSVCR*.DLL}), la funzione \main verrebbe prima, e può essere trovata facilmente:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr1.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Come esperimento, possiamo \glslink{increment}{incrementare} l'indirizzo di 1:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr2.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Hiew mostra \q{ello, world}.
+E quando lanciamo l'eseguibile modificato, viene stampata proprio questa stringa.
+
+\subsubsection{Scegliere un'altra stringa dall'immagine binaria (Linux x64)}
+
+Il file binario che si ottiene compilando il nostro esempio tramite GCC 5.4.0 su Linux x64 contiene molte altre stringhe di testo.
+Si tratta principalmente di nomi di funzioni e librerie importate.
+
+Esegui objdump per ottenere il contenuto di tutte le sezioni del file compilato:
+
+\begin{lstlisting}[basicstyle=\ttfamily, mathescape]
+$\$$ objdump -s a.out
+
+a.out:     file format elf64-x86-64
+
+Contents of section .interp:
+ 400238 2f6c6962 36342f6c 642d6c69 6e75782d  /lib64/ld-linux-
+ 400248 7838362d 36342e73 6f2e3200           x86-64.so.2.
+Contents of section .note.ABI-tag:
+ 400254 04000000 10000000 01000000 474e5500  ............GNU.
+ 400264 00000000 02000000 06000000 20000000  ............ ...
+Contents of section .note.gnu.build-id:
+ 400274 04000000 14000000 03000000 474e5500  ............GNU.
+ 400284 fe461178 5bb710b4 bbf2aca8 5ec1ec10  .F.x[.......^...
+ 400294 cf3f7ae4                             .?z.
+
+...
+\end{lstlisting}
+
+Non è un problema passare l'indirizzo della stringa di test \q{/lib64/ld-linux-x86-64.so.2} a \TT{printf()}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int main()
+{
+    printf(0x400238);
+    return 0;
+}
+\end{lstlisting}
+
+E' difficile da credere, ma questo codice stampa la stringa citata prima.
+
+Se cambiassi l'indirizzo a \TT{0x400260}, verrebbe stampata la stringa \q{GNU}.
+Questo indirizzo è corretto per la mia specifica versione di GCC, GNU toolset, etc.
+Sul tuo sistema, l'eseguibile potrebbe essere leggermente differente, e anche tutti gli indirizzi sarebbero differenti.
+Inoltre, aggiungendo o rimuovendo del codice in/da questo codice sorgente probabilmente sposterebbe tutti gli indirizzi in avanti o indietro.

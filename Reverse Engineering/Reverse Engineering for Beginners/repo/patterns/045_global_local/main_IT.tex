@@ -1,0 +1,8 @@
+\mysection{Degno di nota: variabili globali vs locali}
+
+Ora sappiamo che all'inizio le variabili globali vengono riempite di zeri dall' \ac{OS}
+(\myref{BSSClearedByCStd}, \InSqBrackets{\CNineNineStd 6.7.8p10}),
+ma ciò non avviene per le variabili locali (\myref{noise_in_stack}).
+
+A volte, ci dimentichiamo di inizializzare una variabile globale e il nostro programma si basa sul fatto che avrà degli zeri all'inizio.
+Se in seguito spostiamo la variabile globale in una funzione rendendola locale, non sarà più azzerata all'inizio e potremmo avere dei bug come risultato.

@@ -1,0 +1,510 @@
+\newcommand{\RepoURL}{https://beginners.re/current-tree}
+
+\newcommand{\ProgCalcURL}{\url{https://yurichev.com/progcalc/}}
+\newcommand{\FNURLMSDNZP}{\footnote{\href{https://docs.microsoft.com/en-us/previous-versions/ms253935(v=vs.90)}{MSDN: Working with Packing Structures}}}
+\newcommand{\FNURLGCCPC}{\footnote{\href{https://gcc.gnu.org/onlinedocs/gcc-4.4.4/gcc/Structure_002dPacking-Pragmas.html}{Structure-Packing Pragmas}}}
+\newcommand{\MSDNscanf}{\href{https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/scanf-scanf-l-wscanf-wscanf-l?view=vs-2019}{MSDN}}
+
+\newcommand{\WikipediaParityFlag}{\url{https://en.wikipedia.org/wiki/Parity_flag}}
+
+\newcommand{\ESph}{\ES{{\color{red}Spanish text placeholder}}}
+\newcommand{\PTBRph}{\PTBR{{\color{red}Brazilian Portuguese text placeholder}}}
+\newcommand{\PLph}{\PL{{\color{red}Polish text placeholder}}}
+\newcommand{\ITph}{\IT{{\color{red}Italian text placeholder}}}
+\newcommand{\DEph}{\DE{{\color{red}German text placeholder}}}
+\newcommand{\THAph}{\THA{{\color{red}Thai text placeholder}}}
+\newcommand{\NLph}{\NL{{\color{red}Dutch text placeholder}}}
+\newcommand{\FRph}{\FR{{\color{red}French text placeholder}}}
+\newcommand{\JAph}{\JA{{\color{red}Japanese text placeholder}}}
+\newcommand{\TRph}{\TR{{\color{red}Turkish text placeholder}}}
+
+\newcommand{\myhrule}{\begin{center}\rule{0.5\textwidth}{.4pt}\end{center}}
+
+% TODO: find better name:
+\newcommand{\myincludegraphics}[1]{\includegraphics[width=\textwidth]{#1}}
+\newcommand{\myincludegraphicsSmall}[1]{\includegraphics[width=0.3\textwidth]{#1}}
+
+%\newcommand{\myincludegraphicsSmallOrNormalForEbook}{\myincludegraphicsSmall}
+
+% advertisement:
+%\ifdefined\ENGLISH{}
+%\newcommand{\mysection}[2][]{
+%    \clearpage\input{ad_EN}\clearpage
+%    \ifx&#1& \section{#2}
+%    \else    \section[#1]{#2}
+%    \fi
+%}
+%\else
+\newcommand{\mysection}[2][]{
+    \ifx&#1& \section{#2}
+    \else    \section[#1]{#2}
+    \fi
+}
+%\fi
+
+%\newcommand*{\TT}[1]{\texttt{#1}}
+% synonyms, so far
+\newcommand*{\InSqBrackets}[1]{\lbrack{}#1\rbrack{}}
+
+% too contrast text?
+%\newcommand*{\TT}[1]{\colorbox{light-gray}{\texttt{#1}}}
+%\newcommand*{\GTT}[1]{\colorbox{light-gray}{\texttt{#1}}}
+\newcommand*{\TT}[1]{\texttt{#1}}
+\newcommand*{\GTT}[1]{\texttt{#1}}
+
+%\newcommand*{\EN}[1]{\iflanguage{english}{#1}{}}
+
+\newcommand{\HeaderColor}{\cellcolor{blue!25}}
+
+\ifdefined\ENGLISH{}
+\newcommand*{\EN}[1]{#1}
+\else
+\newcommand*{\EN}[1]{}
+\fi
+
+\ifdefined\RUSSIAN{}
+%\newcommand*{\RU}[1]{\iflanguage{russian}{#1}{}}
+\newcommand*{\RU}[1]{#1}
+\else
+\newcommand*{\RU}[1]{}
+\fi
+
+\ifdefined\CHINESE{}
+%\newcommand*{\CN}[1]{\iflanguage{chinese}{#1}{}}
+\newcommand*{\CN}[1]{#1}
+\else
+\newcommand*{\CN}[1]{}
+\fi
+
+\ifdefined\SPANISH{}
+%\newcommand*{\ES}[1]{\iflanguage{spanish}{#1}{}}
+\newcommand*{\ES}[1]{#1}
+\else
+\newcommand*{\ES}[1]{}
+\fi
+
+\ifdefined\ITALIAN{}
+%\newcommand*{\IT}[1]{\iflanguage{italian}{#1}{}}
+\newcommand*{\IT}[1]{#1}
+\else
+\newcommand*{\IT}[1]{}
+\fi
+
+\ifdefined\BRAZILIAN{}
+%\newcommand*{\PTBR}[1]{\iflanguage{portuges}{#1}{}}
+\newcommand*{\PTBR}[1]{#1}
+\else
+\newcommand*{\PTBR}[1]{}
+\fi
+
+\ifdefined\POLISH{}
+%\newcommand*{\PL}[1]{\iflanguage{polish}{#1}{}}
+\newcommand*{\PL}[1]{#1}
+\else
+\newcommand*{\PL}[1]{}
+\fi
+
+\ifdefined\GERMAN{}
+%\newcommand*{\DE}[1]{\iflanguage{german}{#1}{}}
+\newcommand*{\DE}[1]{#1}
+\else
+\newcommand*{\DE}[1]{}
+\fi
+
+\ifdefined\THAI{}
+%\newcommand*{\THA}[1]{\iflanguage{thai}{#1}{}}
+\newcommand*{\THA}[1]{#1}
+\else
+\newcommand*{\THA}[1]{}
+\fi
+
+\ifdefined\DUTCH{}
+%\newcommand*{\NL}[1]{\iflanguage{dutch}{#1}{}}
+\newcommand*{\NL}[1]{#1}
+\else
+\newcommand*{\NL}[1]{}
+\fi
+
+\ifdefined\FRENCH{}
+%\newcommand*{\FR}[1]{\iflanguage{french}{#1}{}}
+\newcommand*{\FR}[1]{#1}
+\else
+\newcommand*{\FR}[1]{}
+\fi
+
+\ifdefined\JAPANESE{}
+%\newcommand*{\JPN}[1]{\iflanguage{japanese}{#1}{}}
+\newcommand*{\JA}[1]{#1}
+\else
+\newcommand*{\JA}[1]{}
+\fi
+
+\ifdefined\TURKISH{}
+%\newcommand*{\TR}[1]{\iflanguage{turkish}{#1}{}}
+\newcommand*{\TR}[1]{#1}
+\else
+\newcommand*{\TR}[1]{}
+\fi
+
+\newcommand*{\dittoclosing}{---''---}
+\newcommand*{\AsteriskOne}{${}^{*}$}
+\newcommand*{\AsteriskTwo}{${}^{**}$}
+\newcommand*{\AsteriskThree}{${}^{***}$}
+
+% http://www.ctan.org/pkg/csquotes
+\newcommand{\q}[1]{\enquote{#1}}
+
+\newcommand{\var}[1]{\textit{#1}}
+
+\newcommand{\ttf}{\GTT{f()}\xspace}
+\newcommand{\ttfone}{\GTT{f1()}\xspace}
+
+% http://tex.stackexchange.com/questions/32160/new-line-after-paragraph
+\newcommand{\myparagraph}[1]{\paragraph{#1}\mbox{}\\}
+\newcommand{\mysubparagraph}[1]{\subparagraph{#1}\mbox{}\\}
+
+\newcommand{\figref}[1]{\figname{}\ref{#1}\xspace}
+\newcommand{\lstref}[1]{\listingname{}\ref{#1}\xspace}
+\newcommand{\MacOSX}{Mac OS X\xspace}
+
+% FIXME TODO non-overlapping color!
+% \newcommand{\headercolor}{\cellcolor{blue!25}}
+\newcommand{\headercolor}{}
+
+% FIXME: get rid of:
+\newcommand{\IDA}{\ac{IDA}\xspace}
+
+% FIXME: get rid of:
+\newcommand{\tracer}{\protect\gls{tracer}\xspace}
+
+\newcommand{\Tchar}{\emph{char}\xspace}
+\newcommand{\Tint}{\emph{int}\xspace}
+\newcommand{\Tbool}{\emph{bool}\xspace}
+\newcommand{\Tfloat}{\emph{float}\xspace}
+\newcommand{\Tdouble}{\emph{double}\xspace}
+\newcommand{\Tvoid}{\emph{void}\xspace}
+\newcommand{\ITthis}{\emph{this}\xspace}
+
+\newcommand{\Ox}{\GTT{/Ox}\xspace}
+\newcommand{\Obzero}{\GTT{/Ob0}\xspace}
+\newcommand{\Othree}{\GTT{-O3}\xspace}
+
+\newcommand{\oracle}{Oracle RDBMS\xspace}
+
+\newcommand{\idevices}{iPod/iPhone/iPad\xspace}
+\newcommand{\olly}{OllyDbg\xspace}
+
+% common C functions
+\newcommand{\printf}{\GTT{printf()}\xspace}
+\newcommand{\puts}{\GTT{puts()}\xspace}
+\newcommand{\main}{\GTT{main()}\xspace}
+\newcommand{\qsort}{\GTT{qsort()}\xspace}
+\newcommand{\strlen}{\GTT{strlen()}\xspace}
+\newcommand{\scanf}{\GTT{scanf()}\xspace}
+\newcommand{\rand}{\GTT{rand()}\xspace}
+
+
+% for easier fiddling with formatting of all instructions together
+\newcommand{\INS}[1]{\GTT{#1}\xspace}
+
+% x86 instructions
+\newcommand{\ADD}{\INS{ADD}}
+\newcommand{\ADRP}{\INS{ADRP}}
+\newcommand{\AND}{\INS{AND}}
+\newcommand{\CALL}{\INS{CALL}}
+\newcommand{\CPUID}{\INS{CPUID}}
+\newcommand{\CMP}{\INS{CMP}}
+\newcommand{\DEC}{\INS{DEC}}
+\newcommand{\FADDP}{\INS{FADDP}}
+\newcommand{\FCOM}{\INS{FCOM}}
+\newcommand{\FCOMP}{\INS{FCOMP}}
+\newcommand{\FCOMI}{\INS{FCOMI}}
+\newcommand{\FCOMIP}{\INS{FCOMIP}}
+\newcommand{\FUCOM}{\INS{FUCOM}}
+\newcommand{\FUCOMI}{\INS{FUCOMI}}
+\newcommand{\FUCOMIP}{\INS{FUCOMIP}}
+\newcommand{\FUCOMPP}{\INS{FUCOMPP}}
+\newcommand{\FDIVR}{\INS{FDIVR}}
+\newcommand{\FDIV}{\INS{FDIV}}
+\newcommand{\FLD}{\INS{FLD}}
+\newcommand{\FMUL}{\INS{FMUL}}
+\newcommand{\MUL}{\INS{MUL}}
+\newcommand{\FSTP}{\INS{FSTP}}
+\newcommand{\FDIVP}{\INS{FDIVP}}
+\newcommand{\IDIV}{\INS{IDIV}}
+\newcommand{\IMUL}{\INS{IMUL}}
+\newcommand{\INC}{\INS{INC}}
+\newcommand{\JAE}{\INS{JAE}}
+%\newcommand{\JA}{\INS{JA}} % now used for Japanese text
+\newcommand{\JBE}{\INS{JBE}}
+\newcommand{\JB}{\INS{JB}}
+\newcommand{\JE}{\INS{JE}}
+\newcommand{\JGE}{\INS{JGE}}
+\newcommand{\JG}{\INS{JG}}
+\newcommand{\JLE}{\INS{JLE}}
+\newcommand{\JL}{\INS{JL}}
+\newcommand{\JMP}{\INS{JMP}}
+\newcommand{\JNE}{\INS{JNE}}
+\newcommand{\JNZ}{\INS{JNZ}}
+\newcommand{\JNA}{\INS{JNA}}
+\newcommand{\JNAE}{\INS{JNAE}}
+\newcommand{\JNB}{\INS{JNB}}
+\newcommand{\JNBE}{\INS{JNBE}}
+\newcommand{\JZ}{\INS{JZ}}
+\newcommand{\JP}{\INS{JP}}
+\newcommand{\Jcc}{\INS{Jcc}}
+\newcommand{\SETcc}{\INS{SETcc}}
+\newcommand{\LEA}{\INS{LEA}}
+\newcommand{\LOOP}{\INS{LOOP}}
+\newcommand{\MOVSX}{\INS{MOVSX}}
+\newcommand{\MOVZX}{\INS{MOVZX}}
+\newcommand{\MOV}{\INS{MOV}}
+\newcommand{\NOP}{\INS{NOP}}
+\newcommand{\POP}{\INS{POP}}
+\newcommand{\PUSH}{\INS{PUSH}}
+\newcommand{\NOT}{\INS{NOT}}
+\newcommand{\NOR}{\INS{NOR}}
+\newcommand{\RET}{\INS{RET}}
+\newcommand{\RETN}{\INS{RETN}}
+\newcommand{\SETNZ}{\INS{SETNZ}}
+\newcommand{\SETBE}{\INS{SETBE}}
+\newcommand{\SETNBE}{\INS{SETNBE}}
+\newcommand{\SUB}{\INS{SUB}}
+\newcommand{\TEST}{\INS{TEST}}
+\newcommand{\TST}{\INS{TST}}
+\newcommand{\FNSTSW}{\INS{FNSTSW}}
+\newcommand{\SAHF}{\INS{SAHF}}
+\newcommand{\XOR}{\INS{XOR}}
+\newcommand{\OR}{\INS{OR}}
+\newcommand{\SHL}{\INS{SHL}}
+\newcommand{\SHR}{\INS{SHR}}
+\newcommand{\SAR}{\INS{SAR}}
+\newcommand{\LEAVE}{\INS{LEAVE}}
+\newcommand{\MOVDQA}{\INS{MOVDQA}}
+\newcommand{\MOVDQU}{\INS{MOVDQU}}
+\newcommand{\PADDD}{\INS{PADDD}}
+\newcommand{\PCMPEQB}{\INS{PCMPEQB}}
+\newcommand{\LDR}{\INS{LDR}}
+\newcommand{\LSL}{\INS{LSL}}
+\newcommand{\LSR}{\INS{LSR}}
+\newcommand{\ASR}{\INS{ASR}}
+\newcommand{\RSB}{\INS{RSB}}
+\newcommand{\BTR}{\INS{BTR}}
+\newcommand{\BTS}{\INS{BTS}}
+\newcommand{\BTC}{\INS{BTC}}
+\newcommand{\LUI}{\INS{LUI}}
+\newcommand{\ORI}{\INS{ORI}}
+\newcommand{\BIC}{\INS{BIC}}
+\newcommand{\EOR}{\INS{EOR}}
+\newcommand{\MOVS}{\INS{MOVS}}
+\newcommand{\LSLS}{\INS{LSLS}}
+\newcommand{\LSRS}{\INS{LSRS}}
+\newcommand{\FMRS}{\INS{FMRS}}
+\newcommand{\CMOVNE}{\INS{CMOVNE}}
+\newcommand{\CMOVNZ}{\INS{CMOVNZ}}
+\newcommand{\ROL}{\INS{ROL}}
+\newcommand{\CSEL}{\INS{CSEL}}
+\newcommand{\SLL}{\INS{SLL}}
+\newcommand{\SLLV}{\INS{SLLV}}
+\newcommand{\SW}{\INS{SW}}
+\newcommand{\LW}{\INS{LW}}
+
+% x86 flags
+
+\newcommand{\ZF}{\GTT{ZF}\xspace}
+\newcommand{\CF}{\GTT{CF}\xspace}
+\newcommand{\PF}{\GTT{PF}\xspace}
+
+% x86 registers
+
+\newcommand{\AL}{\GTT{AL}\xspace}
+\newcommand{\AH}{\GTT{AH}\xspace}
+\newcommand{\AX}{\GTT{AX}\xspace}
+\newcommand{\EAX}{\GTT{EAX}\xspace}
+\newcommand{\EBX}{\GTT{EBX}\xspace}
+\newcommand{\ECX}{\GTT{ECX}\xspace}
+\newcommand{\EDX}{\GTT{EDX}\xspace}
+\newcommand{\DL}{\GTT{DL}\xspace}
+\newcommand{\ESI}{\GTT{ESI}\xspace}
+\newcommand{\EDI}{\GTT{EDI}\xspace}
+\newcommand{\EBP}{\GTT{EBP}\xspace}
+\newcommand{\ESP}{\GTT{ESP}\xspace}
+\newcommand{\RSP}{\GTT{RSP}\xspace}
+\newcommand{\EIP}{\GTT{EIP}\xspace}
+\newcommand{\RIP}{\GTT{RIP}\xspace}
+\newcommand{\RAX}{\GTT{RAX}\xspace}
+\newcommand{\RBX}{\GTT{RBX}\xspace}
+\newcommand{\RCX}{\GTT{RCX}\xspace}
+\newcommand{\RDX}{\GTT{RDX}\xspace}
+\newcommand{\RBP}{\GTT{RBP}\xspace}
+\newcommand{\RSI}{\GTT{RSI}\xspace}
+\newcommand{\RDI}{\GTT{RDI}\xspace}
+\newcommand*{\ST}[1]{\GTT{ST(#1)}\xspace}
+\newcommand*{\XMM}[1]{\GTT{XMM#1}\xspace}
+
+% ARM
+\newcommand*{\Reg}[1]{\GTT{R#1}\xspace}
+\newcommand*{\RegX}[1]{\GTT{X#1}\xspace}
+\newcommand*{\RegW}[1]{\GTT{W#1}\xspace}
+\newcommand*{\RegD}[1]{\GTT{D#1}\xspace}
+\newcommand{\ADREQ}{\GTT{ADREQ}\xspace}
+\newcommand{\ADRNE}{\GTT{ADRNE}\xspace}
+\newcommand{\BEQ}{\GTT{BEQ}\xspace}
+
+% FIXME tidy this pls
+\newcommand{\RegTableThree}[5]{
+\begin{center}
+\begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+\hline
+\RegHeaderTop \\
+\hline
+\RegHeader \\
+\hline
+\multicolumn{8}{ | c | }{#1} \\
+\hline
+\multicolumn{4}{ | c | }{} & \multicolumn{4}{ c | }{#2} \\
+\hline
+\multicolumn{6}{ | c | }{} & \multicolumn{2}{ c | }{#3} \\
+\hline
+\multicolumn{6}{ | c | }{} & #4 & #5 \\
+\hline
+\end{tabular}
+\end{center}
+}
+
+\newcommand{\RegTableOne}[5]{\RegTableThree{#1\textsuperscript{x64}}{#2}{#3}{#4}{#5}}
+
+\newcommand{\RegTableTwo}[4]{
+\begin{center}
+\begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+\hline
+\RegHeaderTop \\
+\hline
+\RegHeader \\
+\hline
+\multicolumn{8}{ | c | }{#1\textsuperscript{x64}} \\
+\hline
+\multicolumn{4}{ | c | }{} & \multicolumn{4}{ c | }{#2} \\
+\hline
+\multicolumn{6}{ | c | }{} & \multicolumn{2}{ c | }{#3} \\
+\hline
+\multicolumn{7}{ | c | }{} & #4\textsuperscript{x64} \\
+\hline
+\end{tabular}
+\end{center}
+}
+
+\newcommand{\RegTableFour}[4]{
+\begin{center}
+\begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+\hline
+\RegHeaderTop \\
+\hline
+\RegHeader \\
+\hline
+\multicolumn{8}{ | c | }{#1} \\
+\hline
+\multicolumn{4}{ | c | }{} & \multicolumn{4}{ c | }{#2} \\
+\hline
+\multicolumn{6}{ | c | }{} & \multicolumn{2}{ c | }{#3} \\
+\hline
+\multicolumn{7}{ | c | }{} & #4 \\
+\hline
+\end{tabular}
+\end{center}
+}
+
+\newcommand{\NonOptimizingKeilVI}{\NonOptimizing Keil 6/2013\xspace}
+\newcommand{\OptimizingKeilVI}{\Optimizing Keil 6/2013\xspace}
+\newcommand{\NonOptimizingXcodeIV}{\NonOptimizing Xcode 4.6.3 (LLVM)\xspace}
+\newcommand{\OptimizingXcodeIV}{\Optimizing Xcode 4.6.3 (LLVM)\xspace}
+
+\newcommand{\OracleTablesName}{oracle tables\xspace}
+\newcommand{\oracletables}{\OracleTablesName\footnote{\href{http://yurichev.com/oracle_tables.html}{yurichev.com}}\xspace}
+
+\newcommand{\BGREPURL}{\href{https://github.com/yurichev/bgrep}{GitHub}}
+\newcommand{\FNMSDNROTxURL}{\footnote{\href{http://msdn.microsoft.com/en-us/library/5cc576c4.aspx}{MSDN}}}
+
+\newcommand{\YurichevIDAIDCScripts}{https://github.com/yurichev/IDA_scripts}
+
+% sources: books, etc
+\newcommand{\TAOCPvolI}{Donald E. Knuth, \emph{The Art of Computer Programming}, Volume 1, 3rd ed., (1997)}
+\newcommand{\TAOCPvolII}{Donald E. Knuth, \emph{The Art of Computer Programming}, Volume 2, 3rd ed., (1997)}
+\newcommand{\Russinovich}{Mark Russinovich, \emph{Microsoft Windows Internals}}
+\newcommand{\Schneier}{Bruce Schneier, \emph{Applied Cryptography}, (John Wiley \& Sons, 1994)}
+\newcommand{\AgnerFog}{Agner Fog, \emph{The microarchitecture of Intel, AMD and VIA CPUs}, (2016)}
+\newcommand{\AgnerFogCPP}{Agner Fog, \emph{Optimizing software in C++} (2015)}
+\newcommand{\AgnerFogCC}{Agner Fog, \emph{Calling conventions} (2015)}
+\newcommand{\JavaBook}{[Tim Lindholm, Frank Yellin, Gilad Bracha, Alex Buckley, \emph{The Java(R) Virtual Machine Specification / Java SE 7 Edition}]
+\footnote{\AlsoAvailableAs \url{https://docs.oracle.com/javase/specs/jvms/se7/jvms7.pdf}; \url{http://docs.oracle.com/javase/specs/jvms/se7/html/}}}
+
+\newcommand{\ARMPCS}{\InSqBrackets{\emph{Procedure Call Standard for the ARM 64-bit Architecture (AArch64)}, (2013)}\footnote{\AlsoAvailableAs \url{http://infocenter.arm.com/help/topic/com.arm.doc.ihi0055b/IHI0055B_aapcs64.pdf}}}
+
+\newcommand{\IgorSkochinsky}{[Igor Skochinsky, \emph{Compiler Internals: Exceptions and RTTI}, (2012)] \footnote{\AlsoAvailableAs \url{http://yurichev.com/mirrors/RE/Recon-2012-Skochinsky-Compiler-Internals.pdf}}}
+
+\newcommand{\PietrekSEH}{[Matt Pietrek, \emph{A Crash Course on the Depths of Win32\texttrademark{} Structured Exception Handling}, (1997)]\footnote{\AlsoAvailableAs \url{http://www.microsoft.com/msj/0197/Exception/Exception.aspx}}}
+
+\newcommand{\PietrekPE}{Matt Pietrek, \emph{An In-Depth Look into the Win32 Portable Executable File Format}, (2002)]}
+
+\newcommand{\PietrekPEURL}{\PietrekPE\footnote{\AlsoAvailableAs \url{http://msdn.microsoft.com/en-us/magazine/bb985992.aspx}}}
+
+\newcommand{\RitchieDevC}{[Dennis M. Ritchie, \emph{The development of the C language}, (1993)]\footnote{\AlsoAvailableAs \href{https://yurichev.com/mirrors/C/dmr-The\%20Development\%20of\%20the\%20C\%20Language-1993.pdf}{pdf}}}
+
+\newcommand{\RitchieThompsonUNIX}{[D. M. Ritchie and K. Thompson, \emph{The UNIX Time Sharing System}, (1974)]\footnote{\AlsoAvailableAs \href{http://dl.acm.org/citation.cfm?id=361061}{URL}}}
+
+\newcommand{\DrepperTLS}{[Ulrich Drepper, \emph{ELF Handling For Thread-Local Storage}, (2013)]\footnote{\AlsoAvailableAs \url{http://www.akkadia.org/drepper/tls.pdf}}}
+
+\newcommand{\DrepperMemory}{[Ulrich Drepper, \emph{What Every Programmer Should Know About Memory}, (2007)]\footnote{\AlsoAvailableAs \url{http://www.akkadia.org/drepper/cpumemory.pdf}}}
+
+\newcommand{\AlephOne}{[Aleph One, \emph{Smashing The Stack For Fun And Profit}, (1996)]\footnote{\AlsoAvailableAs \url{http://yurichev.com/mirrors/phrack/p49-0x0e.txt}}}
+
+\ifdefined\RUSSIAN
+\newcommand{\KRBook}{Брайан Керниган, Деннис Ритчи, \emph{Язык программирования Си}, второе издание, (1988, 2009)}
+\newcommand{\CppOneOneStd}{Стандарт Си++11}
+\newcommand{\CNotes}{Денис Юричев, \emph{Заметки о языке программирования Си/Си++}}
+\else
+\newcommand{\KRBook}{Brian W. Kernighan, Dennis M. Ritchie, \emph{The C Programming Language}, 2ed, (1988)}
+\newcommand{\CppOneOneStd}{C++11 standard}
+\newcommand{\CNotes}{Dennis Yurichev, \emph{C/C++ programming language notes}}
+\fi
+
+\newcommand{\RobPikePractice}{Brian W. Kernighan, Rob Pike, \emph{Practice of Programming}, (1999)}
+
+\newcommand{\ARMSixFourRef}{\emph{ARM Architecture Reference Manual, ARMv8, for ARMv8-A architecture profile}, (2013)}
+\newcommand{\ARMSixFourRefURL}{\InSqBrackets{\ARMSixFourRef}\footnote{\AlsoAvailableAs \url{http://yurichev.com/mirrors/ARMv8-A_Architecture_Reference_Manual_(Issue_A.a).pdf}}}
+
+\newcommand{\SysVABI}{[Michael Matz, Jan Hubicka, Andreas Jaeger, Mark Mitchell, \emph{System V Application Binary Interface. AMD64 Architecture Processor Supplement}, (2013)]
+\footnote{\AlsoAvailableAs \url{https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf}}}
+
+\newcommand{\IOSABI}{\InSqBrackets{\emph{iOS ABI Function Call Guide}, (2010)}\footnote{\AlsoAvailableAs \url{http://developer.apple.com/library/ios/documentation/Xcode/Conceptual/iPhoneOSABIReference/iPhoneOSABIReference.pdf}}}
+
+\newcommand{\CNineNineStd}{\emph{ISO/IEC 9899:TC3 (C C99 standard)}, (2007)}
+
+\newcommand{\TCPPPL}{Bjarne Stroustrup, \emph{The C++ Programming Language, 4th Edition}, (2013)}
+
+\newcommand{\AMDOptimization}{\emph{Software Optimization Guide for AMD Family 16h Processors}, (2013)}
+% note = "\AlsoAvailableAs \url{http://yurichev.com/mirrors/AMD/SOG_16h_52128_PUB_Rev1_1.pdf}",
+
+\newcommand{\IntelOptimization}{\emph{Intel® 64 and IA-32 Architectures Optimization Reference Manual}, (2014)}
+% note = "\AlsoAvailableAs \url{http://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html}",
+
+\newcommand{\TAOUP}{Eric S. Raymond, \emph{The Art of UNIX Programming}, (2003)}
+% note = "\AlsoAvailableAs \url{http://catb.org/esr/writings/taoup/html/}",
+
+\newcommand{\HenryWarren}{Henry S. Warren, \emph{Hacker's Delight}, (2002)}
+
+\newcommand{\ParashiftCPPFAQ}{Marshall Cline, \emph{C++ FAQ}}
+% note = "\AlsoAvailableAs \url{http://www.parashift.com/c++-faq-lite/index.html}",
+
+\newcommand{\ARMCookBook}{Advanced RISC Machines Ltd, \emph{The ARM Cookbook}, (1994)}
+% note = "\AlsoAvailableAs \url{https://yurichev.com/ref/ARM%20Cookbook%20(1994)/}",
+
+\newcommand{\ARMSevenRef}{\emph{ARM(R) Architecture Reference Manual, ARMv7-A and ARMv7-R edition}, (2012)}
+
+\newcommand{\MAbrash}{Michael Abrash, \emph{Graphics Programming Black Book}, 1997}
+
+\newcommand{\MathForProg}{Mathematical Recipes\footnote{\url{https://math.recipes}}}
+
+\newcommand{\radare}{rada.re}
+
+\newcommand{\FNURLREDDIT}{\footnote{\href{http://www.reddit.com/r/ReverseEngineering/}{reddit.com/r/ReverseEngineering/}}}

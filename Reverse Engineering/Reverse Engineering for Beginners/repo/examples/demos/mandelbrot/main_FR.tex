@@ -1,0 +1,187 @@
+\clearpage
+\subsection{Ensemble de Mandelbrot}
+\label{Mandelbrot_demo}
+
+% TBT
+%\MathForProg has some important notes about Mandelbrot set theory.
+
+Voici une démo\footnote{Téléchargeable \href{http://www.pouet.net/prod.php?which=53287} {ici},}
+écrite par \q{Sir\_Lagsalot} en 2009, qui dessine l'ensemble de Mandelbrot, qui est
+juste un programme x86, dont l'exécutable a une taille de seulement 64 octets.
+Il y a seulement 30 instructions x86 16-bit.
+
+Voici ce qu'elle génère:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/demos/mandelbrot/1.png}
+\end{figure}
+
+Essayons de comprendre comment ça fonctionne.
+
+La démo, bien que minuscule (seulement 64 octets ou 30 instructions), implémente
+l'algorithme standard décrit ici, mais utilise des astuces de programmation.
+
+Le code source est facile à télé-charger, donc le voici, mais j'ai ajouté des commentaires:
+
+\lstinputlisting[caption=Code source commenté,numbers=left,style=customasmx86]{examples/demos/mandelbrot/Microbrot_commented_FR.asm}
+
+Algorithme:
+
+\begin{itemize}
+\item Change le mode vidéo à VGA 320*200 VGA, 256 couleurs. 
+$320*200=64000$ (0xFA00). 
+
+Chaque pixel est encodé par un octet, donc la taille du buffer est de 0xFA00 octets.
+Il est accédé en utilisant la paire de registres ES:DI.
+
+\myindex{x86!\Registers!ES}
+ES doit être 0xA000 ici, car c'est l'adresse du segment du buffer vidéo VGA, mais
+mettre 0xA000 dans ES nécessite au moins 4 octets (\TT{PUSH 0A000h / POP ES}).
+Plus d'information sur le modèle de mémoire 16-bit de MS-DOS ici:
+\myref{8086_memory_model}.
+
+\myindex{x86!\Instructions!LES}
+
+En supposant que BX vaut zéro ici, et que le Program Segment Prefix est à l'adresse
+zéro, l'instruction en 2 octets \TT{LES AX,[BX]} stocke 0x20CD dans AX et 0x9FFF
+dans ES.
+
+Donc le programme commence à écrire 16 pixels (ou octets) avant le buffer vidéo.
+Mais c'est MS-DOS,
+
+Il n'y a pas de protection de la mémoire, donc l'écriture se produit tout à la fin
+de la mémoire conventionnelle, et en général, il n'y a rien d'important.
+C'est pourquoi vous voyez une bande rouge de 16 pixels de large sur le côté droit.
+L'image complète est décalée à gauche de 16 pixels.
+C'est le prix pour économiser 2 octets.
+
+\item Une boucle infinie traite chaque pixel.
+
+La façon la plus courante de parcourir tous les pixels de l'écran est d'utiliser deux boucles:
+une pour la coordonnée X, une autre pour la coordonnée Y.
+Mais vous devrez multiplier une coordonnée pour accéder à un octet dans le buffer vidéo VGA.
+
+L'auteur de cette démo a décidé de faire autrement: énumérer tous les octets dans
+le buffer vidéo en utilisant une seule boucle au lieu de deux, et obtenir les coordonnées
+du point courant en utilisant une division
+Les coordonnées résultantes sont: X dans l'intervalle $-256..63$ et Y dans l'intervalle
+$-100..99$.
+Vous pouvez voir sur la copie d'écran que l'image est quelque peu décalée sur la
+droite de l'écran.
+
+C'est parce que la surface en forme de c\oe{}ur apparaît en général aux coordonnées
+0,0 et elles sont décalées vers la droite.
+Est-ce que l'auteur aurait pu soustraire 160 de la valeur pour avoir X dans l'intervalle
+$-160..159$?
+Oui, mais l'instruction \TT{SUB DX, 160} nécessite 4 octets, tandis que
+\TT{DEC DH}---2 octets (ce qui soustrait 0x100 (256) de DX).
+Donc l'ensemble de l'image est décalée pour économiser 2 octets de code.
+
+    \begin{itemize}
+    \item Vérifier si le point courant
+est dans l'ensemble de Mandelbrot.
+          L'algorithme est celui qui a été décrit ici.
+\myindex{x86!\Instructions!LOOP}
+     \item La boucle 
+est organisée en utilisant l'instruction \TT{LOOP}, qui utilise le registre CX comme compteur.
+
+L'auteur pourrait mettre le nombre d'itérations à une valeur spécifique, mais il
+ne l'a pas fait: 320 est déjà présent dans CX (il a été chargé à la ligne 35), et
+de toutes façons une bonne valeur d'itération maximale.
+Nous économisons encore un peu d'espace ici en ne rechargeant pas le registre CX
+avec une autre valeur.
+
+\myindex{x86!\Instructions!SAR}
+     \item 
+\TT{IMUL} est utilisé ici au lieu de \TT{MUL}, car nous travaillons avec des valeurs
+signées: gardez à l'esprit que les coordonnées 0,0 doivent être proches du centre de
+l'écran.
+
+C'est la même chose avec \TT{SAR} (décalage arithmétique pour des valeurs signées):
+c'est utilisé au lieu de \TT{SHR}.
+
+     \item Une autre idée est de simplifier le test des limites.
+Nous devons tester une paire de coordonnées, i.e., deux variables.
+Ce que je fais est de vérifier trois fois le débordement: deux opérations de mise
+au carré et une addition.  %% FIXME
+
+En effet, nous utilisons des registres 16-bit, qui peuvent contenir des valeurs signées
+dans l'intervalle -32768..32767, donc si l'une des coordonnées est plus grande que
+32767 lors de la multiplication signée, ce point est définitivement hors limites:
+nous sautons au label \TT{MandelBreak}.
+
+     \item 
+Il y a aussi une division par 64 (instruction SAR). 64 met à l'échelle.
+
+Il est possible d'augmenter la valeur pour regarder de plus près, ou de la diminuer
+pour voir de plus loin.
+
+    \end{itemize}
+
+\item Nous sommes au label \TT{MandelBreak}, il y a deux façons d'arriver ici:
+la boucle s'est terminée avec CX=0 (le point est à l'intérieur de l'ensemble de Mandelbrot);
+ou parce qu'un débordement s'est produit (CX contient toujours une valeur non zéro.)
+Nous écrivons la partie 8-bit basse de CX (CL) dans le buffer vidéo.
+
+La palette par défaut est grossière, néanmoins, 0 est noir: ainsi nous voyons du noir
+aux endroits où les points sont dans l'ensemble de Mandelbrot.
+La palette peut être initialisée au début du programme, mais gardez à l'esprit que
+ceci est un programme de seulement 64 octets!
+
+\item le programme tourne en boucle infinie, car un test supplémentaire, ou une interface
+utilisateur quelconque nécessiterait des instructions supplémentaires.
+
+\end{itemize}
+
+D'autres astuces d'optimisation:
+
+\myindex{x86!\Instructions!CWD}
+\begin{itemize}
+\item L'instruction en 1-octet CWD est utilisée ici
+pour effacer DX au lieu de celle en 2-octets \TT{XOR DX, DX} ou même celle en 3-octets \TT{MOV DX, 0}.
+
+\item L'instruction en 1-octet \TT{XCHG AX, CX} est utilisée ici au lieu de celle en 2-octets
+\TT{MOV AX,CX}. 
+La valeur courante de AX n'est plus nécessaire ici.
+
+\item DI (position dans le buffer vidéo) n'est pas initialisée, et contient 0xFFFE au début
+\footnote{Plus d'information sur la valeur initiale des registres:
+\url{https://code.google.com/p/corkami/wiki/InitialValues#DOS}}.
+
+C'est OK, car le programme travaille pour tout DI dans l'intervalle 0..0xFFFF éternellement,
+et l'utilisateur ne peut pas remarquer qu'il a commencé en dehors de l'écran (le
+dernier pixel d'un buffer vidéo de 320*200 est à l'adresse 0xF9FF).
+Donc du travail est en fait effectué en dehors des limites de l'écran.
+
+Autrement, il faudrait une instruction supplémentaire pour mettre DI à 0 et tester
+la fin du buffer vidéo.
+
+\end{itemize}
+
+\newcommand{\MyFixedVersion}{Ma version \q{corrigée}}
+\subsubsection{\MyFixedVersion}
+
+\lstinputlisting[caption=\MyFixedVersion,numbers=left,style=customasmx86]{examples/demos/mandelbrot/my_version_FR.asm}
+
+
+J'ai essayé de corriger toutes ces bizarreries: maintenant la palette est un dégradé
+de gris, le buffer vidéo est à la bonne place (lignes 19..20),
+l'image est dessinée au centre de l'écran (ligne 30), le programme se termine et
+attend qu'une touche soit pressée (lignes 58..68).
+
+Mais maintenant c'est bien plus gros: 105 octets (ou 54 instructions)
+\footnote{
+Vous pouvez tester par vous-même: prenez DosBox et NASM et compilez-le avec:
+\TT{nasm file.asm -fbin -o file.com}}.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/demos/mandelbrot/fixed.png}
+\caption{\MyFixedVersion}
+\label{fig:mandelbrot_fixed}
+\end{figure}
+
+Voir aussi: petit programme C qui affiche l'ensemble de Mandelbrot en ASCII:
+\url{https://people.sc.fsu.edu/~jburkardt/c_src/mandelbrot_ascii/mandelbrot_ascii.html} \\
+\url{https://miyuki.github.io/2017/10/04/gcc-archaeology-1.html}.

@@ -1,0 +1,140 @@
+﻿\clearpage
+\mysubparagraph{最初の \olly の例： a=1.2 と b=3.4}
+\myindex{\olly}
+
+\olly で例をロードしてみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_1.png}
+\caption{\olly: 最初の \FLD が実行される}
+\label{fig:FPU_comparison_case1_olly1}
+\end{figure}
+
+関数の引数：$a=1.2$ と $b=3.4$ （スタックで見ることができます。32ビット値の2組のペアです）
+$b$ (3.4) は \ST{0}にすでにロードされています。
+そして \FCOMP が実行されます。
+\olly は次の \FCOMP の引数を表示します。スタックにあります。
+
+\clearpage
+\FCOMP が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_2.png}
+\caption{\olly: \FCOMP が実行される}
+\label{fig:FPU_comparison_case1_olly2}
+\end{figure}
+
+\ac{FPU}条件フラグの状態を見ることができます。すべて0です。
+ポップされた値は\ST{7}に反映されます。この理由については前に書きました：
+\myref{FPU_is_rather_circular_buffer}.
+
+\clearpage
+\FNSTSW が実行されます。
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_3.png}
+\caption{\olly: \FNSTSW が実行される}
+\label{fig:FPU_comparison_case1_olly3}
+\end{figure}
+
+\GTT{AX}レジスタが0であるのが見えます。実際、条件フラグはすべてゼロです。
+（ \olly は \FNSTSW 命令を\INS{FSTSW}としてディスアセンブルします。これは同義語です）
+
+\clearpage
+\TEST が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_4.png}
+\caption{\olly: \TEST が実行される}
+\label{fig:FPU_comparison_case1_olly4}
+\end{figure}
+
+\GTT{PF}フラグが1にセットされます。
+
+実際、0にセットされるビットの数は0で0は偶数です。
+\olly は\INS{JP}を\ac{JPE}としてディスアセンブルします。これは同義語です。
+そして、実行されます。
+
+\clearpage
+\ac{JPE}が実行され、 \FLD は $b$ (3.4)の値を \ST{0}にロードします。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_5.png}
+\caption{\olly: 次の \FLD が実行される}
+\label{fig:FPU_comparison_case1_olly5}
+\end{figure}
+
+関数が終了します。
+
+\clearpage
+\mysubparagraph{次の \olly の例： a=5.6 と b=-4}
+
+例を \olly にロードしてみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_1.png}
+\caption{\olly: 最初の \FLD が実行される}
+\label{fig:FPU_comparison_case2_olly1}
+\end{figure}
+
+関数の引数：$a=5.6$ と $b=-4$
+$b$ (-4) はすでに \ST{0}にロードされています。
+\FCOMP は実行されます。
+\olly は次の \FCOMP の引数を表示します。スタックにあります。
+
+\clearpage
+\FCOMP が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_2.png}
+\caption{\olly: \FCOMP が実行される}
+\label{fig:FPU_comparison_case2_olly2}
+\end{figure}
+
+\ac{FPU}条件フラグの状態を見ることができます。 \Czero を除いてすべてゼロです。
+
+\clearpage
+\FNSTSW が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_3.png}
+\caption{\olly: \FNSTSW が実行される}
+\label{fig:FPU_comparison_case2_olly3}
+\end{figure}
+
+\GTT{AX}レジスタが\GTT{0x100}であるのが見えます。 \Czero フラグは8番目のビットです。
+
+\clearpage
+\TEST が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_4.png}
+\caption{\olly: \TEST が実行される}
+\label{fig:FPU_comparison_case2_olly4}
+\end{figure}
+
+\GTT{PF}フラグがクリアされます。
+実際、
+
+\GTT{0x100}にセットされるビットの数は1で、1は奇数です。
+\ac{JPE}はスキップされます。
+
+\clearpage
+\ac{JPE}は実行されず、 \FLD は $a$ (5.6)の値を\ST{0}にロードします。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_5.png}
+\caption{\olly: 次の \FLD が実行される}
+\label{fig:FPU_comparison_case2_olly5}
+\end{figure}
+
+関数が終了します。

@@ -1,0 +1,95 @@
+﻿\myparagraph{32-bit ARM}
+
+\mysubparagraph{\NonOptimizingXcodeIV (\ARMMode)}
+
+\lstinputlisting[caption=\NonOptimizingXcodeIV (\ARMMode),label=ARM_leaf_example7,style=customasmARM]{patterns/10_strings/1_strlen/ARM/xcode_ARM_O0_JA.asm}
+
+最適化されていないLLVMはあまりにも多くのコードを生成しますが、スタック内のローカル変数で
+この関数がどのように機能するかを見ることができます。
+関数には、\emph{eos} と \emph{str}という2つのローカル変数しかありません。 
+\IDA によって生成されたこのリストでは、\emph{var\_8}と\emph{var\_4}の名前を\emph{eos} と \emph{str}に手動で変更しました。
+
+最初の命令は、\emph{str} と \emph{eos}の両方に入力値を保存するだけです。
+
+ループの本体はラベル\emph{loc\_2CB8}から始まります。
+
+ループ本体の最初の3つの命令（\TT{LDR}、 \ADD、 \TT{STR}）は、\emph{eos}の値を\Reg{0}にロードします。
+次に、値が\glslink{increment}{incremented}され、スタックに格納されている\emph{eos}に保存されます。
+
+\myindex{ARM!\Instructions!LDRSB}
+次の命令、\TT{LDRSB R0, [R0]}（\q{Load Register Signed Byte}）は、\Reg{0}に格納されたアドレスのメモリからバイトをロードし、32ビットに符号拡張します。
+\footnote{Keilコンパイラは、MSVCやGCCのように \Tchar 型をsigned型として扱います}
+\myindex{x86!\Instructions!MOVSX}
+これは、x86の \MOVSX 命令に似ています。
+
+コンパイラは \Tchar 型がC標準に従って署名されているため、このバイトを符号付きとして扱います。
+このセクションでは、x86との関連で、すでにそれについて書かれています~(\myref{MOVSX})。
+
+\myindex{Intel!8086}
+\myindex{Intel!8080}
+\myindex{ARM}
+
+ARMの32ビットレジスタのうち8ビットまたは16ビットの部分を、
+レジスタ全体とは別にx86では使用することは不可能であることに注意してください。
+
+どうやら、x86はその祖先と16ビットの8086、
+さらには8ビットの8080までの下位互換性の巨大な歴史がありますが、
+ARMは32ビットのRISCプロセッサとして最初から開発されています。
+
+したがって、ARMでは別々のバイトを処理するために、いずれにしても32ビットレジスタを使用する必要があります。
+
+よって、\TT{LDRSB}は文字列からバイトを\Reg{0}に1つずつロードします。
+次の \CMP 命令と\ac{BEQ}命令は、ロードされたバイトが0かどうかをチェックします。
+0でなければ、制御はループ本体の先頭に移ります。 
+0の場合、ループは終了します。
+
+関数の最後に、
+\emph{eos} and \emph{str}の差が計算され、1が減算され、結果の値が\Reg{0}を介して返されます。
+
+注意：この関数ではレジスタは保存されませんでした。
+\myindex{ARM!\Registers!scratch registers}
+
+これは、ARMの呼び出し規約では、レジスタ\Reg{0}-\Reg{3}が引数の受け渡しを目的とした \q{スクラッチレジスタ}であり、
+呼び出し関数がそれらを使用しなくなるため、関数が終了するときに値を復元する必要はないからです。
+したがって、それらは私たちが望むものに使用することができます。
+
+ここでは他のレジスタは使用されていないので、スタックに何も保存する必要はありません。
+
+したがって、制御は、単純ジャンプ（\TT{BX}）によって呼び出し機能に戻され、
+\ac{LR}レジスタ内のアドレスに戻ることができます。
+
+\mysubparagraph{\OptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/10_strings/1_strlen/ARM/xcode_thumb_O3.asm}
+
+LLVMの最適化が完了すると、\emph{eos} と \emph{str}はスタックにスペースを必要とせず、常にレジスタに格納することができます。
+
+ループ本体の開始前に、\emph{str}は常に\Reg{0}にあり、\emph{eos}は\Reg{1}にあります。
+
+\myindex{ARM!\Instructions!LDRB.W}
+\TT{LDRB.W R2, [R1],\#1}命令は、\Reg{1}に格納されたアドレスのメモリから\Reg{2}にバイトをロードし、32ビット値に符号拡張しますが、それだけではありません。
+命令の最後の\TT{\#1}は \q{索引付け後のアドレス指定}を意味します。つまり、バイトがロードされた後に\Reg{1}に1が追加されます。
+詳しくは、\myref{ARM_postindex_vs_preindex}を参照してください。
+
+次に、ループの本体に \CMP と \ac{BNE}が表示されます。これらの命令は、文字列に0が見つかるまでループし続けます。
+
+\myindex{ARM!\Instructions!MVNS}
+\myindex{x86!\Instructions!NOT}
+\TT{MVNS}\footnote{MoVe Not}（x86では \NOT のようにすべてのビットを反転）および \ADD 命令で $eos - str - 1$ が計算されます。
+実際には、これらの2つの命令は、 $R0 = ~str + eos$ を計算します。
+これは、ソースコードのものと事実上同じです。なぜそうであるかについては、以下ですでに説明しました
+~(\myref{strlen_NOT_ADD})。
+
+どうやら、LLVMはGCCのように、このコードが短く（または高速に）できると結論づけています。
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),label=ARM_leaf_example6,style=customasmARM]{patterns/10_strings/1_strlen/ARM/Keil_ARM_O3.asm}
+
+\myindex{ARM!\Instructions!SUBEQ}
+
+以前に見たものとほぼ同じですが、 $str - eos - 1$ の式は関数の終わりではなく
+ループの本体で計算できる点が異なります。 
+\TT{-EQ}サフィックスは、以前に実行された \CMP 内のオペランドが互いに等しい場合にのみ、
+命令が実行されることを意味します。 
+したがって、\Reg{0}が0を含む場合、両方の\TT{SUBEQ}命令が実行され、結果は\Reg{0}レジスタに置かれます。

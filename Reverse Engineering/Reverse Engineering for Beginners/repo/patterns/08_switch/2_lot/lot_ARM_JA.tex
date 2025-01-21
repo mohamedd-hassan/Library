@@ -1,0 +1,87 @@
+﻿\subsubsection{ARM: \OptimizingKeilVI (\ARMMode)}
+\label{sec:SwitchARMLot}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/08_switch/2_lot/lot_ARM_ARM_O3.asm}
+
+このコードでは、すべての命令の固定サイズが4バイトのARMモード機能を使用しています。
+
+$a$ の最大値は4で、それ以上の値を指定すると、\emph{<<something unknown\textbackslash{}n>>}文字列が
+出力されることに注意しましょう。
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!ADDCC}
+最初の\TT{CMP R0, \#5}命令は、 $a$ の入力値を5と比較します。
+
+\footnote{ADD---addition}
+次の\TT{ADDCC PC, PC,R0, LSL \#2}命令は、$R0 < 5$（\emph{CC=Carry clear / Less than}）の場合にのみ実行されます。
+したがって、\TT{ADDCC}がトリガしない場合（$R0 \geq 5$の場合）、\emph{default\_case}ラベルにジャンプします。
+
+しかし$R0 < 5$と\TT{ADDCC}がトリガされた場合、次のことが起こります：
+
+\Reg{0}の値には4が掛けられます。
+実際、命令のサフィックスの\TT{LSL \#2}は\q{2ビット左シフト}の略です。
+しかし、セクション\q{\ShiftsSectionName}の~(\myref{division_by_shifting})で後で見るように、2ビット左シフトは4を乗算するのと同じです。
+
+次に、$R0*4$を\ac{PC}の現在の値に追加し、下にある\TT{B}（\emph{Branch}）命令の1つにジャンプします。
+
+\TT{ADDCC}命令の実行時に、\ac{PC}の値は\TT{ADDCC}命令が置かれているアドレス（\TT{0x178}）よりも8バイト先（\TT{0x180}）であり、
+言い換えれば2命令先にあります。
+
+\myindex{ARM!Pipeline}
+
+これはARMプロセッサのパイプラインがどのように動作するかを示しています。
+\TT{ADDCC}が実行されると、現時点でプロセッサは次の命令の後に命令を処理し始めているので、
+\ac{PC}がそこを指しているのはそのためです。 
+これは覚えておく必要があります。
+
+$a=0$ の場合、\ac{PC}の値に加算され、\ac{PC}の実際の値は\ac{PC}（8バイト先）に書き込まれ、
+\emph{loc\_180}というラベルへのジャンプが起こります。これは、\TT{ADDCC}命令の先の8バイト先です。
+
+$a=1$ の場合、\ac{PC}には $PC+8+a*4 = PC+8+1*4 = PC+12 = 0x184$ が書き込まれます。
+\emph{loc\_184}というラベルが付いたアドレスです。
+
+1を $a$ に加えるごとに、結果の\ac{PC}は4ずつ増加します。
+
+4はARMモードの命令長であり、各\TT{B}命令の長さ4でそれらは5つあります。
+
+これらの5つの\TT{B}命令のそれぞれは、制御を\emph{switch()}にプログラムされたものにさらに渡します。
+
+対応する文字列のポインタローディングが発生します。
+
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/08_switch/2_lot/lot_ARM_thumb_O3.asm}
+
+\myindex{ARM!\ThumbMode}
+\myindex{ARM!\ThumbTwoMode}
+
+ThumbモードとThumb-2モードのすべての命令が同じサイズであることを確認することはできません。
+これらのモードでは、x86の場合と同様に、命令の長さが可変であるといえます。
+
+\myindex{jumptable}
+
+したがって、そこにあるケースの数（デフォルトケースを含まない）に関する情報と、
+対応するケースでコントロールを渡す必要があるラベルを持つそれぞれのオフセットが含まれている特別なテーブルが追加されています。
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+\emph{\_\_ARM\_common\_switch8\_thumb}という名前のテーブルと
+パスコントロールを扱うために特別な関数がここにあります。
+\TT{BX PC}で始まり、その機能はプロセッサをARMモードに切り替えることです。
+次に、テーブル処理の機能が表示されます。
+
+今ここで説明するにはあまりにも進んでいるので、省略しましょう。
+% TODO explain it...
+
+\myindex{ARM!\Registers!Link Register}
+
+関数が\ac{LR}レジスタをテーブルへのポインタとして使用することは興味深いことです。
+
+実際、この関数を呼び出した後、\ac{LR}にはテーブルが始まる\TT{BL \_\_ARM\_common\_switch8\_thumb}命令の後のアドレスが入ります。
+
+また、コードを再利用するために別の関数として生成されるので、
+コンパイラはすべてのswitch()文に対して同じコードを生成しないことにも注意してください。
+
+\IDA はそれをサービス関数とテーブルとして認識し、\TT{jumptable 000000FA case 0}のような
+ラベルのコメントを追加します。

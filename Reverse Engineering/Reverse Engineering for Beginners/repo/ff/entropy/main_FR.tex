@@ -1,0 +1,153 @@
+% TODO png blur? too wide listings
+\mysection{Information avec l'entropie}
+\label{entropy}
+\myindex{Entropy}
+
+\epigraph{Entropy: The quantitative measure of disorder, which in turn relates to the thermodynamic functions, temperature, and heat.}
+{Dictionaire:  Applied Math for Engineers and Scientists}
+
+Par soucis de simplification, je dirais que l'entropie est une mesure, d'à quel
+point des données peuvent être compressées.
+Par exemple, il est généralement impossible de compresser un fichier archive
+déjà compressé, donc il a une entropie importante.
+D'un autre coté, 1MiB d'octet à zéro peut être compressé en un tout petit fichier.
+En effet, en français, un million de zéro peut être simplement décrit par
+``le fichier résultant est un million d'octets à zéro''.
+Les fichiers compressés sont en général une liste d'instructions destinées au dé-compresseur,
+comme ceci:
+``mettre 1000 zéros, puis l'octet 0x23, puis l'octet 0x45, puis un bloc d'une
+taille de 10 octets que nous avons vu 500 octets avant, etc.''
+
+Les textes écrits en langage naturel peuvent aussi être fortement compressés, car
+le langage naturel a beaucoup de redondance (autrement, une petite typo conduirait
+toujours à une incompréhension, comme un bit inversé dans un fichier archive rend
+la décompression presque impossible), certains mots sont utilisés très souvent, etc.
+Dans le discours courant, il est possible de supprimer jusqu'à la moitié
+des mots et il est toujours compréhensible.
+
+Le code pour les CPUs peut aussi être compressé, car certaines instructions \ac{ISA}
+sont utilisées plus souvent que d'autres.
+\myindex{x86!\Instructions!MOV}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!CALL}
+En x86, les instructions les plus utilisées sont \INS{MOV}/\INS{PUSH}/\INS{CALL}
+(\myref{correctly_disasmed_code}).
+
+La compression de données et le chiffrement tendent à produire des résultats avec
+une très haute entropie.
+Un bon \ac{PRNG} produit aussi des données qui ne peuvent pas être compressées
+(il est possible de mesurer leur qualité par ce moyen).
+
+Donc, autrement dit, la mesure de l'entropie peut aider à tester le contenu de bloc
+de données inconnues.
+
+\input{ff/entropy/math_FR}
+
+\subsection{Conclusion}
+
+L'entropie peut-être utilisée comme un moyen rapide d'investigation de fichiers inconnus.
+En particulier, c'est un moyen rapide de trouver des morceaux de données compressées/chiffrées.
+Quelqu'un a dit qu'il est possible de trouver des clefs \ac{RSA} privées/publiques
+(et d'autres algorithmes cryptographiques) dans du code exécutable (les clefs ont
+aussi une très grande entropie), mais je n'ai pas essayé moi-même.
+
+\subsection{Outils}
+
+L'utilitaire Linux \emph{ent} est très pratique pour trouver l'entropie d'un
+fichier\footnote{\url{http://www.fourmilab.ch/random/}}.
+
+Il y a un excellent visualiseur d'entropie en ligne fait par Aldo Cortesi,
+que j'ai essayé d'imiter avec Mathematica: \url{http://binvis.io}.
+Ses articles sur l'entropie valent la peine d'être lus:
+\url{http://corte.si/posts/visualisation/entropy/index.html},
+\url{http://corte.si/posts/visualisation/malware/index.html},
+\url{http://corte.si/posts/visualisation/binvis/index.html}.
+
+\myindex{radare2}
+Le quadriciel radare2 a la commande \emph{\#entropy} pour ceci.
+
+Un outil pour IDA: IDAtropy\footnote{\url{https://github.com/danigargu/IDAtropy}}.
+
+\subsection{Un mot à propos des primitives de chiffrement comme le XORage}
+
+Il est intéressant de noter que le chiffrement par un simple XOR n'affecte pas
+l'entropie des données.
+J'ai montré ceci dans l'exemple \emph{Norton Guide} de ce livre (\myref{norton_guide}).
+
+Généralisation: le chiffrement par substitution n'affecte pas l'entropie des données
+(et XOR peut être vu comme un chiffrement par substitution).
+La raison est que l'algorithme de calcul de l'entropie voit les données au niveau
+de l'octet.
+D'un autre côté, les données chiffrées par un pattern XOR de 2 ou 4 octets donnent
+un autre niveau d'entropie.
+
+Néanmoins, une entropie basse est en général un signe de chiffrement amateur faible
+(qui est aussi utilisé dans les clefs/fichiers de licence, etc.).
+
+\subsection{Plus sur l'entropie de code exécutable}
+
+Il est rapidement perceptible que la plus grande source d'entropie dans du code
+exécutable est probablement dûe aux offsets encodés dans les opcodes.
+Par exemple, ces deux instructions consécutives vont avoir des offsets relatifs
+différents dans leur opcode, alors qu'elles pointent en fait sur la même fonction:
+
+\begin{lstlisting}[style=customasmx86]
+function proc
+...
+function endp
+
+...
+
+CALL function
+...
+CALL function
+\end{lstlisting}
+
+Un compresseur de code exécutable idéal encoderait l'information comme ceci:
+\emph{Il y a un CALL à ``function'' à l'adresse X et la même CALL à l'adresse Y}
+sans nécessiter d'encoder deux fois l'adresse de \emph{function}.
+
+\myindex{UPX}
+Pour gérer ceci, les compresseurs de code exécutable sont parfois capable de réduire
+l'entropie ici.
+Un exemple est UPX: \url{http://sourceforge.net/p/upx/code/ci/default/tree/doc/filter.txt}.
+
+\subsection{\ac{PRNG}}
+
+\myindex{GnuPG}
+Lorsque je lance GnuPG pour générer une nouvelle clef privée (secrète), il demande
+de l'entropie \dots
+
+\begin{lstlisting}
+We need to generate a lot of random bytes. It is a good idea to perform
+some other action (type on the keyboard, move the mouse, utilize the
+disks) during the prime generation; this gives the random number
+generator a better chance to gain enough entropy.
+
+Not enough random bytes available.  Please do some other work to give
+the OS a chance to collect more entropy! (Need 169 more bytes)
+\end{lstlisting}
+
+Ceci signifie qu'un bon \ac{PRNG} prend longtemps pour produire des résultats avec
+une haute entropie, et ceci est ce dont la clef cryptographique secrète à besoin.
+Mais un \ac{CPRNG} est compliqué (car un ordinateur est lui-même un dispositif
+hautement déterministe), donc GnuPG demande du hasard supplémentaire à l'utilisateur.
+
+\subsection{Plus d'exemples}
+
+Voici un cas où j'ai essayé de calculer l'entropie de certains blocs avec du
+contenu inconnu: \myref{encrypted_DB1}.
+
+\input{ff/entropy/files_FR}
+
+\subsection{Réduire le niveau d'entropie}
+
+J'ai vu une fois un logiciel qui stockait chaque octet de données chiffrées sur 3 octets:
+chacun avait une valeur de {\Large $\approx \frac{byte}{3}$}, donc reconstruire
+l'octet chiffré impliquait de faire la somme de 3 octets consécutifs.
+Ça semble absurde.
+
+Mais certaines personnes disent que ça a été fait pour pour cacher le fait que les
+données contenaient quelque chose de chiffré: la mesure de l'entropie d'un tel bloc
+donnait une valeur bien plus faible.
+

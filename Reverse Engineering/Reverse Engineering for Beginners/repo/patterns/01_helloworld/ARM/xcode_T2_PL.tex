@@ -1,0 +1,148 @@
+\subsubsection{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+Domyślnie Xcode 4.6.3 wygeneruje trybie Thumb-2 podobny kod:
+
+\begin{lstlisting}[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]
+__text:00002B6C                   _hello_world
+__text:00002B6C 80 B5          PUSH            {R7,LR}
+__text:00002B6E 41 F2 D8 30    MOVW            R0, #0x13D8
+__text:00002B72 6F 46          MOV             R7, SP
+__text:00002B74 C0 F2 00 00    MOVT.W          R0, #0
+__text:00002B78 78 44          ADD             R0, PC
+__text:00002B7A 01 F0 38 EA    BLX             _puts
+__text:00002B7E 00 20          MOVS            R0, #0
+__text:00002B80 80 BD          POP             {R7,PC}
+
+...
+
+__cstring:00003E70 48 65 6C 6C 6F 20+aHelloWorld  DCB "Hello world!",0xA,0
+\end{lstlisting}
+
+% Q: If you subtract 0x13D8 from 0x3E70,
+% you actually get a location that is not in this function, or in _puts.
+% How is PC-relative addressing done in THUMB2?
+% A: it's not Thumb-related. there are just mess with two different segments. TODO: rework this listing.
+
+\myindex{\ThumbTwoMode}
+\myindex{ARM!\Instructions!BL}
+\myindex{ARM!\Instructions!BLX}
+Instrukcje \TT{BL} i \TT{BLX} w trybie Thumb są kodowane jako para 16-bitowych instrukcji.
+W Thumb-2 te zastępcze kody operacji (opcode) rozszerzono tak, by instrukcje mogły być zakodowane jako 32-bitowe.
+
+Można to łatwo zauważyc, gdyż w w trybie Thumb-2 wszystkie 32-bitowe instrukcje zaczynają się od \TT{0xFx} lub \TT{0xEx}.
+
+Jednak na listingu w programie \IDA bajty kodu operacji (opcode) są zamienione miejscami.
+W procesorze ARM instrukcje są kodowane w następujący sposób:
+najpierw podaje się ostatni bajt, potem pierwszy (dla trybów Thumb i Thumb-2), lub, dla trybu ARM, najpierw czwarty bajt, następnie trzeci, drugi i pierwszy
+(z uwagi na różną \glslink{endianness}{kolejność bajtów}).
+
+Bajty są wypisywane w listingach IDA w następującej kolejności:
+
+\begin{itemize}
+\item dla trybów ARM i ARM64: 4-3-2-1;
+\item dla trybu Thumb: 2-1;
+\item dla pary 16-bitowych instrukcji w trybie Thumb-2: 2-1-4-3.
+\end{itemize}
+
+\myindex{ARM!\Instructions!MOVW}
+\myindex{ARM!\Instructions!MOVT.W}
+\myindex{ARM!\Instructions!BLX}
+Widzimy, że instrukcje \TT{MOVW}, \TT{MOVT.W} i \TT{BLX} rzeczywiście zaczynają się od \TT{0xFx}.
+
+Jedną z tych instrukcji jest
+\TT{MOVW R0, \#0x13D8}~--- zapisuje ona 16-bitową liczbę do młodszych bitów rejestru \Reg{0}, zerując starsze.
+
+Inną instrukcją jest \TT{MOVT.W R0, \#0}~---  działa tak jak \TT{MOVT} z poprzedniego przykładu, ale przeznaczona jest dla trybu Thumb-2
+
+\myindex{ARM!przełączanie trybów}
+\myindex{ARM!\Instructions!BLX}
+W tym przykładzie wykorzystana została instrukcja \TT{BLX} zamiast \TT{BL}.
+Różnica polega na tym, że oprócz zapisania adresu powrotu (\ac{RA}) do rejestru \ac{LR} i przekazania sterowania
+do funkcji \puts, odbywa się zmiana trybu procesora z Thumb/Thumb-2 na tryb ARM (lub odwrotnie).
+
+Jest to niezbędne dlatego, że instrukcja, do której zostanie przekazane sterowanie jest zakodowana w trybie ARM i wygląda następująco:
+
+\begin{lstlisting}[style=customasmARM]
+__symbolstub1:00003FEC _puts           ; CODE XREF: \_hello\_world+E
+__symbolstub1:00003FEC 44 F0 9F E5     LDR  PC, =__imp__puts
+\end{lstlisting}
+
+Jest to skok do miejsca, w którym, w sekcji importów, zapisany jest adres funkcji \puts.
+Można zadać pytanie: dlaczego nie można wywołać \puts bezpośrednio, tam gdzie jest to potrzebne?
+
+Nie jest to efektywne z punktu widzenia oszczędności miejsca.
+
+\myindex{Biblioteki łączone dynamicznie (DLL, z ang. Dynamic-Link Library )}
+Praktycznie każdy program korzysta z zewnętrznych bibliotek łączonych dynamicznie (jak DLL w Windows, .so w *NIX
+czy .dylib w \MacOSX).
+W bibliotekach dynamicznych znajdują się często wykorzystywane funkcje biblioteczne, w tym funkcja \puts ze standardu C.
+
+\myindex{Relocation}
+W wykonywalnym pliku binarnym (Windows PE .exe, ELF lub Mach-O) istnieje sekcja importów.
+Jest to lista symboli (funkcji lub zmiennych globalnych) importowanych z modułów zewnętrznych wraz z nazwami tych modułów.
+Program ładujący \ac{OS}, iterując po symbolach zaimportowanych w module głównym, ładuje niezbędne moduły i ustawia rzeczywiste adresy każdego z symboli.
+
+W naszym przypadku, \emph{\_\_imp\_\_puts} jest 32-bitową zmienną, w której program ładujący \ac{OS} umieści rzeczywisty adres funkcji z biblioteki zewnętrznej.
+
+Następnie \TT{LDR} odczytuje 32-bitową wartość z tej zmiennej, i zapisując ją do rejestru \ac{PC}, przekazuje tam sterowanie.
+
+Żeby skrócic czas tej procedury programu ładującego, trzeba sprawić aby adres każdego symbolu zapisywał się tylko raz, do specjalnie przydzielonego miejsca.
+
+\myindex{thunk-functions}
+Do tego, jak się już upewniliśmy, zapisywanie 32-bitowej liczby do rejestru jest niemożliwe bez odwoływania się do pamięci.
+
+Optymalnym rozwiązaniem jest wydzielenie osobnej funkcji, pracującej w trybie ARM,
+której jedynym celem jest przekazywanie sterowania dalej, do biblioteki dynamicznie łączonej. Nastepnie można wywoływać tę jednoinstrukcyjną funkcję z kodu w trybie Thumb.
+
+\myindex{ARM!\Instructions!BL}
+Nawiasem mówiąc, w poprzednim przykładzie (skompilowanym dla trybu ARM), instrukcja \TT{BL} przekazuje sterowanie do takiej samej \glslink{thunk function}{thunk-funkcji}, lecz procesor nie przestawia się w inny tryb (stąd brak \q{X} w mnemoniku instrukcji).
+
+\myparagraph{Jeszcze o thunk-funkcjach}
+\myindex{thunk-functions}
+
+Thunk-funkcje są trudne do zrozumienia przede wszystkim przez brak spójności w terminologii.
+Najprościej jest myśleć o nich jak o adapterach-przejściówkach z jednego typu gniazdek na drugi.
+Na przykład, adapter pozwalający włożyć do gniazdka amerykańskiego wtyczkę brytyjską lub na odwrót. Thunk-funkcje również są czasami nazywane \emph{wrapper-ami}. \emph{Wrap} w języku angielskim to \emph{owinąć}, \emph{zawinąć}, \emph{opakować}.
+Oto jeszcze kilka definicji tych funkcji:
+
+\begin{framed}
+\begin{quotation}
+“Kawałek kodu, który dostarcza adres:”, według P. Z. Ingerman,
+który wymyślił \emph{thunk} w 1961 roku, jako sposób na powiązanie parametrów rzeczywistych z ich formalnymi
+definicjami w wywołaniach procedur, w języku Algol-60. Jeśli procedura jest wywołana z wyrażeniem
+w miejscu parametru formalnego, kompilator generuje \emph{thunk}, który oblicza
+wartość wyrażenia i pozostawia adres tego wyniku w pewnej standardowej lokalizacji.
+
+\dots
+
+Microsoft i IBM zdefiniowali w ich systemach, opartych na Intelu, “środowisko 16-bitowe“
+(z odrażającymi rejestrami segmentowymi i 64k limitem adresów) i “środowisko 32-bitowe“
+(z płaskim adresowaniem i półrzeczywistym trybem zarządzania pamięcią). Te dwa środowiska mogą
+działać równocześnie na tym samym komputerze i systemie operacyjnym (dzięki temu, co w świecie Microsoftu znane jest jako WOW, co jest skrótowcem od Windows On Windows). MS i IBM zdecydowali, że proces przechodzenia
+z trybu 16-bitowego do 32-bitowego (i odwrotnie), nazwany zostanie “thunk”; istnieje nawet
+narzędzie na system Windows 95, "THUNK.EXE", nazwane "thunk kompilatorem".
+\end{quotation}
+\end{framed}
+% TODO FIXME move to bibliography and quote properly above the quote
+( \href{http://www.catb.org/jargon/html/T/thunk.html}{The Jargon File} )
+
+\myindex{LAPACK}
+\myindex{FORTRAN}
+Jeszcze jeden przykład możemy znaleźć w bibliotece LAPACK --- (``Linear Algebra PACKage'') napisanej w języku FORTRAN.
+Deweloperzy \CCpp również chcą korzystać z LAPACK, ale przepisywanie jej na \CCpp, a następnie utrzymywanie kilku wersji byłoby szaleństwem.
+Istnieją wobec tego krótkie funkcje w C, które są wywoływane ze środowiska \CCpp{}, które z kolei wywołują funkcje FORTRAN i prawie nic oprócz tego nie robią:
+
+\begin{lstlisting}[style=customc]
+double Blas_Dot_Prod(const LaVectorDouble &dx, const LaVectorDouble &dy)
+{
+    assert(dx.size()==dy.size());
+    integer n = dx.size();
+    integer incx = dx.inc(), incy = dy.inc();
+
+    return F77NAME(ddot)(&n, &dx(0), &incx, &dy(0), &incy);
+}
+\end{lstlisting}
+
+Takie funkcje również są nazywane "wrapperami".
+
+

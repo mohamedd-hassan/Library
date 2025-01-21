@@ -1,0 +1,64 @@
+\subsection{Divisioni}
+
+\subsubsection{Dividere usando gli shift}
+\label{division_by_shifting}
+
+Esempio di divisione per 4:
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a/4;
+};
+\end{lstlisting}
+
+Otteniamo (MSVC 2010):
+
+\begin{lstlisting}[caption=MSVC 2010,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	shr	eax, 2
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+\label{SHR}
+\myindex{x86!\Instructions!SHR}
+
+L' istruzione \SHR (\emph{SHift Right}) in questo esempio fa scorrere un numero di 2 bit a destra.
+I due bit liberati a sinistra (e.g., i due bit più significativi) sono impostati a zero.
+I due bit meno significativi sono scartati.
+Infatti, questi due bit scartati sono il resto della divisione.
+
+\myindex{x86!\Instructions!SHR}
+
+L' istruzione \SHR funziona proprio come \SHL, ma nella direzione opposta.
+
+\input{shift_right}
+
+E' semplice da capire se immaginiamo il numero 23 nel sistema numerico decimale.
+23 può essere facilmente diviso per 10, semplicemente scartando l' ultima cifra (3---resto divisione). 
+2 rimane dopo l' operazione come \gls{quotient}.
+
+Quindi il resto viene scartato, ma questo è OK, lavoriamo comunque su valori interi, 
+che non sono \glslink{real number}{numeri reali}!
+
+Divisione per 4 in ARM:
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSR      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+Divisione per 4 in MIPS:
+
+\begin{lstlisting}[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]
+        jr      $ra
+        srl     $v0, $a0, 2 ; branch delay slot
+\end{lstlisting}
+
+\myindex{MIPS!\Instructions!SRL}
+L' istruzione SRL corrisponde a \q{Shift Right Logical}.

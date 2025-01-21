@@ -1,0 +1,126 @@
+﻿\subsection{レジスタへの定数のロード}
+\label{ARM_big_constants}
+
+\subsubsection{32ビットARM}
+\label{ARM_big_constants_loading}
+
+すでにご存じのとおり、すべての命令の長さはARMモードでは4バイト、Thumbモードでは2バイトです。
+
+それでは、1つの命令でエンコードできない場合、どうすれば32ビット値をレジスタにロードできるでしょうか。
+
+やってみましょう。
+
+\begin{lstlisting}[style=customc]
+unsigned int f()
+{
+	return 0x12345678;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.6.3 -O3 \ARMMode,style=customasmARM]
+f:
+        ldr     r0, .L2
+        bx      lr
+.L2:
+        .word   305419896 ; 0x12345678
+\end{lstlisting}
+
+したがって、\TT{0x12345678}の値はメモリに保存され、必要に応じてロードされます。
+
+しかし、追加のメモリアクセスを取り除くことは可能です。
+
+\begin{lstlisting}[caption=GCC 4.6.3 -O3 -march{=}armv7-a (\ARMMode),style=customasmARM]
+movw    r0, #22136      ; 0x5678
+movt    r0, #4660       ; 0x1234
+bx      lr
+\end{lstlisting}
+
+値は部分的にレジスタにロードされ、最初に下位部分（\INS{MOVW}を使用）、
+次に上位部分（\INS{MOVT}を使用）の順にロードされます。
+
+これは、32ビット値をレジスタにロードするためにARMモードでは2命令が必要であることを意味します。
+
+実際のコードには定数がそれほど多くないため（0と1を除く）、実際のところ問題にはなりません。
+
+2命令のバージョンは1命令のバージョンより遅いということでしょうか？
+
+間違いなくそうです。 ほとんどの場合、最新のARMプロセッサはそのようなシーケンスを検出して高速に実行できます。
+
+一方、 \IDA はコード内のそのようなパターンを検出し、この関数を次のように逆アセンブルします。
+
+\begin{lstlisting}[style=customasmARM]
+MOV    R0, 0x12345678
+BX     LR
+\end{lstlisting}
+
+\subsubsection{ARM64}
+
+\begin{lstlisting}[style=customc]
+uint64_t f()
+{
+	return 0x12345678ABCDEF01;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3,style=customasmARM]
+mov	x0, 61185   ; 0xef01
+movk	x0, 0xabcd, lsl 16
+movk	x0, 0x5678, lsl 32
+movk	x0, 0x1234, lsl 48
+ret
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!MOVK}
+\TT{MOVK}は\q{MOV Keep}を表し、つまり、残りのビットには触れずに、レジスタに16ビット値を書き込みます。
+\myindex{ARM!Optional operators!LSL}
+\TT{LSL}接尾辞は、各ステップで値を16、32、48ビット左にシフトします。シフトはロード前に行われます。
+
+これは、64ビット値をレジスタにロードするために4つの命令が必要であることを意味します。
+
+\myparagraph{浮動小数点数をレジスタに格納}
+
+命令を1つだけ使用して浮動小数点数をDレジスタに格納することは可能です。
+
+例えば：
+
+\begin{lstlisting}[style=customc]
+double a()
+{
+	return 1.5;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3 + objdump,style=customasmARM]
+0000000000000000 <a>:
+   0:   1e6f1000        fmov    d0, #1.500000000000000000e+000
+   4:   d65f03c0        ret
+\end{lstlisting}
+
+$1.5$ という数は実際、32ビット命令でエンコードされます。
+しかし、どうやって？
+\myindex{ARM!\Instructions!FMOV}
+
+ARM64では、いくつかの浮動小数点数をエンコードするために8ビットが \TT{FMOV} 命令にはあります。
+
+アルゴリズムは \ARMSixFourRefURL では \TT{VFPExpandImm()}と呼ばれます。
+\myindex{minifloat}
+\emph{minifloat}\footnote{\href{http://en.wikipedia.org/wiki/Minifloat}{wikipedia}}とも呼ばれます。
+
+さまざまな値を試すことができます。コンパイラは $30.0$ と $31.0$ をエンコードできますが、
+IEEE 754形式で8バイトをこの番号に割り当てる必要があるため、 $32.0$ をエンコードすることはできません。
+
+\begin{lstlisting}[style=customc]
+double a()
+{
+	return 32;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3,style=customasmARM]
+a:
+	ldr	d0, .LC0
+	ret
+.LC0:
+	.word	0
+	.word	1077936128
+\end{lstlisting}

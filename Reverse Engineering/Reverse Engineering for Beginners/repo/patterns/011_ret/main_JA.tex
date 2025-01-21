@@ -1,0 +1,66 @@
+\mysection{戻り値}
+\label{ret_val_func}
+
+もう1つの単純な関数は、単に定数値を返す関数です。
+
+\lstinputlisting[label=lst:ret_val_func,caption=\JAph{},style=customc]{patterns/011_ret/1.c}
+
+コンパイルしてみましょう。
+
+\subsection{x86}
+
+ここでは、GCCコンパイラとMSVCコンパイラの両方でx86プラットフォーム上で（最適化を使用して）生成されるものを示します。
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/011_ret/1.s}
+
+\myindex{x86!\Instructions!RET}
+命令はたった2つです：最初に値123を \EAX レジスタに入れます。
+これは戻り値を格納するために慣例によって使用され、2つ目は\gls{caller}に実行を返す \RET です。
+
+呼び出し元は \EAX レジスタから結果を取得します。
+
+\subsection{ARM}
+
+ARMプラットフォームにはいくつかの違いがあります。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode) ASM Output,style=customasmARM]{patterns/011_ret/1_Keil_ARM_O3.s}
+
+ARMは関数の結果を返すためにレジスタ\Reg{0}を使用するため、123が\Reg{0}にコピーされます。
+
+\myindex{ARM!\Instructions!MOV}
+\myindex{x86!\Instructions!MOV}
+\MOV は、x86とARMの\ac{ISA}の両方で命令の誤解を招く名前であることに注意する価値があります。 
+
+データは実際には\emph{移動}されませんが、\emph{コピー}されます。
+
+\subsection{MIPS}
+
+\label{MIPS_leaf_function_ex1}
+
+以下のGCCアセンブリ出力は、レジスタを番号順にリストしています。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/011_ret/MIPS.s}
+
+\dots \IDA は擬似名でリストします
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/011_ret/MIPS_IDA.lst}
+
+\$2（または\$V0）レジスタは、関数の戻り値を格納するために使用されます。 
+\myindex{MIPS!\Pseudoinstructions!LI}
+\INS{LI}は「即時ロード」を表し、 \MOV に相当するMIPSです。
+
+\myindex{MIPS!\Instructions!J}
+もう1つの命令は、実行フローを\gls{caller}に返すジャンプ命令（JまたはJR）です。
+
+\myindex{MIPS!Branch delay slot}
+ロード命令（LI）とジャンプ命令（JまたはJR）の位置が入れ替えられたのはなぜだろうか。これは、 ``branch delay slot''と呼ばれる\ac{RISC}機能が原因です。
+
+これが起こる理由は、いくつかのRISC \ac{ISA}のアーキテクチャーでは奇抜であり、私たちの目的にとって重要ではありません。MIPSでは、ジャンプ命令または分岐命令に続く命令は、ジャンプ/分岐命令自体の\emph{前に}実行される。
+
+結果として、分岐命令は、直前に実行された命令で常に場所を入れ替える。
+
+実際には、単に1（\emph{真}）または0（\emph{偽}）を返す関数はよく使われます。
+
+標準のUNIXユーティリティである\emph{/bin/true} と \emph{/bin/false}の中でも最小のものがそれぞれ0と1を終了コードとして返します。
+（ゼロは終了コードとして通常成功を意味し、ゼロ以外はエラーを意味します）。
+

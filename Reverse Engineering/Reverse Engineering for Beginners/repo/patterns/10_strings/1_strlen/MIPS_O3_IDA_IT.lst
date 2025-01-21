@@ -1,0 +1,18 @@
+my_strlen:
+; la variabile "eos" risiederà sempre in \$v1:
+                move    $v1, $a0
+
+loc_4:
+; carica il byte dall' indirizzo in "eos" in \$a1:
+                lb      $a1, 0($v1)
+                or      $at, $zero ; carica delay slot, NOP
+; se il valore caricato è diverso da zero, salta a loc\_4:
+                bnez    $a1, loc_4
+; incrementa "eos" altrimenti:
+                addiu   $v1, 1 ; branch delay slot
+; ciclo terminato, inverti la variabile "str":
+                nor     $v0, $zero, $a0
+; \$v0=-str-1
+                jr      $ra
+; ritorna il valore = \$v1 + \$v0 = eos + ( -str-1 ) = eos - str - 1
+                addu    $v0, $v1, $v0 ; branch delay slot

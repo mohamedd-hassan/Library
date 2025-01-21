@@ -1,0 +1,35 @@
+\subsection{Exemple cdecl: DLL}
+\label{cdecl_DLL}
+
+Revenons au fait que la façon de déclarer la fonction \verb|main()| n'est pas très importante: \myref{main_arguments}.
+
+Ceci est une histoire vraie: il était une fois où je voulais remplacer un fichier
+original de DLL par le mien.
+Premièrement, j'ai énuméré les noms de tous les exports de la DLL et j'ai écrit
+une fonction dans ma propre DLL de remplacement pour chaque fonction de la DLL
+originale, comme:
+
+\begin{lstlisting}[style=customc]
+void function1 ()
+{
+	write_to_log ("function1() called\n");
+};
+\end{lstlisting}
+
+Je voulais voir quelles fonctions étaient appelées lors de l'exécution, et quand.
+Toutefois, j'étais pressé et n'avais pas le temps de déduire le nombre d'arguments
+pour chaque fonction, encore moins pour les types des données.
+Donc chaque fonction dans ma DLL de remplacement n'avait aucun argument que ce soit.
+Mais tout fonctionnait, car toutes les fonctions utilisaient la convention d'appel
+\emph{cdecl}.
+(Ça ne fonctionnerait pas si les fonctions avaient la convention d'appel \emph{stdcall}.)
+Ça a aussi fonctionné pour la version x64.
+
+Et puis j'ai fait une étape de plus: j'ai déduit les types des arguments pour
+certaines fonctions.
+Mais j'ai fait quelques erreurs, par exemple, la fonction originale prend 3 arguments,
+mais je n'en ai découvert que 2, etc.
+
+Cependant, ça fonctionnait.
+Au début, ma DLL de remplacement ignorait simplement tous les arguments.
+Puis, elle ignorait le 3ème argument.

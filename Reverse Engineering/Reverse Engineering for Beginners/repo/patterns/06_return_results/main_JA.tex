@@ -1,0 +1,177 @@
+\mysection{戻り値を返すことの詳細}
+
+\myindex{x86!\Registers!EAX}
+
+x86では、関数の実行結果は通常 \EAX レジスタに返されます。
+\footnote{\Seealso: MSDN: Return Values (C++): \href{http://msdn.microsoft.com/en-us/library/7572ztz4.aspx}{MSDN}}
+バイトタイプまたは文字（\Tchar）の場合は、レジスタ \EAX （\AL）の最下位部分が使用されます。
+関数が浮動小数点数を返す場合、代わりにFPUレジスタ\ST{0}が使用されます。 
+ARMでは、結果は通常\Reg{0}レジスタに返されます。
+
+\subsection{\Tvoid を返す関数の結果を使ってみる}
+\label{UseResultOfVoidFunc}
+
+では、\main 関数の戻り値が \Tint 型ではなく \Tvoid 型であると宣言された場合はどうでしょうか？
+いわゆるスタートアップコードは、以下のように \main を呼び出しています。
+
+\begin{lstlisting}[style=customasmx86]
+push envp
+push argv
+push argc
+call main
+push eax
+call exit
+\end{lstlisting}
+
+言い換えると：
+
+\begin{lstlisting}[style=customc]
+exit(main(argc,argv,envp));
+\end{lstlisting}
+
+\main を \Tvoid として宣言すると、明示的に（\emph{return}文を使って）何も返されず、
+\main の最後の \EAX レジスタに格納された何かがexit()の唯一の引数になります。
+おそらく、あなたの関数の実行から放棄されるランダムな値があるでしょう。したがって、プログラムの終了コードは疑似乱数です。
+\par
+この事実を説明することができます。
+ここで \main 関数は \Tvoid 戻り値の型を持っていることに注意してください。
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf ("Hello, world!\n");
+};
+\end{lstlisting}
+
+Linuxでコンパイルしましょう。
+
+\myindex{puts() instead of printf()}
+GCC 4.8.1では、 \printf を \puts に置き換えましたが(以下で見てきました： \myref{puts})、
+これは \printf のように \puts が出力する文字数を返すので、これは問題ありません。 
+\main が終了する前に \EAX がゼロになっていないことに注意してください。
+
+これは、 \main の最後の \EAX の値に \puts が残した値が含まれていることを意味します。
+
+\begin{lstlisting}[caption=GCC 4.8.1,style=customasmx86]
+.LC0:
+	.string	"Hello, world!"
+main:
+	push	ebp
+	mov	ebp, esp
+	and	esp, -16
+	sub	esp, 16
+	mov	DWORD PTR [esp], OFFSET FLAT:.LC0
+	call	puts
+	leave
+	ret
+\end{lstlisting}
+
+\myindex{bash}
+
+終了ステータスを示すbashスクリプトを書いてみましょう。
+
+\begin{lstlisting}[caption=tst.sh]
+#!/bin/sh
+./hello_world
+echo $?
+\end{lstlisting}
+
+実行してみましょう。
+
+\begin{lstlisting}
+$ tst.sh 
+Hello, world!
+14
+\end{lstlisting}
+
+14は表示された文字数です。
+印刷される文字の数は、\printf から \TT{EAX}/\TT{RAX}までの \q{exit code}への\textit{スリップ}です。
+
+% TBT
+% Another example in the book: \myref{ForgottenReturn}.
+
+\myindex{Hex-Rays}
+ちなみに、Hex-RaysでC++を逆コンパイルすると、あるクラスのデストラクタで終了する関数に遭遇することがよくあります。
+
+\begin{lstlisting}[style=customasmx86]
+...
+
+call    ??1CString@@QAE@XZ ; CString::~CString(void)
+mov     ecx, [esp+30h+var_C]
+pop     edi
+pop     ebx
+mov     large fs:0, ecx
+add     esp, 28h
+retn
+\end{lstlisting}
+
+C++標準では、デストラクタは何も返しませんが、Hex-Raysがそれを知らず、
+デストラクタとこの関数の両方が \Tint を返すと考えると、次のような出力が出力されます。
+
+\begin{lstlisting}[style=customc]
+...
+
+	return CString::~CString(&Str);
+}
+\end{lstlisting}
+
+\subsection{関数の戻り値を使わないとどうなる？}
+
+\printf は正常に出力された文字の数を返しますが、実際にはこの関数の結果はめったに使用されません。
+
+また、値を返す関数を呼び出し、戻り値を使用しないということも可能です。
+
+\begin{lstlisting}[style=customc]
+int f()
+{
+    // 最初の3つのランダム値をスキップする
+    rand();
+    rand();
+    rand();
+    // 4番目を使用する
+    return rand();
+};
+\end{lstlisting}
+
+rand()関数の結果は \EAX の4つのケースすべてに残されています。
+
+しかし、最初の3つのケースでは、 \EAX の値は使用されていません。
+
+\subsection{構造体を返す}
+
+\myindex{\CLanguageElements!return}
+
+戻り値が \EAX レジスタに残っているという事実に戻りましょう。
+
+そのため、古いCコンパイラでは、1つのレジスタ（通常は \Tint ）に収まらないものを返す関数を作成することはできませんが、
+必要なら、関数の引数として渡されたポインタを介して情報を返す必要があります。
+
+したがって、通常、関数が複数の値を返す必要がある場合は、1つだけを返し、
+残りのすべてのポインタを返します。
+
+構造全体を返すことが可能になっていますが、それはまだあまり一般的ではありません。
+関数が大きな構造体を返さなければならない場合、呼び出し側はそれを割り当ててポインタを最初の引数を介してプログラマに透過的に渡す必要があります。
+これは、最初の引数に手動でポインタを渡すのとほぼ同じですが、コンパイラはそれを隠します。
+
+小さな例
+
+\lstinputlisting[style=customc]{patterns/06_return_results/6_1.c}
+
+\dots 以下のコードが出力されます(MSVC 2010 \Ox):
+
+\lstinputlisting[style=customasmx86]{patterns/06_return_results/6_1.asm}
+
+構造体へのポインタの内部渡しのマクロ名は\GTT{\$T3853}です。
+
+\myindex{\CLanguageElements!C99}
+この例は、C99言語拡張を使用して書き直すことができます。
+
+\lstinputlisting[style=customc]{patterns/06_return_results/6_1_C99.c}
+
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{patterns/06_return_results/6_1_C99.asm}
+
+この関数は、あたかも構造体へのポインタが渡されたかのように、
+呼び出し元関数によって割り当てられた構造体のフィールドを埋めるだけです。
+したがって、パフォーマンス上の欠点はありません。

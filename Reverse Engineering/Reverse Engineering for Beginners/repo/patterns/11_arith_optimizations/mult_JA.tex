@@ -1,0 +1,137 @@
+﻿\subsection{乗算}
+
+\subsubsection{加算による乗算}
+
+単純な例です。
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*8;
+};
+\end{lstlisting}
+
+8倍の乗算は3つの加算命令に置き換えられます。
+どうやら、MSVCのオプティマイザは、このコードがより高速になると判断したようです。
+
+\begin{lstlisting}[caption=\Optimizing MSVC 2010,style=customasmx86]
+_TEXT	SEGMENT
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	add	eax, eax
+	add	eax, eax
+	add	eax, eax
+	ret	0
+_f	ENDP
+_TEXT	ENDS
+END
+\end{lstlisting}
+
+\subsubsection{ビットシフトによる乗算}
+\label{subsec:mult_using_shifts}
+
+2のべき乗の数による乗算および除算命令は、多くの場合、シフト命令に置き換えられます。
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*4;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=\NonOptimizing MSVC 2010,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	push	ebp
+	mov	ebp, esp
+	mov	eax, DWORD PTR _a$[ebp]
+	shl	eax, 2
+	pop	ebp
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+
+4の乗算は、数値を左に2ビットシフトし、右に0を2ビット（最後の2ビットとして）を挿入します。
+それはちょうど3を100倍するのに似ています~---右に2つのゼロを追加するだけです。
+
+これが左シフト命令の仕組みです：
+
+\myindex{x86!\Instructions!SHL}
+\input{shift_left}
+
+右の追加ビットは常にゼロです。
+
+ARMでの4倍の乗算：
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSL      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+MIPSでの4倍の乗算：
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/MIPS_SLL.lst}
+
+\myindex{MIPS!\Instructions!SLL}
+\INS{SLL} は \q{Shift Left Logical}の略です。
+
+\subsubsection{シフト、減算、加算を使用した乗算}
+\label{multiplication_using_shifts_adds_subs}
+
+シフトを使って7や17のような数値を掛けると、
+乗算演算を取り除くことができます。
+ここで使用される数学は比較的簡単です。
+
+\myparagraph{32-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts.c}
+
+\mysubparagraph{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_MSVC_2012_Ox.asm}
+
+\mysubparagraph{ARM}
+
+ARMモードのKeilは、第2オペランドのシフト修飾子を利用しています。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_ARM_O3.s}
+
+しかし、Thumbモードにはこのような修飾語はありません。 
+また、\TT{f2()}を最適化することもできません。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_thumb_O3.s}
+
+\mysubparagraph{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/mult_shifts_MIPS_O3_IDA.lst}
+
+\myparagraph{64-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts_64.c}
+
+\mysubparagraph{x64}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_x64_O3.s}
+
+\mysubparagraph{ARM64}
+
+ARM64用のGCC 4.9も、シフト修飾子のおかげで簡潔です。
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9 ARM64,style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_ARM64.s}
+
+\myparagraph{ブースの乗算アルゴリズム}
+
+\myindex{Data general Nova}
+\myindex{Booth's multiplication algorithm}
+
+コンピュータが大きくて高価だった時がありました。その中には、Data General Novaのような\ac{CPU}での
+乗算演算のハードウェアサポートが欠けていたものもありました。 
+そして、乗算が必要なとき、例えば、ブースの乗算アルゴリズムを使用してソフトウェアレベルで乗算を提供することができます。
+これは、加算演算とシフトのみを使用する乗算アルゴリズムです。
+
+現代の最適化コンパイラが行うことは同じではありませんが、
+目標（乗算）とリソース（高速化）は同じです。

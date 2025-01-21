@@ -1,0 +1,48 @@
+main:
+
+; IDA non è al corrente dei nomi delle variabili nello stack locale
+; Gli abbiamo dato i nomi manualmente:
+i               = -0x10
+saved_FP        = -8
+saved_RA        = -4
+
+; prologo funzione:
+                addiu   $sp, -0x28
+                sw      $ra, 0x28+saved_RA($sp)
+                sw      $fp, 0x28+saved_FP($sp)
+                move    $fp, $sp
+; inizializza il contatore a 2 e salva questo valore nello stack locale
+                li      $v0, 2
+                sw      $v0, 0x28+i($fp)
+; pseudoistruzione. "BEQ \$ZERO, \$ZERO, loc\_9C" qui è:
+                b       loc_9C
+                or      $at, $zero ; branch delay slot, NOP
+
+loc_80:                                  # CODE XREF: main+48
+; carica il valore del contatore dallo stack locale e chiama printing\_function():
+                lw      $a0, 0x28+i($fp)
+                jal     printing_function
+                or      $at, $zero ; branch delay slot, NOP
+; carica il contatore, incrementalo, salvalo nuovamente:
+                lw      $v0, 0x28+i($fp)
+                or      $at, $zero ; NOP
+                addiu   $v0, 1
+                sw      $v0, 0x28+i($fp)
+
+loc_9C:                                  # CODE XREF: main+18
+; controlla il contatore, vale 10?
+                lw      $v0, 0x28+i($fp)
+                or      $at, $zero ; NOP
+                slti    $v0, 0xA
+; se è minore di, salta a loc\_80 (inizio del corpo del ciclo):
+                bnez    $v0, loc_80
+                or      $at, $zero ; branch delay slot, NOP
+; terminando, ritorna 0:
+                move    $v0, $zero
+; epilogo funzione:
+                move    $sp, $fp
+                lw      $ra, 0x28+saved_RA($sp)
+                lw      $fp, 0x28+saved_FP($sp)
+                addiu   $sp, 0x28
+                jr      $ra
+                or      $at, $zero ; branch delay slot, NOP

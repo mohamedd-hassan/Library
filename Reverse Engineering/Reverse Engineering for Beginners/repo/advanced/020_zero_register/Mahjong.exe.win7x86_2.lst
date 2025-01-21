@@ -1,0 +1,14 @@
+﻿.text:010281AE sub_10281AE     proc near
+
+...
+
+.text:010281AE zero = ebx
+
+...
+
+.text:010281BF                 xor     zero, zero               ; *
+.text:010281C1                 mov     [ebp+var_10], zero       ; *
+.text:010281C4                 cmp     [esi], zero              ; *
+.text:010281C6                 jbe     short loc_10281E8
+
+...

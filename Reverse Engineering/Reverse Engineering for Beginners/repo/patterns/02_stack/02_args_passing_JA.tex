@@ -1,0 +1,173 @@
+\subsubsection{関数の引数を渡す}
+
+x86でパラメータを渡す最も一般的な方法は、\q{cdecl}です。
+
+\begin{lstlisting}[style=customasmx86]
+push arg3
+push arg2
+push arg1
+call f
+add esp, 12 ; 4*3=12
+\end{lstlisting}
+
+\gls{callee}関数はスタックポインタを介して引数を取得します。
+
+したがって、 \ttf{} 関数の最初の命令が実行される前に、引数の値がスタックにどのように格納されているかがわかります。
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+ESP & return address \\
+\hline
+ESP+4 & \argument \#1, \MarkedInIDAAs{} \TT{arg\_0} \\
+\hline
+ESP+8 & \argument \#2, \MarkedInIDAAs{} \TT{arg\_4} \\
+\hline
+ESP+0xC & \argument \#3, \MarkedInIDAAs{} \TT{arg\_8} \\
+\hline
+\dots & \dots \\
+\hline
+\end{tabular}
+\end{center}
+
+他の呼び出し規約の詳細については、セクション(\myref{sec:callingconventions})も参照してください。
+
+\par
+ちなみに、\gls{callee}関数には、渡された引数の数に関する情報はありません。
+（ \printf のような）可変数の引数を持つC関数は、フォーマット文字列指定子（\%記号で始まる）を使ってその数を決定します。
+% to be sync: C functions with a variable number of arguments (like \printf) can determine their number using format string specifiers (which begin with the \% symbol).
+
+私たちが次のように書くとします。
+
+\begin{lstlisting}
+printf("%d %d %d", 1234);
+\end{lstlisting}
+
+\printf は1234を出力し、次にそのスタックの隣にある2つの乱数\footnote{厳密な意味でランダムではなく、むしろ予測不可能: \myref{noise_in_stack}}を出力します。
+
+\label{main_arguments}
+\par
+だから、\main 関数を宣言する方法はあまり重要ではありません： \main
+\TT{main(int argc, char *argv[])} または \TT{main(int argc, char *argv[], char *envp[])}のいずれかです。
+
+実際、\ac{CRT}コードは \main を以下のように呼び出しています：
+	
+\begin{lstlisting}[style=customasmx86]
+push envp
+push argv
+push argc
+call main
+...
+\end{lstlisting}
+
+引数なしで \main を \main として宣言すると、\main はスタックにまだ残っていますが使用されません。 
+\main を\TT{main(int argc, char *argv[])}として宣言すると、
+最初の2つの引数を使用することができ、3つ目の引数は関数の \q{不可視}のままになります。 
+さらに、\TT{main(int argc)}を宣言することも可能です。これは動作します。
+
+% TBT Another related example: \ref{cdecl_DLL}.
+
+\myparagraph{引数を渡す別の方法}
+
+プログラマがスタックを介して引数を渡すことは何も必要ではないことは注目に値する。
+それは要件ではありません。 スタックをまったく使用せずに他の方法を実装することもできます。
+
+アセンブリ言語初心者の間でやや普及している方法は、グローバル変数を介して引数を渡すことです
+
+\lstinputlisting[caption=Assembly code,style=customasmx86]{patterns/02_stack/global_args.asm}
+
+しかし、このメソッドには明白な欠点があります。\emph{do\_something()}関数は、独自の引数をzapする必要があるため、
+再帰的に（または別の関数を介して）呼び出すことはできません。 
+ローカル変数を使った同じ話：グローバル変数でそれらを保持すると、関数は自分自身を呼び出すことができませんでした。 
+また、これはスレッドセーフ
+\footnote{正しく実装され、各スレッドは独自の引数/変数を持つ独自のスタックを持ちます}
+ではありません。このような情報をスタックに格納する方法は、これをより簡単にします。多くの関数の引数や値、スペースを確保できます。
+
+\InSqBrackets{\TAOCPvolI{}, 189}は、IBM System/360上で特に便利な奇妙なスキームについても言及しています。
+
+\myindex{MS-DOS}
+\myindex{x86!\Instructions!INT}
+
+MS-DOSには、レジスタを介してすべての関数引数を渡す方法がありました。
+たとえば、古代16ビットMS-DOSの ``Hello, world!''コードのコードです。
+
+\begin{lstlisting}[style=customasmx86]
+mov  dx, msg      ; address of message
+mov  ah, 9        ; 9 means "print string" function
+int  21h          ; DOS "syscall"
+
+mov  ah, 4ch      ; "terminate program" function
+int  21h          ; DOS "syscall"
+
+msg  db 'Hello, World!\$'
+\end{lstlisting}
+
+\myindex{fastcall}
+これは、\myref{fastcall}のメソッドと非常によく似ています。 
+また、Linuxのsyscalls（(\myref{linux_syscall})）とWindowsを呼び出すのと非常によく似ています。
+
+\myindex{x86!\Flags!CF}
+MS-DOS関数がブール値（すなわち単一ビット、通常はエラー状態を示す）を返す場合、\TT{CF}フラグがしばしば使用されます。
+
+例えば：
+
+\begin{lstlisting}[style=customasmx86]
+mov ah, 3ch       ; create file
+lea dx, filename
+mov cl, 1
+int 21h
+jc  error
+mov file_handle, ax
+...
+error:
+...
+\end{lstlisting}
+
+エラーの場合、\TT{CF}フラグが立てられます。 それ以外の場合は、新しく作成されたファイルのハンドルが\TT{AX}を介して返されます。
+
+このメソッドは、アセンブリ言語プログラマによって引き続き使用されます。 
+Windows Research Kernelのソースコード（Windows 2003と非常に似ています）では、次のようなものが見つかります
+
+（ファイル \emph{base/ntos/ke/i386/cpu.asm}）
+
+\begin{lstlisting}[style=customasmx86]
+        public  Get386Stepping
+Get386Stepping  proc
+
+        call    MultiplyTest            ; Perform multiplication test
+        jnc     short G3s00             ; if nc, muttest is ok
+        mov     ax, 0
+        ret
+G3s00:
+        call    Check386B0              ; Check for B0 stepping
+        jnc     short G3s05             ; if nc, it's B1/later
+        mov     ax, 100h                ; It is B0/earlier stepping
+        ret
+
+G3s05:
+        call    Check386D1              ; Check for D1 stepping
+        jc      short G3s10             ; if c, it is NOT D1
+        mov     ax, 301h                ; It is D1/later stepping
+        ret
+
+G3s10:
+        mov     ax, 101h                ; assume it is B1 stepping
+        ret
+
+	...
+
+MultiplyTest    proc
+
+        xor     cx,cx                   ; 64K times is a nice round number
+mlt00:  push    cx
+        call    Multiply                ; does this chip's multiply work?
+        pop     cx
+        jc      short mltx              ; if c, No, exit
+        loop    mlt00                   ; if nc, YEs, loop to try again
+        clc
+mltx:
+        ret
+
+MultiplyTest    endp
+\end{lstlisting}
+

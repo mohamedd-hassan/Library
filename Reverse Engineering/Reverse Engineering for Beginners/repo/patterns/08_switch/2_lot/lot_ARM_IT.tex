@@ -1,0 +1,90 @@
+\subsubsection{ARM: \OptimizingKeilVI (\ARMMode)}
+\label{sec:SwitchARMLot}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/08_switch/2_lot/lot_ARM_ARM_O3.asm}
+
+Il codice fa uso della modalità ARM in cui tutte le istruzioni hanno dimensione fissa di 4 byte.
+Ricordiamoci che il massimo valore previsto per $a$ è 4 e ogni valore maggiore causerà la stampa della stringa 
+\emph{<<something unknown\textbackslash{}n>>}.
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!ADDCC}
+La prima istruzione \TT{CMP R0, \#5} confronta il valore di $a$ con 5.
+
+\footnote{ADD---addition}
+La successiva \TT{ADDCC PC, PC, R0,LSL\#2} viene eseguita solo se $R0 < 5$ (\emph{CC=Carry clear / Less than}). 
+Di conseguenza, se \TT{ADDCC} non viene innescata (è il caso $R0 \geq 5$), si verificherà un jump a \emph{default\_case}.
+
+Se invece $R0 < 5$ e \TT{ADDCC} viene innescata, succede quanto segue:
+
+Il valore in \Reg{0} viene moltiplicato per 4.
+Infatti \TT{LSL\#2} nel suffisso dell'istruzione sta per \q{shift left by 2 bits} (shift a sinistra di 2 bit).
+Come vedremo più avanti ~(\myref{division_by_shifting}) nella sezione \q{\ShiftsSectionName}, uno shift a sinistra
+di 2 bit equivale a moltiplicare per 4.
+
+In seguito viene aggiunto $R0*4$ all'attuale valore in \ac{PC}, saltando quindi ad una delle istruzioni \TT{B} (\emph{Branch}) poste sotto.
+
+Al momento dell'esecuzione di \TT{ADDCC}, il valore in \ac{PC} si trova 8 byte più avanti (\TT{0x180})
+rispetto all'indirizzo a cui si trova l'istruzione \TT{ADDCC} (\TT{0x178}), 
+o, in altre parole, 2 istruzioni più avanti.
+
+\myindex{ARM!Pipeline}
+
+La pipeline nei processori ARM funziona così: nel momento in cui \TT{ADDCC} viene eseguita,
+il processore sta iniziando a processare l'istruzione successiva, e questo è il motivo per cui \ac{PC} punta a quella.
+Bisogna ricordarsi di ciò e tenerne conto.
+
+Se $a=0$, viene aggiunta al valore in \ac{PC},
+e l'attuale valore del \ac{PC} sarà scritto in \ac{PC} (che è 8 byte più avanti)
+e si verificherà un salto alla label \emph{loc\_180},
+che si trova 8 byte più avanti rispetto al punto in cui si trova l'istruzione \TT{ADDCC}.
+
+Se $a=1$, allora $PC+8+a*4 = PC+8+1*4 = PC+12 = 0x184$ sarà scritto in \ac{PC}, ovvero l'indirizzo della label \emph{loc\_184}.
+
+Ogni volta che si aggiunge 1 ad $a$, il risultante \ac{PC} è incrementato di 4.
+
+4 è la lunghezza delle istruzioni in modalità ARM, comprese le istruzioni \TT{B} di cui ne abbiamo 5.
+
+Ognuna di queste istruzioni \TT{B} passa il controllo più avanti, a quello che era previsto nello \emph{switch()}.
+Lì avviene il caricamento del puntatore alla stringa corrispondente al caso, etc.
+
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/08_switch/2_lot/lot_ARM_thumb_O3.asm}
+
+\myindex{ARM!\ThumbMode}
+\myindex{ARM!\ThumbTwoMode}
+
+Non possiamo essere certi che tutte le istruzioni in modalità Thumb e Thumb-2 siano della stessa lunghezza. Si può dire
+che in queste modalità le istruzioni hanno lunghezza variabile, proprio come in x86.
+
+\myindex{jumptable}
+
+E' stata aggiunta una speciale tabella che contiene informazioni su quanti casi sono previsti (escluso il default-case),
+ed un offset per ciascuno di essi, con una label a cui deve essere passato il controllo per il caso corrispondente.
+
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+E' anche presente una funzione speciale per gestire la tabella e passare il controllo, \\
+chiamata \emph{\_\_ARM\_common\_switch8\_thumb}. 
+Inizia con l'istruzione \TT{BX PC}, la cui funzione è quella di mettere il processore in ARM-mode.
+Subito dopo c'è la funzione per il processamento della tabella.
+
+E' troppo avanzata per essere analizzata adesso, e per il momento la saltiamo.
+% TODO explain it...
+
+\myindex{ARM!\Registers!Link Register}
+
+E' interessante notare che la funzione usa il registro \ac{LR} come puntatore alla tabella.
+
+Infatti, dopo la chiamata a questa funzione, \ac{LR} contiene l'indirizzo subito dopo l'istruzione\\
+\TT{BL \_\_ARM\_common\_switch8\_thumb}, dove inizia appunto la tabella.
+
+Vale anche la pena notare che il codice è generato come una funzione separata, così che possa essere riutilizzata, e il compilatore
+debba generare lo stesso codice per ogni istruzione switch().
+
+\IDA ha correttamente capito che si tratta di una funzione di servizio e di una tabella, ed ha aggiunto i commenti alle label come\\
+\TT{jumptable 000000FA case 0}.
+

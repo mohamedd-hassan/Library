@@ -1,0 +1,25 @@
+﻿\subsection{Vérification de condition}
+
+Il est important de garder à l'esprit que dans une boucle \emph{for()}, la condition est vérifiée 
+préalablement à l'itération du corps de la boucle et non pas après. Cela étant il est souvent plus 
+pratique pour le compilateur de placer les instructions qui effectuent le test après le corps de 
+la boucle. Il arrive aussi qu'il rajoute des vérifications au début du corps de la boucle.
+
+Par exemple:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/1.c}
+
+GCC 5.4.0 x64 en mode optimisé:
+
+\lstinputlisting[style=customasmx86]{patterns/09_loops/cond_check/1.s}
+
+Nous constatons la présence de deux vérifications.
+
+\myindex{Hex-Rays}
+Le code décompilé produit par Hex-Rays (dans sa version 2.2.0) est celui-ci:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/hexrays.c}
+
+Dans le cas présent, il ne fait aucun doute que la structure \emph{do/while()} peut être remplacée par 
+une construction \emph{for()}, et que le premier contrôle peut être supprimé.
+

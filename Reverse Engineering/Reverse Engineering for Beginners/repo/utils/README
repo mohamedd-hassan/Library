@@ -1,0 +1,3 @@
+This util finds orphaned files (that are not included in any .tex file).
+It may be buggy (not parsing everything correctly).
+

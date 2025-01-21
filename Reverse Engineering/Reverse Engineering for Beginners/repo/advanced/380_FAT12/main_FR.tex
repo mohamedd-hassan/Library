@@ -1,0 +1,416 @@
+% TODO translate
+% TODO TikZ
+\mysection[Packer des valeurs 12-bit dans un tableau]{Packer des valeurs 12-bit dans un tableau en utilisant des opérations sur les bits (x64, ARM/ARM64, MIPS)}
+
+(Cette partie est apparue tout d'abord dans mon blog le 4 septembre 2015.)
+
+\subsection{Introduction}
+
+Le système de fichier File Allocation Table (FAT) a été très répandu.
+C'est difficile à croire, mais il est encore utilisé avec les disques flash, peut-être
+par simplicité et compatibilité.
+La table FAT en elle-même est un tableau d'éléments, chacun d'eux pointant sur le
+numéro de cluster suivant d'un fichier (FAT supporte les fichiers dispersés sur l'ensemble
+du disque).
+Ceci implique que le maximum de chaque élément est le nombre maximum de clusters
+sur le disque.
+Sur MS-DOS, la plupart des disques durs ont un système de fichiers FAT16, car le
+nombre de cluster peut être mis dans une valeur 16-bit.
+Les disques durs sont devenus moins chers, et FAT32 est apparu, où des valeurs 32-bit
+sont allouées pour le numéro de cluster.
+Mais il fût aussi un temps, lorsque les disquettes n'étaient pas aussi bon marché
+et n'avaient pas beaucoup d'espace, donc FAT12 était utilisé dessus, afin de faire
+tenir toutes les structures du système de fichiers dans aussi peu d'espace que possible.
+
+Donc la table FAT dans un système de fichiers FAT12 est un tableau où deux éléments
+de 12-bit subséquents sont stockés dans 3 octets (triplet).
+Voici comment 6 valeurs 12-bit (AAA, BBB, CCC, DDD, EEE et FFF) sont arrangées dans
+9 octets:
+
+\begin{lstlisting}
+ +0 +1 +2 +3 +4 +5 +6 +7 +8
+|AA|AB|BB|CC|CD|DD|EE|EF|FF|...
+\end{lstlisting}
+
+Stocker des valeurs dans un tableau et les récupérer peut être un bon exemple d'opération
+de manipulation de bit (tant en C/C++ qu'en code machine bas niveau), c'est donc pourquoi
+je vais utiliser FAT12 comme exemple ici.
+
+\subsection{Structure de données}
+
+Nous pouvons rapidement voir que chaque triplet d'octets stockera 2 valeurs 12-bit:
+la première est située du côté gauche et la seconde, à droite:
+
+\begin{lstlisting}
+ +0 +1 +2
+|11|12|22|...
+\end{lstlisting}
+
+Nous allons stocker les morceaux (chunks de 4 bit) de la façon suivante (1 - morceau
+le plus haut, 3 - le plus bas):
+
+(Pair)
+
+\begin{lstlisting}
+ +0 +1 +2
+|12|3.|..|...
+\end{lstlisting}
+
+(Impair)
+
+\begin{lstlisting}
+ +0 +1 +2
+|..|.1|23|...
+\end{lstlisting}
+
+\subsection{L' algorithme}
+
+Donc, l'algorithme fonctionne comme suit: si l'index de l'élément est pair, le mettre
+du côté gauche, si l'index est impair, le mettre du côté droit.
+L'octet du milieu: si l'index de l'élément est pair, mettre cette partie dans les
+4 bits hauts, si il est impair, dans les 4 bits bas.
+Mais tout d'abord, trouver le bon triplet, c'est facile: $\frac{index}{2}$.
+Trouver l'adresse de l'octet de droite dans un tableau d'octets est aussi facile: $\frac{index}{2} \cdot 3$
+ou $index \cdot \frac{3}{2}$ ou juste $index \cdot 1.5$.
+
+Prendre des valeurs du tableau: si l'index est pair, prendre le plus à gauche, celui
+du milieu et combiner ces parties.
+Si l'index est impair, prendre les octets du milieu et celui le plus à droite et
+les combiner.
+Ne pas oublier d'isoler les bits inutiles de l'octet du milieu.
+
+Mettre des valeurs se fait presque de la même façon, mais faire attention de ne pas
+écraser les \emph{autres} bits de l'octet du milieu, ne modifier que les \emph{votre}.
+
+\subsection{Le code C/C++}
+
+\lstinputlisting[style=customc]{advanced/380_FAT12/FAT12_FR.c}
+
+Pendant le test, tous les éléments de 12-bit sont remplis avec des valeurs dans l'intervalle
+0..0xFFF.
+Et voici une liste de tous les triplets, chaque ligne a 3 octets:
+
+\begin{lstlisting}
+0x000001
+0x002003
+0x004005
+0x006007
+0x008009
+0x00A00B
+0x00C00D
+0x00E00F
+0x010011
+0x012013
+0x014015
+
+...
+
+0xFECFED
+0xFEEFEF
+0xFF0FF1
+0xFF2FF3
+0xFF4FF5
+0xFF6FF7
+0xFF8FF9
+0xFFAFFB
+0xFFCFFD
+0xFFEFFF
+\end{lstlisting}
+
+Voici une sortie niveau octet de GDB de 300 octets (ou 100 triplets) commençant en
+512/2*3, i.e., l'adresse où le 512ème élément (0x200) commence.
+J'ai ajouté des crochets dans mon éditeur de texte pour montrer des triplets explicitement.
+Remarquez bien l'octet du milieu, où le dernier élément se termine et le suivant commence,
+Autrement dit, chaque octet du milieu a les 4 bits bas d'un élément pair et les 4
+bits hauts d'un élément impair.
+
+\lstinputlisting{advanced/380_FAT12/gdb.txt}
+
+\subsection{Comment ça fonctionne}
+
+Disons que le tableau est un buffer global pour faciliter l'accès.
+
+\subsubsection{Getter}
+
+Commençons avec la fonction prenant les valeurs dans le tableau, car elle est plus simple.
+
+La méthode pour trouver le numéro d'un triplet est simplement de diviser l'index
+entré par 2, mais nous pouvons faire cela en décalant à droite de 1 bit.
+C'est un moyen très répandu de diviser/multiplier par des nombres de la forme $2^n$.
+
+Je peux montrer comment ça marche. Disons que vous voulez diviser 123 par 10.
+Supprimons le dernier chiffre (3, qui est le reste de la division) et il reste 12
+La division par 2 consiste à supprimer le bit le moins significatif. La suppression
+peut être faite en décalant à droite.
+
+Maintenant la fonction doit décider si l'index d'entrée est pair (donc la valeur
+12-bit est placé à gauche) ou impair (à droite).
+La façon la plus simple est d'isoler le bit le plus bas (x\&1). S'il vaut zéro, notre
+valeur est paire, autrement elle est impaire.
+
+Ce fait peut être illustré facilement, regardez le bit de poids le plus faible:
+
+\begin{lstlisting}
+§décimal§ binaire pair/impair
+
+0       0000   pair
+1       0001   impair
+2       0010   pair
+3       0011   impair
+4       0100   pair
+5       0101   impair
+6       0110   pair
+7       0111   impair
+8       1000   pair
+9       1001   impair
+10      1010   pair
+11      1011   impair
+12      1100   pair
+13      1101   impair
+14      1110   pair
+15      1111   impair
+...
+\end{lstlisting}
+
+Zéro est aussi un nombre pair, c'est ainsi dans le système de complément à deux,
+où il se trouve entre deux nombres impairs (-1 et 1).
+
+Pour les matheux, je peux aussi dire que le signe pair ou impair est aussi le
+reste de la division par 2.
+La division d'un nombre par 2 est simplement supprimer le dernier bit, qui est le
+reste de la division.
+Bon, nous n'avons pas besoin de décaler ici, juste isoler le bit de poids faible.
+
+Si l'élément est impair, nous prenons les octets du milieu et de droite:\\ (\emph{array[array\_idx+1]}
+et \emph{array[array\_idx+2]}).
+Les 4 bits de poids faible de l'octet du milieu sont isolés.
+L'octet de droite est pris en entier.
+Maintenant nous devons combiner ces parties en une valeur 12-bit.
+Pour cela, décaler les 4 bits de l'octet du milieu de 8 bits à gauche, afin que ces
+4 bits soient situés juste après le 8ème bit le plus haut d'un octet.
+Puis, en utilisant l'opération OR, nous pouvons ajouter ces parties.
+
+Si l'élément est pair, les 8 bits hauts de la valeur 12-bit sont situés dans l'octet
+de gauche, tandis que les 4 bits bas sont situés dans les 4 bits hauts de l'octet
+du milieu.
+Nous isolons les 4 bits les plus hauts de l'octet du milieu en le décalant de 4 bits
+à droite et ensuite appliquons l'opération AND, afin d'être sûr qu'il ne reste rien.
+Nous prenons ensuite l'octet de gauche et décalons sa valeur de 4 bits à gauche,
+car il a les bits d'indices 11 à 4 (inclus, en commençant à 0).
+En utilisant l'opération OR, nous combinons les deux parties.
+
+\subsubsection{Setter}
+
+Le setter calcule l'adresse du triplet de la même façon.
+Il opère sur les octets gauche/droit de la même façon.
+Mais il n'est pas correct de simplement écrire l'octet du milieu, car l'opération
+d'écriture détruirait l'information relative à l'autre élément.
+Donc la façon répandue de faire est de charger l'octet, de supprimer les octets que
+vous voulez écrire, les y écrire en laissant l'autre partie intacte.
+En utilisant l'opération AND (\TT{\&} in C/C++), nous supprimons tout excepté \emph{notre} partie.
+En utilisant l'opération OR (\TT{|} in C/C++), nous modifions l'octet du milieu.
+
+\subsection{GCC 4.8.2 avec optimisation pour x86-64}
+
+Voyons ce que fait GCC 4.8.2 avec optimisation pour Linux x64.
+J'ai ajouté des commentaires.
+Parfois, les lecteurs sont troublés car l'ordre des instructions n'est pas logique.
+C'est okay, car les compilateurs qui optimisent prennent en compte le mécanisme d'exécution
+en désordre des CPUs , et parfois,  échanger des instructions permet d'aller plus vite.
+
+\subsubsection{Getter}
+
+\lstinputlisting[style=customasmx86]{advanced/380_FAT12/GCC_getter_FR.asm}
+
+\subsubsection{Setter}
+
+\lstinputlisting[style=customasmx86]{advanced/380_FAT12/GCC_setter_FR.asm}
+
+\subsubsection{Autres commentaires}
+
+Toutes les adresses dans Linux x64 sont sur 64-bit, donc dans l'arithmétique des
+pointeurs, toutes les valeurs doivent être 64-bit.
+Le code calculant l'offset à l'intérieur d'un  tableau opère sur des valeurs 32-bit
+(l'argument d'entrée \emph{idx} a un type \emph{int}, qui a une largeur de 32 bits),
+et donc ces valeurs doivent être converties en des adresses 64-bit avant d'effectuer
+la lecture/l'écriture en mémoire.
+Donc, il y a beaucoup d'instructions d'extensions de signe (comme \INS{CDQE}, \INS{MOVSX})
+utilisées pour la conversion.
+Pourquoi étendre le signe? D'après les standards C/C++, l'arithmétique des pointeurs
+peut opérer sur des valeurs négatives (il est possible d'accéder un tableau en utilisant
+des index négatifs comme \emph{array[-123]}, voir: \myref{negative_array_indices}).
+Comme le compilateur GCC ne peut pas être certain que les indices sont toujours positifs,
+il ajoute des instructions d'extension de signe.
+
+\subsection{Keil 5.05 avec optimisation (mode Thumb)}
+
+\subsubsection{Getter}
+
+Le code suivant a une opération OR finale dans l'épilogue de la fonction.
+En effet, il s'exécute à la fin des deux branches, ce qui permet d'économiser un
+peu d'espace.
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/Keil_thumb_O3_getter_FR.asm}
+
+Il y a au moins une redondance: \emph{idx*1.5} est calculé deux fois.
+À titre d'exercice, le lecteur peut essayer de retravailler la fonction assembleur
+afin de la rendre plus courte. N'oubliez pas de tester!
+
+Une autre chose à mentionner est qu'il est difficile de générer de grandes constantes
+avec des instructions 16-bit Thumb, donc donc le compilateur Keil génère souvent
+du code complexe en utilisant des instructions de décalage afin d'obtenir le même
+effet.
+Par exemple, il est compliqué de générer le code \INS{AND Rdest, Rsrc, 1} ou \INS{TST Rsrc, 1}
+en mode Thumb, donc Keil génère le code \emph{idx} qui décale l'entrée de 31 bits à
+gauche et ensuite vérifie si le résultat est zéro ou non.
+
+\subsubsection{Setter}
+
+La première moitié du code du setter est très similaire au getter, l'adresse du triplet
+est calculée en premier, puis un saut se produit pour diriger vers le code de gestion
+adéquat.
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/Keil_thumb_O3_setter_FR.asm}
+
+\subsection{Keil 5.05 avec optimisation (mode ARM)}
+
+\subsubsection{Getter}
+
+La fonction getter pour ARM n'a pas de branche conditionnelle du tout!
+Grâce au suffixe (comme \emph{-EQ}, \emph{-NE}), qui peut être ajouté à de nombreuses
+instructions en mode ARM, elles ne sont exécutées que si le flag correspondant est
+mis.
+
+De nombreuses instructions en mode ARM peuvent avoir un suffixe de décalage comme
+\INS{LSL \#1} (qui signifie que le dernier opérande est décalé de 1 bit).
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/Keil_ARM_O3_getter_FR.asm}
+
+\subsubsection{Setter}
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/Keil_ARM_O3_setter_FR.asm}
+
+La valeur de \emph{idx*1.5} est calculée deux fois, cette redondance produite par le
+compilateur Keil peut être éliminée.
+Vous pouvez aussi retravailler cette fonction assembleur afin de la raccourcir. N'oubliez
+pas de tester!
+
+\subsection{(32-bit ARM) Compariison de la densité du code en modes Thumb et ARM}
+
+Le mode Thumb des CPUs ARM a été introduit afin de rendre les instructions plus courte
+(16-bit) au lieu des instructions 32-bit en mode ARM.
+Mais comme nous le voyons, il est difficile de dire si ça vaut la peine: le code en
+mode ARM est toujours plus court (toutefois, les instructions sont plus longues).
+
+\subsection{GCC 4.9.3 avec optimisation pour ARM64}
+
+\subsubsection{Getter}
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/ARM64_getter_FR.lst}
+
+ARM64 possède la nouvelle instruction cool \INS{UBFIZ} (\emph{Unsigned bitfield insert
+in zero, with zeros to left and right}), qui peut être utilisée pour mettre un nombre
+spécifié de bits d'un registre vers un autre.
+C'est un alias d'une autre instruction, \INS{UBFM} (\emph{Unsigned bitfield move, with
+ zeros to left and right}).
+L'instruction \INS{UBFM} est l'instruction utilisée en interne en ARM64 au lieu de
+\INS{LSL/LSR} (bit shifts).
+
+\subsubsection{Setter}
+
+\lstinputlisting[style=customasmARM]{advanced/380_FAT12/ARM64_setter_FR.lst}
+
+\subsection{GCC 4.4.5 avec optimisation pour MIPS}
+
+Il faut garder à l'esprit que chaque instruction après une instruction
+saut/branchement est d'abord exécutée.
+C'est appelé \emph{branch delay slot} (slot de délai de branchement) dans le jargon
+des CPUs RISC.
+Pour rendre les choses plus simple, il suffit d'échange (mentalement) chaque paire
+d'instructions qui commence avec une instruction de saut ou de branchement.
+
+Les MIPS n'ont pas de flag (apparemment, pour simplifier les dépendances des données),
+donc une instruction de branchement (comme \INS{BNE}) effectue à la fois la comparaison
+et le branchement.
+
+Il y a aussi le code de mise en place de GP (Global Pointer), qui peut-être ignoré
+jusqu'ici.
+
+\subsubsection{Getter}
+
+\lstinputlisting[style=customasmMIPS]{advanced/380_FAT12/MIPS_getter_FR.asm}
+
+\subsubsection{Setter}
+
+\lstinputlisting[style=customasmMIPS]{advanced/380_FAT12/MIPS_setter_FR.asm}
+
+\subsection{Différence avec le FAT12 réel}
+
+La table FAT12 réelle est légèrement différente: \url{https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system\#Cluster_map}.
+
+Pour les éléments pairs:
+
+\begin{lstlisting}
+ +0 +1 +2
+|23|.1|..|..
+\end{lstlisting}
+
+Pour les éléments impairs:
+
+\begin{lstlisting}
+ +0 +1 +2
+|..|3.|12|..
+\end{lstlisting}
+
+\href{https://github.com/torvalds/linux/blob/de182468d1bb726198abaab315820542425270b7/fs/fat/fatent.c#L117}{fat12\_ent\_get()},
+\href{https://github.com/torvalds/linux/blob/de182468d1bb726198abaab315820542425270b7/fs/fat/fatent.c#L153}{fat12\_ent\_put()}.
+
+
+\subsection{Exercice}
+
+Peut-être qu'il y a un moyen de stocker les données d'une certaine façon, afin que
+les fonctions setter/getter soient plus rapide.
+Si nous placions les valeurs de cette façon:
+
+(Éléments pairs)
+
+\begin{lstlisting}
+ +0 +1 +2
+|23|1.|..|..
+\end{lstlisting}
+
+(Éléments impairs)
+
+\begin{lstlisting}
+ +0 +1 +2
+|..|.1|23|..
+\end{lstlisting}
+
+Cette façon de stocker les données permet d'éliminer au moins une instruction de
+décalage.
+Comme exercice, vous pouvez retravailler mon code \CCpp dans ce sens et voir ce que
+le compilateur va produire.
+
+\subsection{Résumé}
+
+Les opérations de décalage de bits (\TT{<<} et \TT{>>} en \CCpp, \INS{SHL}/{SHR}/{SAL}/{SAR}
+en x86, \INS{LSL}/\INS{LSR} en ARM, \INS{SLL}/\INS{SRL} en MIPS) sont utilisés pour
+placer un ou des bit(s) à des endroits spécifiques.
+
+L'opération AND (\TT{\&} en \CCpp, \INS{AND} en x86/ARM) est utilisée pour supprimer
+des bits non voulus, aussi pendant l'isolement.
+
+L'opération OR (\TT{|} en \CCpp, \INS{OR} en x86/ARM) est utilisé pour fusionner
+ou combiner plusieurs valeurs en une seule.
+Une valeur en entrée ne doit pas utiliser l'espace à une place où une autre valeur
+a ses bits.
+
+ARM64 a les nouvelles instructions \INS{UBFM}, \INS{UFBIZ} pour déplacer des bits
+spécifiques d'un registre vers un autre.
+
+\subsection{Conclusion}
+
+FAT12 n'est plus guère utilisé de nos jours, mais si vous avez des contraintes d'espaces
+et devez stocker des valeurs limitées à 12 bits, vous pouvez envisager un tableau
+dense à la façon dont cela est fait dans la table FAT12.
+

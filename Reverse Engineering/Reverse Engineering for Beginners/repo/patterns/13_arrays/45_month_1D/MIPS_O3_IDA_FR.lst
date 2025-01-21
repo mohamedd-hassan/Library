@@ -1,0 +1,41 @@
+get_month1:
+; charger l'adresse de la table dans \$v0:
+                la      $v0, month1
+; prendre la valeur en entrée et la multiplier par 4:
+                sll     $a0, 2
+; ajouter l'adresse de la table et la valeur multipliée:
+                addu    $a0, $v0
+; charger l'élément de la table à cette adresse dans \$v0:
+                lw      $v0, 0($a0)
+; sortir
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement, NOP
+
+                .data # .data.rel.local
+                .globl month1
+month1:         .word aJanuary           # "janvier"
+                .word aFebruary          # "fevrier"
+                .word aMarch             # "mars"
+                .word aApril             # "avril"
+                .word aMay               # "mai"
+                .word aJune              # "juin"
+                .word aJuly              # "juillet"
+                .word aAugust            # "aout"
+                .word aSeptember         # "septembre"
+                .word aOctober           # "octobre"
+                .word aNovember          # "novembre"
+                .word aDecember          # "decembre"
+
+                .data # .rodata.str1.4
+aJanuary:       .ascii "janvier"<0>
+aFebruary:      .ascii "fevrier"<0>
+aMarch:         .ascii "mars"<0>
+aApril:         .ascii "avril"<0>
+aMay:           .ascii "mai"<0>
+aJune:          .ascii "juin"<0>
+aJuly:          .ascii "juillet"<0>
+aAugust:        .ascii "aout"<0>
+aSeptember:     .ascii "septembre"<0>
+aOctober:       .ascii "octobre"<0>
+aNovember:      .ascii "novembre"<0>
+aDecember:      .ascii "decembre"<0>

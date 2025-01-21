@@ -1,0 +1,157 @@
+\subsubsection{std::list}
+\myindex{\Cpp!STL!std::list}
+\label{std_list}
+\myindex{Doubly linked list}
+
+Ceci est la célèbre liste doublement chaînée: chaque élément a deux pointeurs, un
+sur l'élément précédent et un sur le suivant.
+
+Ceci implique que l'empreinte mémoire est augmentés de 2 \glslink{word}{mots} pour
+chaque élément (8 octets dans un environnement 32-bit ou 16v octets en 64-bit).
+
+\Cpp STL ajoute juste les pointeurs \q{next} et \q{previous} à la structure existante
+du type que vous voulez unir dans une liste.
+
+Travaillons sur un exemple avec une simple structure de deux variables que nous voulons
+stocker dans une liste.
+
+Bien que le standard \Cpp ne dise pas comme l'implémenter, GCC et MSVC l'implémentent
+de manière directe et similaire, donc il n'y a qu'un seul code source pour les deux:
+
+\lstinputlisting[style=customc]{\CURPATH/STL/list/2_FR.cpp}
+
+\myparagraph{GCC}
+
+Commençons avec GCC.
+
+Lorsque nous lançons l'exemple, nous voyons un long dump, travaillons avec par morceaux.
+
+\begin{lstlisting}
+* empty list:
+ptr=0x0028fe90 _Next=0x0028fe90 _Prev=0x0028fe90 x=3 y=0
+\end{lstlisting}
+
+Ici, nous voyons une liste vide.
+
+Bien que ce soit une liste vide, elle a un élément avec des données non initialisées
+(\ac{AKA} \emph{dummy node}) dans $x$ et $y$.
+Les deux pointeurs \q{next} et \q{prev} pointeurs sur le n\oe{}ud lui-même:
+
+\input{\CURPATH/STL/list/empty_list}
+
+À ce moment, les itérateurs .begin et .end sont égaux l'un à l'autre.
+
+Si nous poussons 3 éléments, la liste interne sera:
+
+\begin{lstlisting}
+* 3-elements list:
+ptr=0x000349a0 _Next=0x00034988 _Prev=0x0028fe90 x=3 y=4
+ptr=0x00034988 _Next=0x00034b40 _Prev=0x000349a0 x=1 y=2
+ptr=0x00034b40 _Next=0x0028fe90 _Prev=0x00034988 x=5 y=6
+ptr=0x0028fe90 _Next=0x000349a0 _Prev=0x00034b40 x=5 y=6
+\end{lstlisting}
+
+Le dernier élément est encore en 0x0028fe90, il ne sera pas déplacé avant l'élimination
+de la liste.
+
+Il contient toujours des valeurs aléatoires dans $x$ et $y$ (5 et 6).
+Par coïncidence, ces valeurs sont les même que dans le dernier élément, mais ça ne
+signifie pas que ça soit significatif.
+
+Voici comment ces 3 éléments sont stockés en mémoire:
+
+\input{\CURPATH/STL/list/GCC_internals}
+
+La variable $l$ pointe toujours sur le premier n\oe{}ud.
+
+Les itérateurs .begin() et .end() ne sont pas des variables, mais des fonctions,
+qui renvoient des pointeurs sur le n\oe{}ud correspondant lorsqu'elle sont appelées.
+
+Avoir un élément fictif (\ac{AKA} \emph{n\oe{}ud sentinelle}) est une pratique répandue
+dans l'implémentation des listes doublements chaînées.
+
+Sans lui, de nombreuses opérations deviennent légèrement plus complexes et de ce fait,
+plus lentes.
+
+L'itérateur est en fait juste un pointeur sur un n\oe{}ud.
+list.begin() et list.end() retourne juste des pointeurs.
+
+\begin{lstlisting}
+node at .begin:
+ptr=0x000349a0 _Next=0x00034988 _Prev=0x0028fe90 x=3 y=4
+node at .end:
+ptr=0x0028fe90 _Next=0x000349a0 _Prev=0x00034b40 x=5 y=6
+\end{lstlisting}
+
+Le fait que le dernier élément ait un pointeur sur le premier et le premier élément
+ait un pointeur sur le dernier nous rappelle les listes circulaires.
+
+Ceci est très pratique ici: en ayant un pointeur sur le premier élément de la liste,
+i.e., ce qui est dans la variable $l$, il est très facile d'obtenir rapidement
+un pointeur sur le dernier, sans devoir traverser toute la liste.
+
+Insérer un élément à la fin de la liste est également rapide, grâce à cette caractéristique.
+
+\TT{operator--} et \TT{operator++} mettent la valeur courante de l'itérateur à la valeur\\
+\TT{current\_node->prev} ou \TT{current\_node->next}.
+
+Les itérateurs inverses (.rbegin, .rend) fonctionne de la même façon, mais à l'envers.
+
+\TT{operator*} renvoie un pointeur sur le point dans la structure du n\oe{}ud, où la
+structure débute, i.e., un pointeur sur le premier élément de la structure ($x$).
+
+L'insertion et la suppression dans la liste sont triviaux: simplement allouer un nouveau
+n\oe{}ud (ou le désallouer) et mettre à jour les pointeurs afin qu'ils soient valides.
+
+C'est pourquoi un itérateur peut devenir invalide après la suppression d'un élément:
+il peut toujours pointer sur le n\oe{}ud qui a été déjà désalloué.
+Ceci est aussi appelé un \emph{dangling pointer}.
+
+Et bien sûr, l'information sur le n\oe{}ud libéré (sur lequel pointe toujours l'itérateur)
+ne peut plus être utilisée.
+
+L'implémentation de GCC (à partir de 4.8.1) ne stocke plus la taille courante de
+la liste: ceci implique une méthode .size() lente: il doit traverser toute la liste
+pour compter les éléments, car il n'a pas d'autre moyen d'obtenir l'information.
+
+Ceci signifie que cette opération est en $O(n)$, i.e., elle devient constamment plus
+lente lorsque la liste grandit.
+
+\lstinputlisting[caption=GCC 4.8.1 -fno-inline-small-functions \Optimizing,style=customasmx86]{\CURPATH/STL/list/GCC_FR.asm}
+
+\lstinputlisting[caption=La sortie complète]{\CURPATH/STL/list/GCC.txt}
+
+\myparagraph{MSVC}
+\label{MSVC_std_list}
+
+L'implémentation de MSVC (2012) est la même, mais elle stocke aussi la taille courante
+de la liste.
+
+Ceci implique que la méthode .size() est très rapide ($O(1)$): elle doit juste lire
+une valeur depuis la mémoire.
+
+D'un autre côté, la variable size doit être mise à jour à chaque insertion/suppression.
+
+L'implémentation de MSVC est aussi légèrement différente dans la façon dont elle
+arrange les n\oe{}uds:
+
+\input{\CURPATH/STL/list/MSVC_internals}
+
+GCC a son élément fictif à la fin de la liste, tandis que MSVC l'a au début.
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing\ /Fa2.asm /GS- /Ob1,style=customasmx86]{\CURPATH/STL/list/MSVC_FR.asm}
+
+Contrairement à GCC, le code de MSVC alloue l'élément fictif au début de la fonction
+avec l'aide de la fonction \q{Buynode}, qui est aussi utilisée pour allouer le reste
+des n\oe{}uds (le code de GCC alloue le premier élément dans la pile locale).
+
+\lstinputlisting[caption=La sortie complète]{\CURPATH/STL/list/MSVC.txt}
+
+\myparagraph{C++11 std::forward\_list}
+\myindex{\Cpp!STL!std::forward\_list}
+
+La même chose que std::list, mais simplement chaîné, i.e., ayant seulement le champ
+\q{next} dans chaque n\oe{}ud.
+
+Il a une empreinte mémoire plus faible, mais dons n'offre pas la possibilité de
+traverser la liste en arrière.

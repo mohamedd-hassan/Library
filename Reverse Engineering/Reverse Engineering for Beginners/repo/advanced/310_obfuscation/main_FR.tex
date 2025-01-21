@@ -1,0 +1,168 @@
+\mysection{Obfuscation}
+
+L'obfuscation est une tentative de cacher le code (ou sa signification) aux rétro-ingénieurs.
+
+\subsection{Chaînes de texte}
+
+Comme nous l'avons vu dans (\myref{sec:digging_strings}), les chaînes de texte peuvent
+être vraiment utiles.
+
+Les programmeurs qui sont conscients de ceci essayent de les cacher, rendant impossible
+de trouver la chaîne dans \IDA{} ou tout autre éditeur hexadécimal.
+
+Voici la méthode la plus simple.
+
+La chaîne peut être construite comme ceci:
+
+\begin{lstlisting}[style=customasmx86]
+mov     byte ptr [ebx], 'h'
+mov     byte ptr [ebx+1], 'e'
+mov     byte ptr [ebx+2], 'l'
+mov     byte ptr [ebx+3], 'l'
+mov     byte ptr [ebx+4], 'o'
+mov     byte ptr [ebx+5], ' '
+mov     byte ptr [ebx+6], 'w'
+mov     byte ptr [ebx+7], 'o'
+mov     byte ptr [ebx+8], 'r'
+mov     byte ptr [ebx+9], 'l'
+mov     byte ptr [ebx+10], 'd'
+\end{lstlisting}
+
+La chaîne peut aussi être comparée avec une autre comme ceci:
+
+\begin{lstlisting}[style=customasmx86]
+mov	ebx, offset username
+cmp	byte ptr [ebx], 'j'
+jnz	fail
+cmp	byte ptr [ebx+1], 'o'
+jnz	fail
+cmp	byte ptr [ebx+2], 'h'
+jnz	fail
+cmp	byte ptr [ebx+3], 'n'
+jnz	fail
+jz	it_is_john
+\end{lstlisting}
+
+Dans les deux cas, il est impossible de trouver ces chaînes directement dans un éditeur
+hexadécimal.
+
+\myindex{Shellcode}
+
+À propos, ceci est un moyen de travailler avec des chaînes lorsqu'il est impossible
+d'allouer de l'espace pour elles dans le segment de données, par exemple dans un
+\ac{PIC} ou un shellcode.
+
+Une autre méthode est d'utiliser \TT{sprintf()} pour la construction:
+
+\begin{lstlisting}[style=customc]
+sprintf(buf, "%s%c%s%c%s", "hel",'l',"o w",'o',"rld");
+\end{lstlisting}
+
+Le code semble bizarre, mais peut être utile comme simple mesure anti-reversing.
+
+Les chaînes de texte peuvent aussi être présentes dans une forme chiffrée, donc chaque
+utilisation d'une chaîne est précédée par une routine de déchiffrement.
+Par exemple: \myref{examples_SCO}.
+
+\subsection{Code exécutable}
+
+\subsubsection{Insertion de code inutile}
+
+L'obfuscation de code exécutable implique l'insertion aléatoire de code inutile
+dans le code réel, qui s'exécute mais ne fait rien d'utile.
+
+Un simple exemple:
+
+\begin{lstlisting}[caption=code original,style=customasmx86]
+add	eax, ebx
+mul	ecx
+\end{lstlisting}
+
+\lstinputlisting[caption=code obfusqué,style=customasmx86]{\CURPATH/1_FR.asm}
+
+Ici, le code inutile utilise des registres qui ne sont pas utilisés dans le code
+réel (\TT{ESI} et \TT{EDX}).
+Toutefois, les résultats intermédiaires produit par le code réel peuvent être utilisés
+par les instructions inutiles pour brouiller les pistes---pourquoi pas?
+
+\subsubsection{Remplacer des instructions avec des équivalents plus gros}
+
+\begin{itemize}
+\item \TT{MOV op1, op2} peut être remplacé par la paire \TT{PUSH op2 / POP op1}.
+\item \TT{JMP label} peut être remplacé par la paire \TT{PUSH label / RET}. 
+\IDA{} ne montrera pas la référence au label.
+\item \TT{CALL label} peut être remplacé par le triplet d'instructions suivant:\\
+\TT{PUSH label\_after\_CALL\_instruction / PUSH label / RET}.
+\item \TT{PUSH op} peut aussi être remplacé par la paire d'instructions suivante:\\
+\TT{SUB ESP, 4 (or 8) / MOV [ESP], op}.%
+
+\end{itemize}
+
+\subsubsection{Code toujours exécuté/jamais exécuté}
+
+Si le développeur est certain que ESI contient toujours 0 à ce point:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/2_FR.asm}
+
+Le rétro-ingénieur a parfois besoin de temps pour le comprendre.
+
+\myindex{opaque predicate}
+Ceci est aussi appelé un \emph{prédicat opaque}.
+
+Un autre exemple (et de nouveau, le développeur est certain que ESI vaut toujours
+zéro):
+
+\lstinputlisting[style=customasmx86]{\CURPATH/3_FR.asm}
+
+\subsubsection{Mettre beaucoup de bazar}
+
+\begin{lstlisting}
+instruction 1
+instruction 2
+instruction 3
+\end{lstlisting}
+
+Peut être remplacé par:
+
+\begin{lstlisting}[style=customasmx86]
+begin:		jmp	ins1_label
+
+ins2_label:	instruction 2
+		jmp	ins3_label
+
+ins3_label:	instruction 3
+		jmp	exit:
+
+ins1_label:	instruction 1
+		jmp	ins2_label
+exit:
+\end{lstlisting}
+
+\input{\CURPATH/indirect_FR}
+
+\subsection{Machine virtuelle / pseudo-code}
+
+Un programmeur peut construire son propre \ac{PL} ou \ac{ISA} et son interpréteur.
+
+(Comme le Visual Basic pre-5.0, .NET ou les machines Java).
+Le rétro-ingénieur aura besoin de passer du temps pour comprendre la signification
+et les détails de toutes les instructions de l'\ac{ISA}.
+
+Il/elle devra aussi une sorte de désassembleur/décompilateur.
+% TODO about obfuscation VMs
+
+\subsection{Autres choses à mentionner}
+
+Ma propre (faible pour le moment) tentative de patch du compilateur Tiny C pour
+produire du code obfusqué: \url{http://blog.yurichev.com/node/58}.
+
+Utiliser l'instruction \MOV pour des choses vraiment compliquées:
+[Stephen Dolan, \emph{mov is Turing-complete}, (2013)]
+\footnote{\AlsoAvailableAs \url{http://www.cl.cam.ac.uk/~sd601/papers/mov.pdf}}. 
+
+\subsection{\Exercise}
+
+\begin{itemize}
+	\item \url{http://challenges.re/29}
+\end{itemize}
+

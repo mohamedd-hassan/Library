@@ -1,0 +1,18 @@
+\subsection{Il classico errore}
+
+E' un errore comune (e/o tipografico), passare il valore di \emph{x} anzichè il puntatore a \emph{x}:
+
+\lstinputlisting[style=customc]{patterns/04_scanf/error.c}
+
+Cosa succede in questo caso?
+\emph{x} non è inizializzata e contiene del rumore casuale dallo stack locale.
+Quando \scanf viene chiamata, prende una stringa dall'utente, la traduce in numero e prova a scriverla in \emph{x}, trattandola come un indirizzo di memoria.
+Ma c'è del rumore casuale, quindi \scanf proverà a scrivere ad un indirizzo casuale.
+Di solito, il programma si blocca.
+
+\myindex{0xCCCCCCCC}
+\myindex{0x0BADF00D}
+E' abbastanza interessante il fatto che alcune librerie \ac{CRT}, nella build di debug, inseriscono dei patterns distinguibili visivamente nella memoria appena allocata, come 0xCCCCCCCC o 0x0BADF00D e così via.
+In questo caso, \emph{x} conterrà 0xCCCCCCCC e \scanf proverà a scrivere all'indirizzo 0xCCCCCCCC.
+Se si nota che qualcosa in un processo prova a scrivere all' indirizzo 0xCCCCCCCC, si sà che una variabile non inizializzata (o puntatore) è stato usato senza una precedente inizializzazione.
+Questa soluzione è migliore rispetto al caso in cui la memoria appena allocata venga azzerata.

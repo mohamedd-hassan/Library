@@ -1,0 +1,78 @@
+\subsection{Parfois une structure C peut être utilisée au lieu d'un tableau}
+
+\subsubsection{Moyenne arithmétique}
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int mean(int *a, int len)
+{
+	int sum=0;
+	for (int i=0; i<len; i++)
+		sum=sum+a[i];
+	return sum/len;
+};
+
+struct five_ints
+{
+	int a0;
+	int a1;
+	int a2;
+	int a3;
+	int a4;
+};
+
+int main()
+{
+	struct five_ints a;
+	a.a0=123;
+	a.a1=456;
+	a.a2=789;
+	a.a3=10;
+	a.a4=100;
+	printf ("%d\n", mean(&a, 5));
+	// test: https://www.wolframalpha.com/input/?i=mean(123,456,789,10,100)
+};
+\end{lstlisting}
+
+Ceci fonctionne: la fonction \emph{mean()} ne va jamais accéder après la fin de la
+structure \emph{five\_ints}, car 5 est passé, signifiant que seuls 5 entiers vont être
+accédés.
+
+\subsubsection{Mettre une chaîne dans une structure}
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+struct five_chars
+{
+	char a0;
+	char a1;
+	char a2;
+	char a3;
+	char a4;
+} __attribute__ ((aligned (1),packed));
+
+int main()
+{
+	struct five_chars a;
+	a.a0='h';
+	a.a1='i';
+	a.a2='!';
+	a.a3='\n';
+	a.a4=0;
+	printf (&a); // prints "hi!"
+};
+\end{lstlisting}
+
+L'attribut \emph{((aligned (1),packed))} doit être utilisé, car sinon, chaque champ
+de la structure sera aligné sur une limite de 4 ou 8 octets.
+
+\subsubsection{Résumé}
+
+Ceci est simplement un autre exemple de la façon dont les structures et les tableaux
+sont stockés en mémoire.
+Peut-être qu'aucun programmeur sain ne ferait quelque chose comme dans cet exemple,
+excepté dans le cas d'astuces spécifiques.
+Ou peut-être dans le cas d'obfuscation de code source?
+

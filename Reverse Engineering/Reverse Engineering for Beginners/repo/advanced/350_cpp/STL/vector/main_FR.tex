@@ -1,0 +1,80 @@
+\subsubsection{std::vector}
+\myindex{\Cpp!STL!std::vector}
+
+Nous appelons \TT{std::vector} un wrapper sûr sur le tableau C \ac{PODT}.
+En interne il ressemble à \TT{std::string} (\myref{std_string}):
+il a un pointeur sur le buffer alloué, un pointeur sur la fin du tableau, et un pointeur
+sur la fin du buffer alloué.
+
+Les éléments du tableau résident en mémoire adjacents les un aux autres, tout comme
+un tableau normal (\myref{arrays}).
+\myindex{\Cpp!C++11}
+En C++11 il y a une nouvelle méthode appelée \TT{.data()}, qui renvoie un pointeur
+sur le buffer, comme \TT{.c\_str()} dans \TT{std::string}.
+
+Le buffer alloué dans le \gls{heap} peut être plus large que le tableau lui-même.
+
+Les implémentations de MSVC et GCC sont similaires, seul sont légèrement différents
+le nom des champs de la structure\footnote{GCC internals: \url{http://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.4/a01371.html}},
+donc il y a un seul code source qui fonctionne pour les deux compilateurs.
+Voici encore le code pseudo-C pour afficher la structure de \TT{std::vector}:
+
+\lstinputlisting[style=customc]{\CURPATH/STL/vector/2_FR.cpp}
+
+Voici la sortie de ce programme lorsqu'il est compilé dans MSVC:
+
+\lstinputlisting{\CURPATH/STL/vector/MSVC.txt}
+
+On voit qu'il n'y a pas de buffer alloué lorsque \main débute.
+Après le premier appel à \TT{push\_back()}, un buffer est alloué.
+Et puis, après chaque appel à \TT{push\_back()}, la taille du tableau et la taille
+du buffer (\emph{capacity}) sont augmentées.
+Mais l'adresse du buffer change aussi, car \TT{push\_back()} ré-alloue le buffer dans
+le \gls{heap} à chaque fois.
+C'est une opération coûteuse, c'est pourquoi il est très important de prévoir la
+taille du tableau dans le futur et de lui réserver assez d'espace avec la méthode
+\TT{.reserve()}.
+
+Le dernier nombre est du déchet: il n'y a pas d'élément du tableau à cet endroit,
+donc un nombre aléatoire est affiché.
+Ceci illustre le fait que \TT{operator[]} de \TT{std::vector} ne vérifie pas si l'index
+est dans le limites du tableau.
+La méthode plus lente \TT{.at()}, toutefois, fait cette vérification et envoie une
+exception \TT{std::out\_of\_range} en cas d'erreur.
+
+Regardons le code:
+
+\lstinputlisting[caption=MSVC 2012 /GS- /Ob1,style=customasmx86]{\CURPATH/STL/vector/MSVC.asm}
+
+Nous voyons que la méthode \TT{.at()} vérifie les limites et envoie une exception
+en cas d'erreur.
+Le nombre que le dernier appel à \printf affiche est pris de la mémoire, sans aucune
+vérification.
+
+On peut se demander pourquoi ne pas utiliser des variables comme \q{size} et \q{capacity},
+comme c'est fait dans \TT{std::string}.
+Probablement que c'est fait comme cela pour avoir une vérification des limites plus
+rapide.
+
+\myindex{Inline code}
+
+Le code que GCC génère est en général presque le même, mais la méthode \TT{.at()}
+est mise en ligne:
+
+\lstinputlisting[caption=GCC 4.8.1 -fno-inline-small-functions -O1,style=customasmx86]{\CURPATH/STL/vector/GCC.asm}
+
+\TT{.reserve()} est aussi mise en ligne.
+Elle appelle \TT{new()} si le buffer est trop petit pour la nouvelle taille, appelle
+\TT{memmove()} pour copier le contenu du buffer et appelle \TT{delete()} pour libérer
+l'ancien buffer.
+
+Regardons aussi ce que le programme affiche s'il est compilé avec GCC:
+
+\lstinputlisting{\CURPATH/STL/vector/GCC.txt}
+
+Nous repérons que la taille du buffer grossit d'une manière différente qu'avec MSVC.
+
+Une simple expérimentation montre que l'implémentation de MSVC augmente le buffer de
+\textasciitilde{}50\% à chaque fois qu'il a besoin d'être augmenté, tandis que le
+code de GCC l'augmente de 100\% à chaque fois, i.e., le double.
+

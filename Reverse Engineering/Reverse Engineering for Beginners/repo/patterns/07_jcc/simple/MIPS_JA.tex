@@ -1,0 +1,34 @@
+﻿\subsubsection{MIPS}
+
+1つの特徴的なMIPS機能は、フラグが存在しないことです。 
+明らかに、データ依存性の分析を簡素化するために行われました。
+
+\myindex{x86!\Instructions!SETcc}
+\myindex{MIPS!\Instructions!SLT}
+\myindex{MIPS!\Instructions!SLTU}
+
+x86には\INS{SETcc}に似た命令があります。\INS{SLT}（\q{Set on Less Than}：符号付きバージョン）と\INS{SLTU}（符号なしバージョン）です。 
+これらの命令は、条件が真であれば宛先レジスタの値を1に設定し、そうでない場合は0に設定します。
+
+\myindex{MIPS!\Instructions!BEQ}
+\myindex{MIPS!\Instructions!BNE}
+
+宛先レジスタは、\INS{BEQ} (\q{Branch on Equal}) または \INS{BNE} (\q{Branch on Not Equal})を使用してチェックされ、
+ジャンプが発生することがあります。 
+したがって、この命令ペアは比較および分岐のためにMIPSで使用されなければなりません。
+最初に関数の符号付きバージョンから始めましょう。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/simple/O0_MIPS_signed_IDA_JA.lst}
+
+\INS{SLT REG0, REG0, REG1}は、IDAによって短縮形式
+\INS{SLT REG0, REG1}に縮小されます。
+\myindex{MIPS!\Pseudoinstructions!BEQZ}
+
+実際には\INS{BEQ REG, \$ZERO, LABEL}の
+\INS{BEQZ}擬似命令もあります（\q{Branch if Equal to Zero}）。
+
+\myindex{MIPS!\Instructions!SLTU}
+
+符号なしバージョンはまったく同じですが、\INS{SLT}の代わりに\INS{SLTU}（符号なしバージョン、したがって\q{U}という名前）が使用されます。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/simple/O0_MIPS_unsigned_IDA.lst}

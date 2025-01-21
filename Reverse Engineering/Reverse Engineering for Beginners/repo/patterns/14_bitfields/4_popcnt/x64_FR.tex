@@ -1,0 +1,103 @@
+\subsubsection{x64}
+\label{subsec:popcnt}
+
+Modifions légèrement l'exemple pour l'étendre à 64-bit:
+
+\lstinputlisting[label=popcnt_x64_example,style=customc]{patterns/14_bitfields/4_popcnt/shifts64.c}
+
+\myparagraph{GCC 4.8.2 \NonOptimizing}
+
+Jusqu'ici, c'est facile.
+
+\lstinputlisting[caption=GCC 4.8.2 \NonOptimizing,style=customasmx86]{patterns/14_bitfields/4_popcnt/shifts64_GCC_O0_FR.s}
+
+\myparagraph{GCC 4.8.2 \Optimizing}
+
+\lstinputlisting[caption=GCC 4.8.2 \Optimizing,numbers=left,label=shifts64_GCC_O3,style=customasmx86]{patterns/14_bitfields/4_popcnt/shifts64_GCC_O3_FR.s}
+
+Ce code est plus concis, mais a une particularité.
+
+% TODO: comment traduire commits ?
+Dans tous les exemples que nous avons vu jusqu'ici, nous incrémentions la valeur
+de \q{rt} après la comparaison d'un bit spécifique, mais le code ici incrémente \q{rt}
+avant (ligne 6), écrivant la nouvelle valeur dans le registre \EDX.
+Donc, si le dernier bit est à 1, l'instruction \CMOVNE\footnote{Conditional MOVe if Not Equal}
+(qui est un synonyme pour \CMOVNZ\footnote{Conditional MOVe if Not Zero}) \emph{commits}
+la nouvelle valeur de \q{rt} en déplaçant  \EDX (\q{valeur proposée de rt}) dans
+\EAX (\q{rt courant} qui va être retourné à la fin).
+
+C'est pourquoi l'incrémentation est effectuée à chaque étape de la boucle, i.e.,
+64 fois, sans relation avec la valeur en entrée.
+
+L'avantage de ce code est qu'il contient seulement un saut conditionnel (à la fin
+de la boucle) au lieu de deux sauts (évitant l'incrément de la valeur de \q{rt} et
+à la fin de la boucle).
+Et cela doit s'exécuter plus vite sur les CPUs modernes avec des prédicteurs de branchement:
+\myref{branch_predictors}.
+
+\label{FATRET}
+\myindex{x86!\Instructions!FATRET}
+La dernière instruction est \INS{REP RET} (opcode \TT{F3 C3}) qui est aussi appelée
+\INS{FATRET} par MSVC.
+C'est en quelque sorte une version optimisée de \RET, qu'AMD recommande de mettre
+en fin de fonction, si \RET se trouve juste après un saut conditionnel:
+\InSqBrackets{\AMDOptimization p.15}
+\footnote{Lire aussi à ce propos: \url{http://repzret.org/p/repzret/}}.
+
+\myparagraph{MSVC 2010 \Optimizing}
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{patterns/14_bitfields/4_popcnt/MSVC_2010_x64_Ox_FR.asm}
+
+\myindex{x86!\Instructions!ROL}
+Ici l'instruction \ROL est utilisée au lieu de \SHL, qui est en fait \q{rotate left /
+pivoter à gauche} au lieu de \q{shift left / décaler à gauche}, mais dans cet exemple
+elle fonctionne tout comme \TT{SHL}.
+
+Vous pouvez en lire plus sur l'instruction de rotation ici: \myref{ROL_ROR}.
+
+\Reg{8} ici est compté de 64 à 0.
+C'est tout comme un $i$ inversé.
+
+Voici une table de quelques registres pendant l'exécution:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\HeaderColor RDX & \HeaderColor R8 \\
+\hline
+0x0000000000000001 & 64 \\
+\hline
+0x0000000000000002 & 63 \\
+\hline
+0x0000000000000004 & 62 \\
+\hline
+0x0000000000000008 & 61 \\
+\hline
+... & ... \\
+\hline
+0x4000000000000000 & 2 \\
+\hline
+0x8000000000000000 & 1 \\
+\hline
+\end{tabular}
+\end{center}
+
+\myindex{x86!\Instructions!FATRET}
+À la fin, nous voyons l'instruction \INS{FATRET}, qui a été expliquée ici: \myref{FATRET}.
+
+\myparagraph{MSVC 2012 \Optimizing}
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing,style=customasmx86]{patterns/14_bitfields/4_popcnt/MSVC_2012_x64_Ox_FR.asm}
+
+\myindex{\CompilerAnomaly}
+\label{MSVC2012_anomaly}
+MSVC 2012 \Optimizing fait presque le même job que MSVC 2010 \Optimizing, mais en
+quelque sorte, il génère deux corps de boucles identiques et le nombre de boucles
+est maintenant 32 au lieu de 64.
+
+Pour être honnête, il n'est pas possible de dire pourquoi. Une ruse d'optimisation?
+Peut-être est-il meilleur pour le corps de la boucle d'être légèrement plus long?
+
+De toute façon, ce genre de code est pertinent ici pour montrer que parfois la sortie
+du compilateur peut être vraiment bizarre et illogique, mais fonctionner parfaitement.
+

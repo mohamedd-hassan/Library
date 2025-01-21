@@ -1,0 +1,169 @@
+\mysection{Cas d'une structure LARGE\_INTEGER}
+\label{LargeInteger}
+
+\myindex{Microsoft}
+\myindex{LARGE\_INTEGER}
+Imaginez ceci: fin des années 1990, vous êtes Microsoft, et vous développez un
+nouvel \ac{OS} \emph{sérieux} (Windows NT), qui doit concurrencer les systèmes UNIX.
+Les plate-formes cibles sont à la fois les CPUs 32-bit et 64-bit.
+\myindex{FILETIME}
+Et vous avez besoin d'un type de donnée entier 64-bit pour toutes sortes de besoins,
+à commencer par la structure FILETIME\footnote{\url{https://docs.microsoft.com/en-us/windows/desktop/api/minwinbase/ns-minwinbase-filetime}}
+
+Le problème: tous les compilateurs \CCpp cibles ne supportent pas encore les entiers
+64-bit (ceci se passe à la fin des années 1990).
+Sans aucun doute, ceci sera changé dans le futur (proche), mais pas maintenant.
+Que feriez-vous?
+
+En lisant ceci, essayez d'arrêter (et/ou de fermer ce livre) et réfléchissez à
+comment vous résoudriez ce problème.
+
+\clearpage
+
+Voici ce que fit Microsoft, quelque chose comme ceci\footnote{Ce n'est pas un copier/coller
+du code source, j'ai écrit ceci}:
+
+\begin{lstlisting}
+union ULARGE_INTEGER
+{
+    struct backward_compatibility
+    {
+        DWORD LowPart;
+        DWORD HighPart;
+    };
+#ifdef NEW_FANCY_COMPILER_SUPPORTING_64_BIT
+    ULONGLONG QuadPart;
+#endif
+};
+\end{lstlisting}
+
+Ceci est un fragment de 8 octets, qui peut être accédé par l'entier 64-bit QuadPart
+(si il est compilé avec un compilateur récent) ou en utilisant deux entiers 32-bit
+(si compilé avec un compilateur plus ancien).
+
+Le champ QuadPart est simplement absent lorsque c'est compilé avec un vieux compilateur.
+
+L'ordre est crucial: le premier champ (LowPart) correspond au 4 octets de la valeur
+64-bit, le second (HighPart) au 4 octets hauts.
+
+Microsoft a aussi ajouté des fonctions utilitaires pour les différentes opérations
+arithmétiques, de la même façon que je l'ai déjà décrit:
+\myref{sec:64bit_in_32_env}.
+
+\myindex{Windows 2000}
+Et ceci provient du code source de Windows 2000 qui avait été divulgué:
+
+\begin{lstlisting}[style=customasmx86,caption=i386 arch]
+;++
+;
+; LARGE\_INTEGER
+; RtlLargeIntegerAdd (
+;    IN LARGE\_INTEGER Addend1,
+;    IN LARGE\_INTEGER Addend2
+;    )
+;
+; Routine Description:
+;
+;    This function adds a signed large integer to a signed large integer and
+;    returns the signed large integer result.
+;
+; Arguments:
+;
+;    (TOS+4) = Addend1 - first addend value
+;    (TOS+12) = Addend2 - second addend value
+;
+; Return Value:
+;
+;    The large integer result is stored in (edx:eax)
+;
+;--
+
+cPublicProc _RtlLargeIntegerAdd ,4
+cPublicFpo 4,0
+
+        mov     eax,[esp]+4             ; (eax)=add1.low
+        add     eax,[esp]+12            ; (eax)=sum.low
+        mov     edx,[esp]+8             ; (edx)=add1.hi
+        adc     edx,[esp]+16            ; (edx)=sum.hi
+        stdRET    _RtlLargeIntegerAdd
+
+stdENDP _RtlLargeIntegerAdd
+\end{lstlisting}
+
+\begin{lstlisting}[caption=MIPS arch]
+        LEAF_ENTRY(RtlLargeIntegerAdd)
+
+        lw      t0,4 * 4(sp)            // get low part of addend2 value
+        lw      t1,4 * 5(sp)            // get high part of addend2 value
+        addu    t0,t0,a2                // add low parts of large integer
+        addu    t1,t1,a3                // add high parts of large integer
+        sltu    t2,t0,a2                // generate carry from low part
+        addu    t1,t1,t2                // add carry to high part
+        sw      t0,0(a0)                // store low part of result
+        sw      t1,4(a0)                // store high part of result
+        move    v0,a0                   // set function return register
+        j       ra                      // return
+
+        .end    RtlLargeIntegerAdd
+\end{lstlisting}
+
+Maintenant deux architectures 64-bit:
+
+\myindex{Itanium}
+\myindex{DEC Alpha}
+\begin{lstlisting}[caption=Itanium arch]
+        LEAF_ENTRY(RtlLargeIntegerAdd)
+
+        add         v0 = a0, a1                 // add both quadword arguments
+        LEAF_RETURN
+
+        LEAF_EXIT(RtlLargeIntegerAdd)
+\end{lstlisting}
+
+\begin{lstlisting}[caption=DEC Alpha arch]
+        LEAF_ENTRY(RtlLargeIntegerAdd)
+
+        addq    a0, a1, v0              // add both quadword arguments
+        ret     zero, (ra)              // return
+
+        .end    RtlLargeIntegerAdd
+\end{lstlisting}
+
+Pas besoin d'utiliser des instructions 32-bit sur Itanium et DEC Alpha---qui
+soient déjà prêtes pour le 64-bit.
+
+\myindex{Windows Research Kernel}
+Et voici ce que l'on peut trouver dans Windows Research Kernel:
+
+\begin{lstlisting}[style=customc]
+DECLSPEC_DEPRECATED_DDK         // Use native \_\_int64 math
+__inline
+LARGE_INTEGER
+NTAPI
+RtlLargeIntegerAdd (
+    LARGE_INTEGER Addend1,
+    LARGE_INTEGER Addend2
+    )
+{
+    LARGE_INTEGER Sum;
+
+    Sum.QuadPart = Addend1.QuadPart + Addend2.QuadPart;
+    return Sum;
+}
+\end{lstlisting}
+
+Toutes ces fonctions pourront être supprimées (dans le futur), mais maintenant elles
+opèrent sur le champ QuadPart.
+Si ce morceau de code doit être compilé en utilisant un compilateur 32-bit moderne
+(qui supporte les entiers 64-bit), il générera deux additions 32-bit sous le capot.
+À partir de ce moment, les champs LowPart/HighPart pourront être supprimés de
+l'union/structure LARGE\_INTEGER.
+
+Utiliseriez-vous une telle technique aujourd'hui?
+Probablement pas, mais si quelqu'un avait besoin d'un type entier 128-bit, vous
+pourriez l'implémenter comme ceci.
+
+Aussi, inutile de dire, ceci fonctionne grâce au \emph{petit boutisme} (\myref{sec:endianness})
+(toutes les architectures pour lesquelles Windows NT a été développé sont \emph{petit boutiste}.
+Cette astuce n'est pas possible sur une architecture \emph{gros boutiste}.
+

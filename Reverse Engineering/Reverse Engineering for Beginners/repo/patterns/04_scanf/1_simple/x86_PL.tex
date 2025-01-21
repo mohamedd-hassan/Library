@@ -1,0 +1,103 @@
+\subsubsection{x86}
+
+\myparagraph{MSVC}
+
+Poniższy kod otrzymamy po kompilacji za pomocą MSVC 2010:
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/1_simple/ex1_MSVC_PL.asm}
+
+\TT{x} jest zmienną lokalną.
+
+Według standardu \CCpp zmienna lokalna może być widoczna tylko w konkretnej funkcji. Tradycyjnie zmienne lokalne są przechowywane na stosie. Prawdopodobnie są inne moliwości przechowywania tych zmiennych, ale tak akurat jest w x86.
+
+\myindex{x86!\Instructions!PUSH}
+Zadaniem instrukcji rozpoczynającej funkcję, \TT{PUSH ECX}, nie jest zapisanie stanu \ECX (można zauważyć brak odpowiadającej instrukcji \TT{POP ECX} na końcu funkcji).
+
+Tak naprawdę instrukcja ta alokuje 4 bajty na stosie do przechowania zmiennej x.
+
+\label{stack_frame}
+\myindex{\Stack!Stack frame}
+\myindex{x86!\Registers!EBP}
+Dostęp do \TT{x} odbywa się za pomocą makra \TT{\_x\$} (-4) i rejestru \EBP, który wskazuje na bieżącą ramkę.
+
+W trakcie wykonywania funkcji \EBP wskazuje na bieżącą \glslink{stack frame}{ramkę stosu}, umożliwiając dostęp do zmiennych lokalnych i argumentów funkcji poprzez \TT{EBP+offset}.
+
+\myindex{x86!\Registers!ESP}
+Można by użyć w tym celu rejestru \ESP, ale nie byłoby to zbyt wygodne, ponieważ wartość tego rejestru często się zmienia.
+Wartość \EBP może być postrzegana jako \emph{zachowana} wartość \ESP z początku wykonania funkcji.
+
+% FIXME1 это уже было в 02_stack?
+Poniżej pokazano typowy układ ramki stosu w środowisku 32-bitowym:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\dots & \dots \\
+\hline
+EBP-8 & zmienna lokalna \#2, \MarkedInIDAAs{} \TT{var\_8} \\
+\hline
+EBP-4 & zmienna lokalna \#1, \MarkedInIDAAs{} \TT{var\_4} \\
+\hline
+EBP & zapisana wartość \EBP \\
+\hline
+EBP+4 & adres powrotu \\
+\hline
+EBP+8 & \argument \#1, \MarkedInIDAAs{} \TT{arg\_0} \\
+\hline
+EBP+0xC & \argument \#2, \MarkedInIDAAs{} \TT{arg\_4} \\
+\hline
+EBP+0x10 & \argument \#3, \MarkedInIDAAs{} \TT{arg\_8} \\
+\hline
+\dots & \dots \\
+\hline
+\end{tabular}
+\end{center}
+
+Funkcja \scanf w naszym przykładzie ma dwa argumenty.
+
+Pierwszy jest wskaźnikiem na łańcuch znaków \TT{\%d} a drugi jest adresem zmiennej \TT{x}.
+
+\myindex{x86!\Instructions!LEA}
+Na początku adres zmiennej \TT{x} jest ładowany do rejestru \EAX przy pomocy instrukcji \\
+\TT{lea eax, DWORD PTR \_x\$[ebp]}.
+
+\LEA oznacza \emph{load effective address} i jest często używana do formowania adresów ~(\myref{sec:LEA}).
+
+Można powiedzieć, że w tym przypadku \LEA po prostu umieszcza sumę rejestru \EBP i makra \TT{\_x\$} w rejestrze \EAX.
+
+W tym przypadku (\TT{\_x\$} = -4) jest to samo co \INS{lea eax, [ebp-4]}. Więc od rejestru \EBP jest odejmowane 4 i wynik zostaje umieszczony w rejestrze \EAX.
+Następnie wartość rejestru \EAX jest odkładana na stos i funkcja \scanf zostaje wywołana.
+
+Kolejno następuje przygotowanie do wywołania funkcji \printf. Pierwszym argumentem jest wskaźnik na łańcuch znaków:
+\TT{You entered \%d...\textbackslash{}n}.
+
+Drugi argument jest przygotowywany za pomocą: \TT{mov ecx, [ebp-4]}.
+Instrukcja kopiuje zmienną \TT{x} (nie jej adres) do rejestru \ECX.
+
+Następnie wartość z \ECX jest odkładana na stos, a na koniec zostaje wywołana funkcja  \printf.
+
+\input{patterns/04_scanf/1_simple/olly.tex}
+
+\myparagraph{GCC}
+
+Tak wygląda skompilowany kod w GCC 4.4.1 w systemie Linux:
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/1_simple/ex1_GCC.asm}
+
+\myindex{puts() instead of printf()}
+GCC zamienia wywołanie funkcji \printf na wywołanie funkcji \puts. Powód tego został wyjaśniony w ~(\myref{puts}).
+
+% TODO: rewrite
+%\RU{Почему \scanf переименовали в \TT{\_\_\_isoc99\_scanf}, я честно говоря, пока не знаю.}
+%\EN{Why \scanf is renamed to \TT{\_\_\_isoc99\_scanf}, I do not know yet.}
+% 
+% Apparently it has to do with the ISO c99 standard compliance. By default GCC allows specifying a standard to adhere to.
+% For example if you compile with -std=c89 the outputted assmebly file will contain scanf and not __isoc99__scanf. I guess current GCC version adhares to c99 by default.
+% According to my understanding the two implementations differ in the set of suported modifyers (See printf man page)
+
+Jak w przykładzie z MSVC---argumenty funkcji są umieszczane na stosie przy użyciu instrukcji \MOV.
+
+\myparagraph{Nawiasem mówiąc\dots}
+
+Ten prosty przykład pokazuje, że kompilatory rzeczywiście tłumaczą listę instrukcji języka C na serię instrukcji kodu maszynowego.
+W kodzie C wykonanie odbywa się instrukcja po instrukcji i podobnie jest w kodzie maszynowym - między instrukcjami nie ma nic więcej.

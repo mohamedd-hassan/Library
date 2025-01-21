@@ -1,0 +1,75 @@
+\mysection{GOTO演算子}
+
+GOTO演算子は、一般的にアンチパターンとみなされます。
+[Edgar Dijkstra, \emph{Go To Statement Considered Harmful} (1968)\footnote{\url{http://yurichev.com/mirrors/Dijkstra68.pdf}}]を参照してください。 
+それにもかかわらず、それは合理的に使用することができます
+[Donald E. Knuth, \emph{Structured Programming with go to Statements} (1974)\footnote{\url{http://yurichev.com/mirrors/KnuthStructuredProgrammingGoTo.pdf}}]
+\footnote{\InSqBrackets{\CNotes} にもいくつか例があります}
+を参照してください。
+
+ここには非常に単純な例があります。
+
+\lstinputlisting[style=customc]{patterns/065_GOTO/goto.c}
+
+MSVC 2012ではは次のようになります。
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{patterns/065_GOTO/MSVC_goto.asm}
+
+\emph{goto}文は単に \JMP 命令に置き換えられています。これは同じ効果があります。別の場所への無条件ジャンプです。 
+2番目の \printf は、人間の介入、デバッガの使用、またはコードのパッチ適用によってのみ実行できます。
+
+\par
+
+\clearpage
+
+これは簡単なパッチの練習としても役立ちます。 Hiewで結果の実行ファイルを開きましょう：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/065_GOTO/hiew1.png}
+\caption{Hiew}
+\label{fig:goto_hiew1}
+\end{figure}
+
+\clearpage
+カーソルを \JMP （0x410）に設定し、
+F3（編集）を押し、0を2回押すと、オペコードが\TT{EB 00}になります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/065_GOTO/hiew2.png}
+\caption{Hiew}
+\label{fig:goto_hiew2}
+\end{figure}
+
+\JMP オペコードの第2バイトはジャンプの相対オフセットを示し、
+0は現在の命令の直後のポイントを示します。
+
+したがって、 \JMP は2番目の \printf 呼び出しをスキップしません。
+
+F9（保存）を押して終了します。実行ファイルを実行すると、次のように表示されます。
+
+\lstinputlisting[caption=Patched executable output]{patterns/065_GOTO/console.txt}
+
+\JMP 命令を2つの \NOP 命令に置き換えることによっても同じ結果が得られます。
+
+\NOP のオペコードは\TT{0x90}で、長さは1バイトなので、 \JMP の代わりに2バイトの命令（サイズは2バイト）が必要です。
+
+\subsection{デッドコード}
+
+2番目の \printf 呼び出しは、コンパイラの用語で\q{デッドコード}とも呼ばれます。
+
+つまり、コードは決して実行されません。
+したがって、この例を最適化してコンパイルすると、コンパイラは痕跡を残さずに、\q{デッドコード}を削除します。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/065_GOTO/MSVC_goto_Ox.asm}
+
+しかし、コンパイラは \q{skip me!}文字列を削除するのを忘れていました。
+
+%Note: cl "/Ox" option for maximum optimisation does get rid of "skip me" string as well
+
+\subsection{\Exercise}
+
+% TODO debugger example can fit here
+
+あなたの好きなコンパイラとデバッガを使って同じ結果を達成してみてください。

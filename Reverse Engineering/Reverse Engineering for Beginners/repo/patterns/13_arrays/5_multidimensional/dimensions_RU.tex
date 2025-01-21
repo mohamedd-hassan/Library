@@ -1,0 +1,27 @@
+\subsubsection{Узнать размеры многомерного массива}
+\myindex{Hex-Rays}
+
+Если в ф-цию обработки строки передать массив символов, внутри самой ф-ции невозможно определить размер входного массива.
+Точно также, в ф-ции, обрабатывающую двухмерный массив, толко один размер может быть определен.
+
+Например:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2.c}
+
+... если это скомпилировать (любым компилятором) и затем декомпилировать в Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2_hexrays.c}
+
+Нет никакого способа узнать размер первого измерения.
+Если переданное значение $x$ слишком большое, произойдет переполнение буфера, и прочитается элемент из какого-то случайного места в памяти.
+
+И трехмерный массив:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3.c}
+
+Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3_hexrays.c}
+
+И снова, можно узнать размеры только двух измерений из трех.
+

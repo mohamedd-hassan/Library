@@ -1,0 +1,123 @@
+\mysection{MIPS}
+
+\subsection{\Registers}
+\label{MIPS_registers_ref}
+
+\myindex{MIPS!O32}
+(Convention d'appel O32)
+
+\subsubsection{Registres à usage général \ac{GPR}}
+
+%\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Numéro & 
+\HeaderColor Pseudonom & 
+\HeaderColor Description \\
+\hline
+\$0             & \$ZERO          & Toujours à zéro. Écrire dans ce registre est comme \ac{NOP}. \\
+\hline
+\$1             & \$AT            & Utilisé comme un registre temporaire \\
+                &                 & pour les macros assembleurs et les pseudo-instructions. \\
+\hline
+\$2 \dots \$3   & \$V0 \dots \$V1 & Le résultat des fonctions est renvoyé par ce registre. \\
+\hline
+\$4 \dots \$7   & \$A0 \dots \$A3 & Arguments de fonctions. \\
+\hline
+\$8 \dots \$15  & \$T0 \dots \$T7 & Utilisé pour des données temporaires. \\
+\hline
+\$16 \dots \$23 & \$S0 \dots \$S7 & Utilisé pour des données temporaireu\AsteriskOne{}. \\
+\hline
+\$24 \dots \$25 & \$T8 \dots \$T9 & Utilisé pour des données temporaires. \\
+\hline
+\$26 \dots \$27 & \$K0 \dots \$K1 & Réservé pour le noyau de l'\ac{OS}. \\
+\hline
+\$28            & \$GP            & Pointeur global\AsteriskTwo{}. \\
+\hline
+\$29            & \$SP            & \ac{SP}\AsteriskOne{}. \\
+\hline
+\$30            & \$FP            & \ac{FP}\AsteriskOne{}. \\
+\hline
+\$31            & \$RA            & \ac{RA}. \\
+\hline
+n/a             & PC              & \ac{PC}. \\
+\hline
+n/a             & HI              & Partie 32-bit haute d'une multiplication ou du reste d'une division\AsteriskThree{}. \\
+\hline
+n/a             & LO              & Partie 32-bit basse d'une multiplication ou du reste d'une division\AsteriskThree{}. \\
+\hline
+\end{tabular}
+\end{center}
+%\normalsize
+
+\subsubsection{Registres en virgule flottante}
+\label{MIPS_FPU_registers}
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Nom & \HeaderColor Description \\
+\hline
+\$F0..\$F1   & Le résultat d'une est renvoyé ici. \\
+\hline
+\$F2..\$F3   & Non utilisé. \\
+\hline
+\$F4..\$F11  & Utilisé pour des données temporaires. \\
+\hline
+\$F12..\$F15 & Deux premiers arguments de fonction. \\
+\hline
+\$F16..\$F19 & Utilisé pour des données temporaires. \\
+\hline
+\$F20..\$F31 & Utilisé pour des données temporaires.\AsteriskOne{}. \\
+\hline
+%fcr31 & Control/status register. \\
+%\hline
+\end{tabular}
+\end{center}
+
+\AsteriskOne{} --- L'\glslink{callee}{appelée} doit préservé le contenu.\\
+\AsteriskTwo{} --- L'\glslink{callee}{appelée} doit préserver le contenu (sauf dans du code \ac{PIC}).\\
+\myindex{MIPS!\Instructions!MFLO}
+\myindex{MIPS!\Instructions!MFHI}
+\AsteriskThree{} --- Accessible en utilisant les instructions \TT{MFHI} et \TT{MFLO}.\\
+
+\subsection{\Instructions}
+
+Il y a 3 types d'instructions:
+
+\begin{itemize}
+
+\item type-R: celles qui ont 3 registres, Les instructions-R ont habituellement la
+forme suivante:
+
+\begin{lstlisting}
+instruction destination, source1, source2
+\end{lstlisting}
+
+Une chose importante à garder à l'esprit est que lorsque le premier et le second
+registre sont les même, \IDA peut montrer l'instruction sous une forme plus courte:
+
+\begin{lstlisting}
+instruction destination/source1, source2
+\end{lstlisting}
+
+Cela nous rappelle quelque peu la syntaxe Intel pour le langage d'assemblage x86.
+
+\item type-I: celles qui ont 2 registres et une valeur immédiate 16-bit.
+
+\item type-J: instructions de saut/branchement, elles ont 26 bits pour encoder l'offset.
+
+\end{itemize}
+
+\subsubsection{Instructions da saut}
+
+Quelle est la différence entre les instructions -B (BEQ, B, etc.) et le -J (JAL, JALR, etc.)?
+
+Les instructions-B ont un type-I, ainsi, l'offset de l'instruction-B est encodé
+comme une valeur 16-bit immédiate.
+JR et JALR sont des types-R et sautent à une adresse absolue spécifiée dans un registre.
+J et JAL sont des type-J, ainsi l'offset est encodé en une valeur 26-bit immédiate.
+
+En bref, les instructions-B peuvent encoder une condition (B est en fait une pseudo-instruction
+pour \TT{BEQ \$ZERO, \$ZERO, LABEL}), tandis que les instructions-J ne le peuvent pas.

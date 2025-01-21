@@ -1,0 +1,216 @@
+\subsection{About SAP client network traffic compression}
+\label{sec:SAPGUI}
+
+(This article first appeared in my blog, in 13-Jul-2010.)
+
+\newcommand{\TDWNC}{TDW\_NOCOMPRESS\xspace}
+
+(Tracing the connection between the \TDWNC{}
+SAPGUI\footnote{SAP GUI client} environment variable and 
+the pesky annoying pop-up window and the actual data compression routine.)
+ 
+It is known that the network traffic between SAPGUI and SAP is not encrypted by default, but compressed
+(see here\footnote{\url{http://blog.yurichev.com/node/44}} 
+and here\footnote{\href{http://blog.yurichev.com/node/47}{blog.yurichev.com}}). 
+
+It is also known that by setting the environment variable \emph{\TDWNC} to 1, it is possible to turn the network packet compression off.
+
+But you will see an annoying pop-up window that cannot be closed:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/SAP/sapgui/sapgui720.png}
+\caption{Screenshot}
+\end{figure}
+
+Let's see if we can remove the window somehow.
+
+But before this, let's see what we already know.
+
+First: we know that the environment variable \emph{\TDWNC} is checked somewhere inside the SAPGUI client.
+
+Second: a string like \q{data compression switched off} must be present somewhere in it.
+\newcommand{\FNURLFAR}{\footnote{\url{http://www.farmanager.com/}}}
+
+With the help of the FAR file manager\FNURLFAR we can found that both of these strings are stored in the SAPguilib.dll file.
+
+So let's open SAPguilib.dll in \IDA and search for the \emph{\TDWNC} string. 
+Yes, it is present and there is only one reference to it.
+
+We see the following fragment of code 
+(all file offsets are valid for SAPGUI 720 win32, SAPguilib.dll file version 7200,1,0,9009):
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/0.lst}
+
+\myindex{\CStandardLibrary!atoi()}
+
+The string returned by \TT{chk\_env()} via its second argument is then handled by the MFC string functions and then 
+\TT{atoi()}\footnote{standard C library function that converts the digits in a string to a number} is called. 
+After that, the numerical value is stored in \TT{edi+15h}.
+
+Also take a look at the \TT{chk\_env()} function (we gave this name to it manually):
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/01.lst}
+
+\myindex{\CStandardLibrary!getenv()}
+Yes. The \TT{getenv\_s()}\footnote{\href{http://msdn.microsoft.com/en-us/library/tb2sfw2z(VS.80).aspx}{MSDN}} 
+
+function is a Microsoft security-enhanced version of \TT{getenv()}\footnote{Standard C library returning environment variable}.
+
+\myindex{MFC}
+
+There are also some MFC string manipulations.
+
+Lots of other environment variables are checked as well. 
+Here is a list of all variables that are being checked and what SAPGUI would write to its trace log when logging is turned on:
+
+\input{examples/SAP/sapgui/options}
+
+The settings for each variable are written in the array via a pointer in the \EDI register.
+\EDI is set before the function call:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6440EE00                 lea     edi, [ebp+2884h+var_2884] ; options here like +0x15...
+.text:6440EE03                 lea     ecx, [esi+24h]
+.text:6440EE06                 call    load_command_line
+.text:6440EE0B                 mov     edi, eax
+.text:6440EE0D                 xor     ebx, ebx
+.text:6440EE0F                 cmp     edi, ebx
+.text:6440EE11                 jz      short loc_6440EE42
+.text:6440EE13                 push    edi
+.text:6440EE14                 push    offset aSapguiStoppedA ; "Sapgui stopped after commandline interp"...
+.text:6440EE19                 push    dword_644F93E8
+.text:6440EE1F                 call    FEWTraceError
+\end{lstlisting}
+
+Now, can we find the \emph{data record mode switched on} string?
+
+Yes, and the only reference is in
+\par \TT{CDwsGui::PrepareInfoWindow()}.
+
+How do we get know the class/method names? There are a lot of special debugging calls that write to the log files, like:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/02.lst}
+
+\dots or:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6440237A                 push    eax
+.text:6440237B                 push    offset aCclientStart_6 ; "CClient::Start: set shortcut user to '\%"...
+.text:64402380                 push    dword ptr [edi+4]
+.text:64402383                 call    dbg
+.text:64402388                 add     esp, 0Ch
+\end{lstlisting}
+
+It is \emph{very} useful.
+
+So let's see the contents of this pesky annoying pop-up window's function:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/03.lst}
+
+At the start of the function \ECX has a pointer to the object (since it is a thiscall~(\myref{thiscall})-type of function).
+In our case, the object obviously has class type of \emph{CDwsGui}. 
+Depending on the option turned on in the object, a specific message part is to be concatenated with the resulting message.
+
+If the value at address \TT{this+0x3D} is not zero, the compression is off:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/04.lst}
+
+It is interesting that finally the \emph{var\_10} variable state defines whether the message is to be shown at all:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/1_EN.lst}
+
+Let's check our theory on practice.
+
+\JNZ at this line \dots
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/2_EN.lst}
+
+\dots 
+replace it with just \JMP, and we get SAPGUI working without the pesky annoying pop-up window appearing!
+
+Now let's dig deeper and find a connection between the $0x15$ offset in the \TT{load\_command\_line()} 
+(we gave it this name) function and the \TT{this+0x3D} variable in \emph{CDwsGui::PrepareInfoWindow}. 
+Are we sure the value is the same?
+
+We are starting to search for all occurrences of the \TT{0x15} value in code. 
+For a small programs like SAPGUI, it sometimes works. Here is the first occurrence we've got:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/3_EN.lst}
+
+The function has been called from the function named \emph{CDwsGui::CopyOptions}! And thanks again for debugging information.
+
+But the real answer is in \emph{CDwsGui::Init()}:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/4_EN.lst}
+
+Finally, we understand: the array filled in the \TT{load\_command\_line()} function is actually placed in the \emph{CDwsGui} class, 
+but at address \TT{this+0x28}. 0x15 + 0x28 is exactly 0x3D. OK, we found the point where the value is copied to.
+
+Let's also find the rest of the places where the 0x3D offset is used. 
+Here is one of them in the \emph{CDwsGui::SapguiRun} function (again, thanks to the debugging calls):
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/5_EN.lst}
+
+Let's check our findings. \\
+Replace the \TT{setz al} here with the \TT{xor eax, eax / nop} instructions,
+clear the \TDWNC 
+environment variable and run SAPGUI. Wow! There pesky annoying window is no more (just as expected, 
+because the variable is not set) but in Wireshark we can see that the network packets are not compressed anymore! 
+Obviously, this is the point where the compression flag is to be set in the \emph{CConnectionContext} object.
+
+So, the compression flag is passed in the 5th argument of \emph{CConnectionContext::CreateNetwork}. 
+Inside the function, another one is called:
+
+\begin{lstlisting}[style=customasmx86]
+...
+.text:64403476                 push    [ebp+compression]
+.text:64403479                 push    [ebp+arg_C]
+.text:6440347C                 push    [ebp+arg_8]
+.text:6440347F                 push    [ebp+arg_4]
+.text:64403482                 push    [ebp+arg_0]
+.text:64403485                 call    CNetwork__CNetwork
+\end{lstlisting}
+
+The compression flag is passed here in the 5th argument to the \emph{CNetwork::CNetwork} constructor.
+
+And here is how the \emph{CNetwork} constructor sets the flag in the \emph{CNetwork} object according to its 5th argument \emph{and}
+another variable which probably could also affect network packets compression.
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/6_EN.lst}
+
+At this point we know the compression flag is stored in the \emph{CNetwork} class at address \emph{this+0x3A4}.
+
+Now let's dig through SAPguilib.dll for the \TT{0x3A4} value. And here is the second occurrence in 
+\emph{CDwsGui::OnClientMessageWrite} (endless thanks for the debugging information):
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/7_EN.lst}
+
+Let's take a look in \emph{sub\_644055C5}. In it we can only see the call to memcpy() and another function named 
+(by \IDA) \emph{sub\_64417440}.
+
+And, let's take a look inside \emph{sub\_64417440}. What we see is:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/sapgui/8.lst}
+
+Voilà! We've found the function that actually compresses the data.
+As it was shown in past
+\footnote{\url{http://conus.info/utils/SAP_pkt_decompr.txt}},
+
+this function is used in SAP and also the open-source MaxDB project. 
+So it is available in source form.
+
+Doing the last check here:
+
+\begin{lstlisting}[style=customasmx86]
+.text:64406F79                 cmp     dword ptr [ecx+3A4h], 1
+.text:64406F80                 jnz     compression_flag_is_zero
+\end{lstlisting}
+
+Replace \JNZ here for an unconditional \JMP. Remove the environment variable \TDWNC. Voilà!
+
+In Wireshark we see that the client messages are not compressed. The server responses, however, are compressed.
+
+So we found exact connection between the environment variable and the point where data compression 
+routine can be called or bypassed.
+

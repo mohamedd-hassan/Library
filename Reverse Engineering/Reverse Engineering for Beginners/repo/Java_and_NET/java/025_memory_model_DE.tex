@@ -1,0 +1,33 @@
+\subsection{\ac{JVM}-Speichermodell}
+x86 und andere low-level Umgebungen nutzen den Stack um Funktionsargumente zu übergeben
+und lokale Variablen zu speichern.
+
+\ac{JVM} behandelt dies ein wenig anders.
+
+\begin{itemize}
+	\item Local variable array (\ac{LVA}).
+	Dieses wird als Speicher für Funktionsargumente und lokale Variablen genutzt.
+	
+	Anweisungen wie \INS{iload\_0} laden Werte vom LVA.
+	
+	\INS{istore} legt Werte in den Speicher des LVA. 
+	Als erstes werden die Funktionsargumente gespeichert, welche mit dem Index 0 oder 1 
+	(Falls das nullte Argument der \emph{this} Pointer ist) beginnen.
+	
+	Danach werden die lokalen Variablen alloziert.
+	
+	Jeder Eintrag besitzt eine Größe von 32-bit.
+	
+	Dadurch benötigen bestimmte Datentypen wie \emph{long} und \emph{double} zwei Einträge.
+	
+	
+	\item Operand stack (or just \q{stack}).
+	Dieser wird für Berechnungen und die Übergabe von Argumenten genutzt, während andere Funktionen aufgerufen werden.
+	
+	Anders als in low-level Umgebungen wie x86, ist es nicht möglich Zugriffe auf den Stack zu machen ohne dabei Anweisungen zu nutzen, welche explizit Werte vom Stack nehmen oder auf den Stack legen.
+	
+	\item Heap. Dieser wird als Speicher für Objekte und Arrays genutzt.
+	
+\end{itemize}
+
+Diese 3 genannten Bereiche sind voneinander isoliert.

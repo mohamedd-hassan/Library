@@ -1,0 +1,103 @@
+% FIXME comparison!
+\subsection{Memory \q{snapshots} comparing}
+\label{snapshots_comparing}
+
+The technique of the straightforward comparison of two memory snapshots in order to see changes was often used to hack
+8-bit computer games and for hacking \q{high score} files.
+
+For example, if you had a loaded game on an 8-bit computer (there isn't much memory on these, but the game usually
+consumes even less memory) and you know that you have now, let's say, 100 bullets, you can do a \q{snapshot}
+of all memory and back it up to some place. Then shoot once, the bullet count goes to 99, do a second \q{snapshot}
+and then compare both: it must be a byte somewhere which has been 100 at the beginning, and now it is 99.
+
+Considering the fact that these 8-bit games were often written in assembly language and such variables were global,
+it can be said for sure which address in memory has holding the bullet count. If you searched for all references to the
+address in the disassembled game code, it was not very hard to find a piece of code \glslink{decrement}{decrementing} the bullet count,
+then to write a \gls{NOP} instruction there, or a couple of \gls{NOP}-s, 
+and then have a game with 100 bullets forever.
+\myindex{BASIC!POKE}
+Games on these 8-bit computers were commonly loaded at the constant
+address, also, there were not much different versions of each game (commonly just one version was popular for a long span of time),
+so enthusiastic gamers knew which bytes must be overwritten (using the BASIC's instruction \gls{POKE}) at which address in
+order to hack it. This led to \q{cheat} lists that contained \gls{POKE} instructions, published in magazines related to
+8-bit games.
+
+\myindex{MS-DOS}
+
+Likewise, it is easy to modify \q{high score} files, this does not work with just 8-bit games. Notice 
+your score count and back up the file somewhere. When the \q{high score} count gets different, just compare the two files,
+it can even be done with the DOS utility FC\footnote{MS-DOS utility for comparing binary files} (\q{high score} files
+are often in binary form).
+
+There will be a point where a couple of bytes are different and it is easy to see which ones are
+holding the score number.
+However, game developers are fully aware of such tricks and may defend the program against it.
+
+Somewhat similar example in this book is: \myref{Millenium_DOS_game}.
+
+% TODO: пример с какой-то простой игрушкой?
+
+\subsubsection{A real story from 1999}
+
+\myindex{ICQ}
+There was a time of ICQ messenger's popularity, at least in ex-USSR countries.
+The messenger had a peculiarity --- some users didn't want to share their online status with everyone.
+And you had to ask an \emph{authorization} from that user.
+That user could allow you seeing his/her status, or maybe not.
+
+This is what the author of these lines did:
+
+\begin{itemize}
+\item Added a user.
+\item A user appeared in a contact-list, in a ``wait for authorization'' section.
+\item Closed ICQ.
+\item Backed up the ICQ database.
+\item Loaded ICQ again.
+\item User \emph{authorized}.
+\item Closed ICQ and compared two databases.
+\end{itemize}
+
+It turned out: two database differed by only one byte.
+In the first version: \verb|RESU\x03|, in the second: \verb|RESU\x02|.
+(``RESU'', presumably, means ``USER'', i.e., a header of a structure where all the information about user was stored.)
+That means the information about authorization was stored not at the server, but at the client.
+Presumably, 2/3 value reflected \emph{authorization} status.
+
+\subsubsection{Windows registry}
+
+It is also possible to compare the Windows registry before and after a program installation.
+
+It is a very popular method of finding which registry elements are used by the program.
+Perhaps, this is the reason why the \q{windows registry cleaner} shareware is so popular.
+
+By the way, this is how to dump Windows registry to text files:
+
+\begin{lstlisting}
+reg export HKLM HKLM.reg
+reg export HKCU HKCU.reg
+reg export HKCR HKCR.reg
+reg export HKU HKU.reg
+reg export HKCC HKCC.reg
+\end{lstlisting}
+
+\myindex{UNIX!diff}
+They can be compared using diff...
+
+\subsubsection{Engineering software, CADs, etc}
+
+If a software uses proprietary files, you can also investigate something here as well.
+You save file.
+Then you add a dot or line or another primitive.
+Save file, compare.
+Or move dot, save file, compare.
+
+\subsubsection{Blink-comparator}
+
+Comparison of files or memory snapshots remind us blink-comparator
+\footnote{\url{https://en.wikipedia.org/wiki/Blink_comparator}}:
+a device used by astronomers in past, intended to find moving celestial objects.
+
+Blink-comparator allows to switch quickly between two photographies shot in different time,
+so astronomer would spot the difference visually.
+
+By the way, Pluto was discovered by blink-comparator in 1930.

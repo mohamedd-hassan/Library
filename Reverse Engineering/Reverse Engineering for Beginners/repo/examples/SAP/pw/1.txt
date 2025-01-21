@@ -1,0 +1,32 @@
+FUNCTION ThVmcSysEvent 
+  Address:         10143190  Size:      675 bytes  Index:    60483  TypeIndex:    60484 
+  Type: int NEAR_C ThVmcSysEvent (unsigned int, unsigned char, unsigned short*)
+Flags: 0 
+PARAMETER events 
+  Address: Reg335+288  Size:        4 bytes  Index:    60488  TypeIndex:    60489 
+  Type: unsigned int
+Flags: d0 
+PARAMETER opcode 
+  Address: Reg335+296  Size:        1 bytes  Index:    60490  TypeIndex:    60491 
+  Type: unsigned char
+Flags: d0 
+PARAMETER serverName 
+  Address: Reg335+304  Size:        8 bytes  Index:    60492  TypeIndex:    60493 
+  Type: unsigned short*
+Flags: d0 
+STATIC_LOCAL_VAR func 
+  Address:         12274af0  Size:        8 bytes  Index:    60495  TypeIndex:    60496 
+  Type: wchar_t*
+Flags: 80 
+LOCAL_VAR admhead 
+  Address: Reg335+304  Size:        8 bytes  Index:    60498  TypeIndex:    60499 
+  Type: unsigned char*
+Flags: 90 
+LOCAL_VAR record 
+  Address: Reg335+64  Size:      204 bytes  Index:    60501  TypeIndex:    60502 
+  Type: AD_RECORD
+Flags: 90 
+LOCAL_VAR adlen 
+  Address: Reg335+296  Size:        4 bytes  Index:    60508  TypeIndex:    60509 
+  Type: int
+Flags: 90 

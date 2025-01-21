@@ -1,0 +1,103 @@
+\subsubsection{Héritage multiple}
+
+
+L'héritage multiple est la création d'une classe qui hérite des champs et méthodes
+de deux classes ou plus.
+
+Écrivons à nouveau un exemple simple:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes3_multiple.cpp}
+
+
+Compilons-le avec MSVC 2008 avec les options \Ox et \Obzero et regardons le code de \TT{box::dump()},\\
+\TT{solid\_object::dump()} et \TT{solid\_box::dump()}:
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_1.asm}
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_2.asm}
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_3.asm}
+
+
+Donc, la disposition de la mémoire pour ces trois classes est:
+
+Classe \emph{box}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & width \\
+\hline
+  +0x4 & height \\
+\hline
+  +0x8 & depth \\
+\hline
+\end{tabular}
+\end{center}
+
+Classe \emph{solid\_object}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & density \\
+\hline
+\end{tabular}
+\end{center}
+
+
+On peut dire que la disposition de la mémoire de la classe \emph{solid\_box} est \emph{unifiée}:
+
+Classe \emph{solid\_box}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & width \\
+\hline
+  +0x4 & height \\
+\hline
+  +0x8 & depth \\
+\hline
+  +0xC & density \\
+\hline
+\end{tabular}
+\end{center}
+
+
+Le code des méthodes \TT{box::get\_volume()} et \TT{solid\_object::get\_density()} est trivial:
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_4.asm}
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_5.asm}
+
+
+Mais le code de la méthode \TT{solid\_box::get\_weight()} est bien plus intéressant:
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing\ /Ob0,style=customasmx86]{\CURPATH/classes/classes3_6.asm}
+
+
+\TT{get\_weight()} appelle juste deux méthodes, mais pour \TT{get\_volume()} il passe
+simplement un pointeur sur \TT{this}, et pour \TT{get\_density()} il passe un pointeur
+sur \TT{this} incrémenté de 12 (ou \TT{0xC}) octets, et ici, dans la disposition
+de la mémoire de la classe \TT{solid\_box}, les champs de la classe \TT{solid\_object}
+commencent.
+
+
+Ainsi, la méthode \TT{solid\_object::get\_density()} croira qu'elle traite une classe
+\TT{solid\_object} usuelle, et la méthode \TT{box::get\_volume()} fonctionnera avec
+ses trois champs, croyant que c'est juste un objet usuel de la classe \TT{box}.
+
+
+Ainsi, on peut dire, un objet d'une classe, qui hérite de plusieurs autres classes,
+est représenté en mémoire comme une classe \emph{unifiée}, qui contient tous les champs
+hérités.
+Et chaque méthode héritée est appelée avec un pointeur sur la partie correspondante
+de la structure.
+

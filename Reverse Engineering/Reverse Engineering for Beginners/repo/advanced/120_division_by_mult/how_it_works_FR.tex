@@ -1,0 +1,42 @@
+﻿\subsection{Comment ça marche}
+
+Des mathématiques du niveau de l'école, nous pouvons nous souvenir que la division
+par 9 peut être remplacée par la multiplication par $\frac{1}{9}$.
+En fait, parfois les compilateurs font cela pour l'arithmétique en virgule flottante,
+par exemple, l'instruction \INS{FDIV} en code x86 peut être remplacée par \INS{FMUL}.
+Au moins MSVC 6.0 va remplacer la division par 9 par un multiplication par $0.111111...$
+et parfois il est difficile d'être sûr de quelle opération il s'agissait dans le
+code source.
+
+Mais lorsque nous opérons avec des valeurs entières et des registres CPU entier,
+nous ne pouvons pas utiliser de fractions.
+Toutefois, nous pouvons retravailler la fraction comme ceci:
+
+% FIXME: equation size
+\begin{center}
+$result = \frac{x}{9} = x \cdot \frac{1}{9} = x \cdot \frac{1 \cdot MagicNumber}{9 \cdot MagicNumber}$
+\end{center}
+
+Avec le fait que la division par $2^n$ est très rapide (en utilisant des décalages),
+nous devons maintenant trouver quels $MagicNumber$, pour lesquels l'équation suivante
+sera vraie: $2^n = 9 \cdot MagicNumber$.
+
+La division par $2^{32}$ est quelque peu cachée: la partie basse 32-bit du produit
+dans EAX n'est pas utilisée (ignorée), seule la partie haute 32-bit du produit
+(dans EDX) est utilisée et ensuite décalée de 1 bit additionnel.
+
+Autrement dit, le code assembleur que nous venons de voir multiplie par {\Large $\frac{954437177}{2^{32+1}}$},
+ou divise par {\Large $\frac{2^{32+1}}{954437177}$}.
+Pour trouver le diviseur, nous avons juste à diviser le numérateur par le dénominateur.
+En utilisant Wolfram Alpha, nous obtenons 8.99999999.... comme résultat (qui est
+proche de 9).
+
+% TODO ref to https://yurichev.com/blog/signed_division_using_shifts/
+
+En lire plus à ce sujet dans \InSqBrackets{\HenryWarren 10-3}.
+
+Beaucoup de gens manquent la division ``cachée'' par $2^{32}$ or $2^{64}$, lorsque
+la partie basse 32-bit (ou la partie 64-bit) du produit n'est pas utilisée.
+C'est pourquoi la division par la multiplication est difficile à comprendre au début.
+
+\MathForProg a une autre explication.

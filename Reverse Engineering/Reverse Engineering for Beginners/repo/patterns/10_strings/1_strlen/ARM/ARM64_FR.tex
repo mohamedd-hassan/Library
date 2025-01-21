@@ -1,0 +1,34 @@
+﻿\myparagraph{ARM64}
+
+\mysubparagraph{GCC \Optimizing (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O3_FR.lst}
+
+L'algorithme est le même que dans \myref{strlen_MSVC_Ox}:
+trouver un octet à zéro, calculer la différence antre les pointeurs et décrémenter
+le résultat de 1.\TT{size\_t}
+Quelques commentaires ont été ajouté par l'auteur de ce livre.
+
+La seule différence notable est que cet exemple est un peu faux: \\
+\TT{my\_strlen()} renvoie une valeur \Tint 32-bit, tandis qu'elle devrait renvoyer
+un type \TT{size\_t} ou un autre type 64-bit.
+
+La raison est que, théoriquement, \TT{strlen()} peut-être appelée pour un énorme
+bloc de mémoire qui dépasse 4GB, donc elle doit être capable de renvoyer une valeur
+64-bit sur une plate-forme 64-bit.
+
+À cause de cette erreur, la dernière instruction \SUB opère sur la partie 32-bit
+du registre, tandis que la pénultième instruction \SUB travaille sur un registre
+64-bit complet (elle calcule la différence entre les pointeurs).
+
+C'est une erreur de l'auteur, il est mieux de la laisser ainsi, comme un exemple
+de ce à quoi ressemble le code dans un tel cas.
+
+\mysubparagraph{GCC \NonOptimizing (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O0_FR.lst}
+
+C'est plus verbeux.
+Les variables sont beaucoup manipulées vers et depuis la mémoire (pile locale).
+Il y a la même erreur ici: l'opération de décrémentation se produit sur la partie
+32-bit du registre.

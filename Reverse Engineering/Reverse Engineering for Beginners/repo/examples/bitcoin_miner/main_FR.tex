@@ -1,0 +1,305 @@
+\mysection{Overclocker le mineur de Bitcoin Cointerra}
+\myindex{Bitcoin}
+\myindex{BeagleBone}
+
+Il y avait le mineur de Bitcoin Cointerra, ressemblant à ceci:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/bitcoin_miner/board.jpg}
+\caption{Carte}
+\end{figure}
+
+Et il y avait aussi (peut-être leaké) l'utilitaire\footnote{Peut être téléchargé ici: \url{\RepoURL/examples/bitcoin_miner/files/cointool-overclock}}
+qui peut définir la fréquence d'horloge pour la carte.
+Il fonctionne sur une carte additionnelle BeagleBone Linux ARM (petite carte en bas
+de l'image).
+
+Et on m'avait demandé une fois s'il est possible de modifier cet utilitaire pour voir
+quelles sont les fréquences qui peuvent être définies, et celles qui ne peuvent pas
+l'être.
+Et est-il possible de l'ajuster?
+
+L'utilitaire doit être exécuté comme cela: \TT{./cointool-overclock 0 0 900}, où 900
+est la fréquence en MHz.
+Si la fréquence est trop grande, l'utilitaire affiche \q{Error with arguments} et
+se termine.
+
+Ceci est le morceau de code autour de la référence à la chaîne de texte \q{Error with arguments}:
+
+\begin{lstlisting}[style=customasmARM]
+
+...
+
+.text:0000ABC4         STR      R3, [R11,#var_28]
+.text:0000ABC8         MOV      R3, #optind
+.text:0000ABD0         LDR      R3, [R3]
+.text:0000ABD4         ADD      R3, R3, #1
+.text:0000ABD8         MOV      R3, R3,LSL#2
+.text:0000ABDC         LDR      R2, [R11,#argv]
+.text:0000ABE0         ADD      R3, R2, R3
+.text:0000ABE4         LDR      R3, [R3]
+.text:0000ABE8         MOV      R0, R3  ; nptr
+.text:0000ABEC         MOV      R1, #0  ; endptr
+.text:0000ABF0         MOV      R2, #0  ; base
+.text:0000ABF4         BL       strtoll
+.text:0000ABF8         MOV      R2, R0
+.text:0000ABFC         MOV      R3, R1
+.text:0000AC00         MOV      R3, R2
+.text:0000AC04         STR      R3, [R11,#var_2C]
+.text:0000AC08         MOV      R3, #optind
+.text:0000AC10         LDR      R3, [R3]
+.text:0000AC14         ADD      R3, R3, #2
+.text:0000AC18         MOV      R3, R3,LSL#2
+.text:0000AC1C         LDR      R2, [R11,#argv]
+.text:0000AC20         ADD      R3, R2, R3
+.text:0000AC24         LDR      R3, [R3]
+.text:0000AC28         MOV      R0, R3  ; nptr
+.text:0000AC2C         MOV      R1, #0  ; endptr
+.text:0000AC30         MOV      R2, #0  ; base
+.text:0000AC34         BL       strtoll
+.text:0000AC38         MOV      R2, R0
+.text:0000AC3C         MOV      R3, R1
+.text:0000AC40         MOV      R3, R2
+.text:0000AC44         STR      R3, [R11,#third_argument]
+.text:0000AC48         LDR      R3, [R11,#var_28]
+.text:0000AC4C         CMP      R3, #0
+.text:0000AC50         BLT      errors_with_arguments
+.text:0000AC54         LDR      R3, [R11,#var_28]
+.text:0000AC58         CMP      R3, #1
+.text:0000AC5C         BGT      errors_with_arguments
+.text:0000AC60         LDR      R3, [R11,#var_2C]
+.text:0000AC64         CMP      R3, #0
+.text:0000AC68         BLT      errors_with_arguments
+.text:0000AC6C         LDR      R3, [R11,#var_2C]
+.text:0000AC70         CMP      R3, #3
+.text:0000AC74         BGT      errors_with_arguments
+.text:0000AC78         LDR      R3, [R11,#third_argument]
+.text:0000AC7C         CMP      R3, #0x31
+.text:0000AC80         BLE      errors_with_arguments
+.text:0000AC84         LDR      R2, [R11,#third_argument]
+.text:0000AC88         MOV      R3, #950
+.text:0000AC8C         CMP      R2, R3
+.text:0000AC90         BGT      errors_with_arguments
+.text:0000AC94         LDR      R2, [R11,#third_argument]
+.text:0000AC98         MOV      R3, #0x51EB851F
+.text:0000ACA0         SMULL    R1, R3, R3, R2
+.text:0000ACA4         MOV      R1, R3,ASR#4
+.text:0000ACA8         MOV      R3, R2,ASR#31
+.text:0000ACAC         RSB      R3, R3, R1
+.text:0000ACB0         MOV      R1, #50
+.text:0000ACB4         MUL      R3, R1, R3
+.text:0000ACB8         RSB      R3, R3, R2
+.text:0000ACBC         CMP      R3, #0
+.text:0000ACC0         BEQ      loc_ACEC
+.text:0000ACC4
+.text:0000ACC4 errors_with_arguments
+.text:0000ACC4                                         
+.text:0000ACC4         LDR      R3, [R11,#argv]
+.text:0000ACC8         LDR      R3, [R3]
+.text:0000ACCC         MOV      R0, R3  ; path
+.text:0000ACD0         BL       __xpg_basename
+.text:0000ACD4         MOV      R3, R0
+.text:0000ACD8         MOV      R0, #aSErrorWithArgu ; format
+.text:0000ACE0         MOV      R1, R3
+.text:0000ACE4         BL       printf
+.text:0000ACE8         B        loc_ADD4
+.text:0000ACEC ; ------------------------------------------------------------
+.text:0000ACEC
+.text:0000ACEC loc_ACEC                 ; CODE XREF: main+66C
+.text:0000ACEC         LDR      R2, [R11,#third_argument]
+.text:0000ACF0         MOV      R3, #499
+.text:0000ACF4         CMP      R2, R3
+.text:0000ACF8         BGT      loc_AD08
+.text:0000ACFC         MOV      R3, #0x64
+.text:0000AD00         STR      R3, [R11,#unk_constant]
+.text:0000AD04         B        jump_to_write_power
+.text:0000AD08 ; ------------------------------------------------------------
+.text:0000AD08
+.text:0000AD08 loc_AD08                 ; CODE XREF: main+6A4
+.text:0000AD08         LDR      R2, [R11,#third_argument]
+.text:0000AD0C         MOV      R3, #799
+.text:0000AD10         CMP      R2, R3
+.text:0000AD14         BGT      loc_AD24
+.text:0000AD18         MOV      R3, #0x5F
+.text:0000AD1C         STR      R3, [R11,#unk_constant]
+.text:0000AD20         B        jump_to_write_power
+.text:0000AD24 ; ------------------------------------------------------------
+.text:0000AD24
+.text:0000AD24 loc_AD24                 ; CODE XREF: main+6C0
+.text:0000AD24         LDR      R2, [R11,#third_argument]
+.text:0000AD28         MOV      R3, #899
+.text:0000AD2C         CMP      R2, R3
+.text:0000AD30         BGT      loc_AD40
+.text:0000AD34         MOV      R3, #0x5A
+.text:0000AD38         STR      R3, [R11,#unk_constant]
+.text:0000AD3C         B        jump_to_write_power
+.text:0000AD40 ; ------------------------------------------------------------
+.text:0000AD40
+.text:0000AD40 loc_AD40                 ; CODE XREF: main+6DC
+.text:0000AD40         LDR      R2, [R11,#third_argument]
+.text:0000AD44         MOV      R3, #999
+.text:0000AD48         CMP      R2, R3
+.text:0000AD4C         BGT      loc_AD5C
+.text:0000AD50         MOV      R3, #0x55
+.text:0000AD54         STR      R3, [R11,#unk_constant]
+.text:0000AD58         B        jump_to_write_power
+.text:0000AD5C ; ------------------------------------------------------------
+.text:0000AD5C
+.text:0000AD5C loc_AD5C                 ; CODE XREF: main+6F8
+.text:0000AD5C         LDR      R2, [R11,#third_argument]
+.text:0000AD60         MOV      R3, #1099
+.text:0000AD64         CMP      R2, R3
+.text:0000AD68         BGT      jump_to_write_power
+.text:0000AD6C         MOV      R3, #0x50
+.text:0000AD70         STR      R3, [R11,#unk_constant]
+.text:0000AD74
+.text:0000AD74 jump_to_write_power                     ; CODE XREF: main+6B0
+.text:0000AD74                                         ; main+6CC ...
+.text:0000AD74         LDR      R3, [R11,#var_28]
+.text:0000AD78         UXTB     R1, R3
+.text:0000AD7C         LDR      R3, [R11,#var_2C]
+.text:0000AD80         UXTB     R2, R3
+.text:0000AD84         LDR      R3, [R11,#unk_constant]
+.text:0000AD88         UXTB     R3, R3
+.text:0000AD8C         LDR      R0, [R11,#third_argument]
+.text:0000AD90         UXTH     R0, R0
+.text:0000AD94         STR      R0, [SP,#0x44+var_44]
+.text:0000AD98         LDR      R0, [R11,#var_24]
+.text:0000AD9C         BL       write_power
+.text:0000ADA0         LDR      R0, [R11,#var_24]
+.text:0000ADA4         MOV      R1, #0x5A
+.text:0000ADA8         BL       read_loop
+.text:0000ADAC         B        loc_ADD4
+
+...
+
+.rodata:0000B378 aSErrorWithArgu DCB "%s: Error with arguments",0xA,0 ; DATA XREF: main+684
+
+...
+
+\end{lstlisting}
+
+Les noms de fonctions étaient présents dans les informations de débogage du binaire
+original, comme \TT{write\_power}, \TT{read\_loop}.
+Mais j'ai nommé les labels à l'intérieur des fonctions.
+
+\myindex{UNIX!getopt}
+\myindex{strtoll()}
+Le nom \TT{optind} semble familier. Il provient de la bibliothèque *NIX \emph{getopt}
+qui sert à traiter les arguments de la ligne de commande---bien, c'est exactement
+ce qui se passe dans ce code.
+Ensuite, le 3ème argument (où la valeur de la fréquence est passée) est converti
+d'une chaîne vers un nombre en utilisant un appel à la fonction \emph{strtoll()}.
+
+La valeur est ensuite encore comparée par rapport à diverses constantes.
+En 0xACEC, elle est testée, si elle est inférieure ou égale à 499, et si c'est le
+cas, 0x64 est passé à la fonction \TT{write\_power()} (qui envoie une commande par
+USB en utilisant \TT{send\_msg()}).
+Si elle est plus grande que 499, un saut en 0xAD08 se produit.
+
+En 0xAD08 on teste si elle est inférieure ou égale à 799. En cas de succès 0x5F est
+alors passé à la fonction \TT{write\_power()}.
+
+Il y a d'autres tests: par rapport à 899 en 0xAD24, à 0x999 en 0xAD40 et enfin,
+à 1099 en 0xAD5C.
+Si la fréquence est inférieure ou égale à 1099, 0x50 est passé (en 0xAD6C) à la fonction
+\TT{write\_power()}.
+Et il y a une sorte de bug.
+Si la valeur est encore plus grande que 1099, la valeur elle-même est passée à la
+fonction \TT{write\_power()}.
+Oh, ce n'est pas un bug, car nous ne pouvons pas arriver là: la valeur est d'abord
+comparée à 950 en 0xAC88, et si elle est plus grande, un message d'erreur est
+affiché et l'utilitaire s'arrête.
+
+Maintenant, la table des fréquences en MHz et la valeur passée à la fonction \TT{write\_power()}:
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor MHz & \HeaderColor héxadecimal & \HeaderColor décimal \\
+\hline
+499MHz & 0x64 & 100 \\
+\hline
+799MHz & 0x5f & 95 \\
+\hline
+899MHz & 0x5a & 90 \\
+\hline
+999MHz & 0x55 & 85 \\
+\hline
+1099MHz & 0x50 & 80 \\
+\hline
+\end{longtable}
+\end{center}
+
+Il semble que la valeur passée à la carte décroît lorsque la fréquence croît.
+
+Maintenant, nous voyons que la valeur de 950MHz est codée en dur, au moins dans cet
+utilitaire. Pouvons-nous le truquer?
+
+Retournons à ce morceau de code:
+
+\begin{lstlisting}[style=customasmARM]
+.text:0000AC84      LDR     R2, [R11,#third_argument]
+.text:0000AC88      MOV     R3, #950
+.text:0000AC8C      CMP     R2, R3
+.text:0000AC90      BGT     errors_with_arguments ; j'ai modifié ici en 00 00 00 00
+\end{lstlisting}
+
+Nous devons désactiver l'instruction de branchement \INS{BGT} en 0xAC90. Et ceci est
+du ARM en mode ARM, car, comme on le voit, toutes les adresses augmentent par 4,
+i.e, chaque instruction a une taille de 4 octets.
+L'instruction \TT{NOP} (no operation) en mode ARM est juste quatre octets à zéro:
+\TT{00 00 00 00}.
+Donc en écrivant quatre octets à zéro à l'adresse 0xAC90 (ou à l'offset 0x2C90 dans
+le fichier), nous pouvons désactiver le test.
+
+Maintenant, il est possible de définir la fréquence jusqu'à 1050MHz. Et même plus,
+mais, à cause du bug, si la valeur en entrée est plus grande que 1099, la valeur
+\emph{telle quelle} en MHz sera passée à la carte, ce qui est incorrect.
+
+Je ne suis  pas allé plus loin, mais si je devais, j'essayerai de diminuer la valeur
+qui est passée à la fonction \TT{write\_power()}.
+
+Maintenant, le morceau de code effrayant que j'ai passé en premier:
+
+\lstinputlisting[style=customasmARM]{examples/bitcoin_miner/tmp1.lst}
+
+La division via la multiplication est utilisée ici, et la constante est 0x51EB851F.
+Je me suis écrit un petit calculateur pour programmeur\footnote{\ProgCalcURL}.
+Et il est capable de calculer le modulo inverse.
+
+\begin{lstlisting}
+modinv32(0x51EB851F)
+Warning, result is not integer: 3.125000
+(unsigned) dec: 3 hex: 0x3 bin: 11
+\end{lstlisting}
+
+Cela signifie que l'instruction \INS{SMULL} en 0xACA0 divise le 3ème argument par 3.125.
+En fait, tout ce que la fonction \TT{modinv32()} de mon calculateur fait est ceci:
+
+\[
+\frac{1}{\frac{input}{2^{32}}} = \frac{2^{32}}{input}
+\]
+
+Ensuite il y a es décalages additionnels et maintenant nous voyons que le 3ème argument
+est simplement divisé par 50.
+Et ensuite il à nouveau multiplié par 50.
+Pourquoi?
+Ceci est un simple test, pour savoir si la valeur entrée est divisible par 50.
+Si la valeur de cette expression est non nulle, $x$ n'est pas divisible par 50:
+
+\[
+x-((\frac{x}{50}) \cdot 50)
+\]
+
+Ceci est en fait une manière simple de calculer le reste de la division.
+
+Et alors, si le reste est non nul, un message d'erreur est affiché.
+Donc cet utilitaire prend des fréquences comme 850, 900, 950, 1000, etc., mais pas 855 ou 911.
+
+C'est ça! Si vous faites quelque chose comme ça, soyez avertis que vous pouvez endommager
+votre carte, tout comme en cas d'overclocking d'autres éléments comme les \ac{CPU}s,
+\ac{GPU}s, etc.
+Si vous avez une carte Cointerra, faites ceci à votre propre risque!
+

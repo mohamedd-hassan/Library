@@ -1,0 +1,42 @@
+﻿\myparagraph{MSVC}
+
+MSVC 2010でコンパイルしましょう。
+
+\lstinputlisting[caption=MSVC 2010: \ttf{},style=customasmx86]{patterns/12_FPU/1_simple/MSVC_JA.asm}
+
+\FLD はスタックから8バイトを取り出し、その数値を\ST{0}レジスタにロードし、内部80ビットフォーマット
+（\emph{拡張精度}）に自動的に変換します。
+
+\myindex{x86!\Instructions!FDIV}
+
+\FDIV は、\ST{0}の値をアドレス\GTT{\_\_real@40091eb851eb851f}~に格納された数値で除算します。
+値3.14はそこにエンコードされます。
+アセンブリ構文は浮動小数点数をサポートしていないので、64ビットIEEE 754形式での3.14の16進表現です。
+
+\FDIV \ST{0}の実行後に\gls{quotient}が保持されます。
+
+\myindex{x86!\Instructions!FDIVP}
+
+ちなみに、 \FDIVP 命令もあります。これは、\ST{1}を\ST{0}で除算し、
+これらの値をスタックからポップし、その結果をプッシュします。
+あなたがForth言語 を知っていれば、
+すぐにこれがスタックマシン であることがわかります。
+
+後続の \FLD 命令は、 $b$ の値をスタックにプッシュします。
+
+その後、商は\ST{1}に置かれ、\ST{0}は $b$ の値を持ちます。
+
+\myindex{x86!\Instructions!FMUL}
+
+次の \FMUL 命令は乗算を行います。\ST{0}の $b$ は\GTT{\_\_real@4010666666666666}
+（そこには4.1が入る）の値で乗算され、結果は\ST{0}レジスタに残ります。
+
+\myindex{x86!\Instructions!FADDP}
+
+最後の \FADDP 命令は、スタックの先頭に2つの値を加算し、結果を\ST{1}に格納した後、
+\ST{0}の値をポップし、\ST{0}のスタックの先頭に結果を残します。
+
+関数はその結果を\ST{0}レジスタに戻す必要があるため、
+\FADDP 後の関数エピローグ以外の命令はありません。
+
+\input{patterns/12_FPU/1_simple/olly_JA.tex}

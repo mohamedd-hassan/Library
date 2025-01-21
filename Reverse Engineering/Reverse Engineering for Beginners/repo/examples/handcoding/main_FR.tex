@@ -1,0 +1,59 @@
+\mysection{Code assembleur écrit à la main}
+
+\subsection{ Fichier test EICAR}
+\label{subsec:EICAR}
+
+\myindex{MS-DOS}
+\myindex{EICAR}
+Ce fichier .COM est destiné à tester les logiciels anti-virus, il est possible de
+le lancer sous MS-DOS et il affiche cette chaîne: \q{EICAR-STANDARD-ANTIVIRUS-TEST-FILE!}
+\footnote{\href{https://en.wikipedia.org/wiki/EICAR_test_file}{Wikipédia}}.
+% FIXME1 \myref{} -> about .COM files
+
+Une de ses propriété importante est qu'il est entièrement composé de symboles ASCII
+affichables, qui, de fait, permet de le créer dans n'importe quel éditeur de texte:
+
+\begin{lstlisting}
+X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+\end{lstlisting}
+
+Décompilons-le:
+
+\lstinputlisting[style=customasmx86]{examples/handcoding/EICAR_FR.lst}
+
+J'ai ajouté des commentaires à propos des registres et de la pile après chaque instruction.
+
+En gros, toutes ces instructions sont là seulement pour exécuter ce code:
+
+\begin{lstlisting}[style=customasmx86]
+B4 09     MOV AH, 9
+BA 1C 01  MOV DX, 11Ch
+CD 21     INT 21h
+CD 20     INT 20h
+\end{lstlisting}
+
+\myindex{x86!\Instructions!INT}
+\TT{INT 21h} avec la 9ème fonction (passée dans \TT{AH}) affiche simplement une chaîne,
+dont l'adresse est passée dans \TT{DS:DX}.
+À propos, la chaîne doit être terminée par le signe '\$'.
+Apparemment, c'est hérité de \gls{CP/M} et cette fonction a été laissée dans DOS
+pour la compatibilité.
+\TT{INT 20h} renvoie au DOS.
+
+Mais comme on peut le voir, l'opcode de cette instruction n'est pas strictement
+affichable.
+Donc, la partie principale du fichier EICAR est:
+
+\begin{itemize}
+\item prépare les valeurs du registre dont nous avons besoin (AH et DX);
+\item prépare les opcodes INT 21 et INT 20 en mémoire;
+\item exécute INT 21 et INT 20.
+\end{itemize}
+
+\myindex{Shellcode}
+
+À propos, cette technique est largement utilisée dans la construction de shellcode,
+lorsque l'on doit passer le code x86 sous la forme d'une chaîne.
+
+Voici aussi une liste de toutes les instructions x86 qui ont des opcodes affichables:
+\myref{printable_x86_opcodes}.

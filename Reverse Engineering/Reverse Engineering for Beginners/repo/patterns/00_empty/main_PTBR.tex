@@ -1,0 +1,39 @@
+\mysection{Uma Função Vazia}
+\label{empty_func}
+
+A função mais simples possível é uma vazia (sem corpo):
+
+\lstinputlisting[label=lst:empty_func,caption=\CCpp Code,style=customc]{patterns/00_empty/1.c}
+
+Vamos compilá-la!
+
+\subsection{x86}
+
+O que ambos compiladores GCC e MSVC produzem na plataforma x86:
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/00_empty/1.s}
+
+\myindex{x86!\Instructions!RET}
+Há apenas uma instrução: \RET, que retorna a instrução para o \gls{caller}.
+
+\subsection{Funções vazias, na prática}
+
+Desconsiderando o fato que elas parecem sem utilidade, são bastante frequentes em código de baixo nível.
+Primeiramente, são bastante populares em funções do modo ''debug'', como esta:
+
+\lstinputlisting[caption=\CCpp code,style=customc]{patterns/00_empty/dbg_print_EN.c}
+
+Numa compilação ''release'', a constante \TT{\_DEBUG} não é definida,
+portando a função \TT{dbg\_print()}, ainda será chamada durante a execução,
+mas estará vazia.
+
+De forma similar, um método popular de proteção de software é criar uma compilação completa e outra ''demo''. Uma versão ''demo'' pode não conter importantes funções, como neste exemplo:
+
+\lstinputlisting[caption=\CCpp code,style=customc]{patterns/00_empty/demo_EN.c}
+
+A função \TT{save\_file()} poderia ser chamada quando o usuário clica \TT{File->Save} no menu do programa. 
+
+A versão ''demo'' poderia ser distribuida com este item desabilitado (salvar), e mesmo que um ''cracker'' abilitasse-o, apenas uma função vazia e sem nenhum código útil seria chamada.
+
+O software IDA destaca este tipo de funções com nomes do tipo \TT{nullsub\_00}, \TT{nullsub\_01}, etc.
+

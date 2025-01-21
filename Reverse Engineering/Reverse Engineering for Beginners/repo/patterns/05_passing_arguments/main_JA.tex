@@ -1,0 +1,14 @@
+\mysection{渡された引数にアクセスする}
+\myindex{\Stack}
+
+さて、\gls{caller}関数が引数を\gls{callee}側にスタック経由で渡していることが分かりました。
+しかし、\gls{callee}関数はどうやって引数にアクセスするのでしょうか？
+
+\lstinputlisting[label=src:passing_arguments_ex,caption=simple example,style=customc]{patterns/05_passing_arguments/ex.c}
+
+% sections
+\input{patterns/05_passing_arguments/x86_JA}
+\input{patterns/05_passing_arguments/x64_JA}
+\input{patterns/05_passing_arguments/ARM/main.tex}
+\input{patterns/05_passing_arguments/MIPS_JA}
+

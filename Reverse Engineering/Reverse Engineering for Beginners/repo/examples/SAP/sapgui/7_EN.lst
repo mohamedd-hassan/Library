@@ -1,0 +1,35 @@
+.text:64406F76 loc_64406F76:
+.text:64406F76                 mov     ecx, [ebp+7728h+var_7794]
+.text:64406F79                 cmp     dword ptr [ecx+3A4h], 1
+.text:64406F80                 jnz     compression_flag_is_zero
+.text:64406F86                 mov     byte ptr [ebx+7], 1
+.text:64406F8A                 mov     eax, [esi+18h]
+.text:64406F8D                 mov     ecx, eax
+.text:64406F8F                 test    eax, eax
+.text:64406F91                 ja      short loc_64406FFF
+.text:64406F93                 mov     ecx, [esi+14h]
+.text:64406F96                 mov     eax, [esi+20h]
+.text:64406F99
+.text:64406F99 loc_64406F99:
+.text:64406F99                 push    dword ptr [edi+2868h] ; int
+.text:64406F9F                 lea     edx, [ebp+7728h+var_77A4]
+.text:64406FA2                 push    edx             ; int
+.text:64406FA3                 push    30000           ; int
+.text:64406FA8                 lea     edx, [ebp+7728h+Dst]
+.text:64406FAB                 push    edx             ; Dst
+.text:64406FAC                 push    ecx             ; int
+.text:64406FAD                 push    eax             ; Src
+.text:64406FAE                 push    dword ptr [edi+28C0h] ; int
+.text:64406FB4                 call    sub_644055C5       ; actual compression routine
+.text:64406FB9                 add     esp, 1Ch
+.text:64406FBC                 cmp     eax, 0FFFFFFF6h
+.text:64406FBF                 jz      short loc_64407004
+.text:64406FC1                 cmp     eax, 1
+.text:64406FC4                 jz      loc_6440708C
+.text:64406FCA                 cmp     eax, 2
+.text:64406FCD                 jz      short loc_64407004
+.text:64406FCF                 push    eax
+.text:64406FD0                 push    offset aCompressionErr ; \verb|"compression error [rc = %d]- program wi"...|
+.text:64406FD5                 push    offset aGui_err_compre ; \verb|"GUI_ERR_COMPRESS"|
+.text:64406FDA                 push    dword ptr [edi+28D0h]
+.text:64406FE0                 call    SapPcTxtRead

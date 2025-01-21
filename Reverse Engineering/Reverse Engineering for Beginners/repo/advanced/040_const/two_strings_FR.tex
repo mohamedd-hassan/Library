@@ -1,0 +1,47 @@
+﻿\subsection{Chaînes const se chevauchant}
+\label{use_parts_of_C_strings}
+
+Le fait est qu'une chaîne C \emph{anonyme} a un type \emph{const} (\myref{string_is_const_char}),
+et que les chaînes C allouées dans le segment des constantes sont garanties d'être immuables,
+a cette conséquence intéressante:
+Le compilateur peut utiliser une partie spécifique de la chaîne.
+
+Voyons cela avec un exemple:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int f1()
+{
+	printf ("world\n");
+}
+
+int f2()
+{
+	printf ("hello world\n");
+}
+
+int main()
+{
+	f1();
+	f2();
+}
+\end{lstlisting}
+
+La plupart des compilateurs \CCpp{} (MSVC inclus) allouent deux chaînes, mais voyons ce que fait GCC 4.8.1:
+
+\lstinputlisting[caption=GCC 4.8.1 + IDA,style=customasmx86]{\CURPATH/two_strings.asm}
+
+Effectivement: lorsque nous affichons la chaîne \q{hello world} ses deux mots sont positionnés
+consécutivement en mémoire et l'appel à \puts depuis la fonction \GTT{f2()}
+n'est pas au courant que la chaîne est divisée.
+En fait, elle n'est pas divisée; elle l'est \emph{virtuellement}, dans ce listing.
+
+Lorsque \puts est appelé depuis \GTT{f1()}, il utilise la chaîne \q{world} ainsi qu'un
+octet à zéro. \puts ne sait pas qu'il y a quelque chose avant cette chaîne!
+
+Cette astuce est souvent utilisée, au moins par GCC, et permet d'économiser de la mémoire.
+C'est proche du \emph{string interning}. % TODO clarify imbrication de chaînes ?
+
+Un autre exemple concernant ceci se trouve là: \myref{strstr_example}.
+

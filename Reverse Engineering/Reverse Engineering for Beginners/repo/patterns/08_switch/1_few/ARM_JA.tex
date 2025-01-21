@@ -1,0 +1,59 @@
+﻿\subsubsection{ARM: \OptimizingKeilVI (\ARMMode)}
+\myindex{\CLanguageElements!switch}
+
+\lstinputlisting[style=customasmARM]{patterns/08_switch/1_few/few_ARM_ARM_O3.asm}
+
+繰り返しますが、このコードを調べることで、元のソースコードのswitch()か
+単なるif()文の集合かどうかはわかりません。
+
+\myindex{ARM!\Instructions!ADRcc}
+
+とにかく、ここでは、 $R0=0$ の場合にのみトリガされる \ADREQ（\emph{Equal}）のような述語命令を再度参照し、
+文字列 \emph{<<zero\textbackslash{}n>>} を \Reg{0} にコピーします。
+\myindex{ARM!\Instructions!BEQ}
+$R0=0$ の場合、次の命令\ac{BEQ}は制御フローを\TT{loc\_170}にリダイレクトします。
+
+巧妙な読者は、\Reg{0}レジスタに既に値を埋め込んでいるので、
+\ac{BEQ}が正しくトリガされるかどうかを尋ねるかもしれません。
+
+はい、\ac{BEQ}は\CMP 命令で設定されたフラグをチェックし、
+\ADREQ はフラグをまったく変更しません。
+
+命令の残りの部分は既に慣れ親しんでいます。
+最後に \printf を1回呼び出すだけですが、ここではこのトリック~(\myref{ARM_B_to_printf})を既に調べています。
+最後に \printf{} には3つのパスがあります。
+
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!CMP}
+$a=2$ かどうかを確認するには、最後の命令\TT{CMP R0, \#2}が必要です。
+
+それが真でない場合、\ADRNE は $a$ がすでに0に等しいとチェックされているので、
+\emph{<<something unknown \textbackslash{}n>>}文字列へのポインタを\Reg{0}にロードします 
+または1であり、この時点で $a$ 変数がこれらの数値と等しくないことがわかります。
+$R0=2$ の場合、文字列 \emph{<<two\textbackslash{}n>>} へのポインタは \ADREQ によって\Reg{0}にロードされます。
+
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/08_switch/1_few/few_ARM_thumb_O3.asm}
+
+% FIXME а каким можно? к каким нельзя? \myref{} ->
+
+既に言及したように、Thumbモードのほとんどの命令に条件付き述語を追加することはできないため、
+ここのThumbコードは、わかりやすいx86 \ac{CISC}スタイルコードと多少似ています。
+
+\subsubsection{ARM64: \NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/08_switch/1_few/ARM64_GCC_O0_JA.lst}
+
+入力値のタイプは \Tint なので、 \RegX{0} レジスタ全体ではなくレジスタ \RegW{0} が使用されます。
+
+文字列ポインタは\INS{ADRP}/\INS{ADD}命令ペアを使用して\q{\HelloWorldSectionName}
+の例~\myref{pointers_ADRP_and_ADD}と同じように \puts に渡されます。
+
+\subsubsection{ARM64: \Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/08_switch/1_few/ARM64_GCC_O3_JA.lst}
+
+より最適化されたコード。
+\Reg{0}がゼロの場合、\TT{CBZ}（\emph{Compare and Branch on Zero}）命令はジャンプします。
+また、\myref{JMP_instead_of_RET}の前に説明したように、 \puts を呼び出す代わりに直接ジャンプすることもできます。

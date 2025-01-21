@@ -1,0 +1,74 @@
+﻿\myparagraph{GCC 4.4.1}
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC_JA.asm}
+
+\myindex{x86!\Instructions!FUCOMPP}
+
+\FUCOMPP{} は \FCOM に似ていますが、スタックから両方の値をポップし、
+\q{非数値} を異なる方法で処理します。
+
+\myindex{Non-a-numbers (NaNs)}
+\q{非数値} について少々。
+
+FPUは、数字でない特別な\emph{非数値} や \gls{NaN} を扱うことができます。 
+これらは無限大で、0で除算した結果です。
+非数値は\q{寡黙}であることも\q{シグナルを発する}こともできます。\q{寡黙な} NaNで
+作業を続行することは可能ですが、\q{シグナルを発する} NaNで何らかの操作を試みる場合は例外が発生します。
+
+\myindex{x86!\Instructions!FCOM}
+\myindex{x86!\Instructions!FUCOM}
+
+オペランドが\gls{NaN}の場合、 \FCOM は例外を送出します。 
+\FUCOM は、オペランドがシグナルを発する \gls{NaN}（SNaN）である場合にのみ例外を送出します。
+
+\myindex{x86!\Instructions!SAHF}
+\label{SAHF}
+
+次の命令は \SAHF （\emph{AHをフラグにストア}）です。これはFPUに
+関連しないコードではまれな命令です。
+AHからの8ビットは、次の順序でCPUフラグの下位8ビットに移動します。
+
+\input{SAHF_LAHF}
+
+\myindex{x86!\Instructions!FNSTSW}
+
+\FNSTSW が関心のあるビット（\CThreeBits）を \AH に移動し、
+\AH レジスタの位置6,2,0にあることを思い出してください。
+
+\input{C3_in_AH}
+
+言い換えると、\INS{fnstsw  ax / sahf}命令ペアは、 \CThreeBits を \ZF 、 \PF 、および \CF に移動します。
+
+異なる条件で \CThreeBits の値を思い出してみましょう。
+
+\begin{itemize}
+\item この例で $a$ が $b$ より大きい場合、 \CThreeBits は0,0,0に設定されます。
+\item $a$ が $b$ より小さければ、ビットは0,0,1に設定されます。
+\item $a=b$ の場合は、1,0,0に設定されます。
+\end{itemize}
+% TODO: table?
+
+言い換えれば、これらのCPUフラグの状態は、
+3つの \FUCOMPP/\FNSTSW/\SAHF 命令の後に可能になります。
+
+\begin{itemize}
+\item $a>b$ の場合、CPUフラグは、\GTT{ZF=0, PF=0, CF=0}として設定されます。
+\item $a<b$ の場合、フラグは、\GTT{ZF=0, PF=0, CF=1}として設定されます。
+\item そして、 $a=b$ ならば、\GTT{ZF=1, PF=0, CF=0}になります。
+\end{itemize}
+% TODO: table?
+
+\myindex{x86!\Instructions!SETcc}
+\myindex{x86!\Instructions!JNBE}
+
+CPUのフラグと条件に応じて、 \SETNBE はALに1または0を格納します。 
+これはほぼ \JNBE のものですが、 \SETcc
+\footnote{\emph{cc} は \emph{条件コード} です}
+はALに1または0を格納しますが、 \Jcc は実際にジャンプするかどうかは異なります。
+\SETNBE は、\GTT{CF=0}および\GTT{ZF=0}の場合にのみ1を格納します。 
+真でない場合は、0が \AL に格納されます。
+
+$a>b$ の場合でのみ、\CF と \ZF の両方が0になります。
+
+その後、1が \AL に格納され、後続の \JZ は実行されず、関数は{\_a}を返します。 
+それ以外の場合は{\_b}が返されます。

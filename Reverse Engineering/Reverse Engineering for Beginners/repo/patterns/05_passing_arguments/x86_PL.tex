@@ -1,0 +1,40 @@
+\subsection{x86}
+
+\subsubsection{MSVC}
+
+Poniżej wynik kompilacji (MSVC 2010 Express):
+
+\lstinputlisting[label=src:passing_arguments_ex_MSVC_cdecl,caption=MSVC 2010 Express,style=customasmx86]{patterns/05_passing_arguments/msvc_EN.asm}
+
+\myindex{x86!\Registers!EBP}
+
+Na listingu widać, jak funkcja \main odkłada na stos 3 liczby i wywołuje \TT{f(int,int,int).}
+
+Dostęp do argumentów \ttf uzyskuje za pomocą makr, jak np.:\\
+\TT{\_a\$ = 8},
+podobnie jak do zmiennych lokalnych, ale z dodatnim przesunięciem.
+Niejako adresujemy pamięć \emph{poza stosem}, gdyż stos rośnie w dół, a my dodajemy wartość dodatnią  \TT{\_a\$} do rejestru \EBP (wskaźnik ramki stosu).
+
+\myindex{x86!\Instructions!IMUL}
+\myindex{x86!\Instructions!ADD}
+
+Następnie wartość $a$ jest zapisywana do \EAX. Po wykonaniu instrukcji \IMUL, wartość w \EAX
+jest iloczynem wartości z \EAX i wartości wskazywanej przez przesunięcie \TT{\_b}.
+
+Kolejno wykonywana jest instrukcja \ADD, która dodaje wartość pokazywaną przez przesunięcie \TT{\_c} do \EAX.
+
+Wartość w \EAX już nie musi być nigdzie zapisywana, gdyż jest to wynik funkcji, a w tej konwencji wywoływania jest on zwracany przez rejestr \EAX.
+Po powrocie \glslink{caller}{funkcja wywołująca} pobiera wartość z \EAX i używa jako argumentu do \printf.
+
+\input{patterns/05_passing_arguments/olly_PL}
+
+\subsubsection{GCC}
+
+Skompilujmy ten sam przykład w GCC 4.4.1 i podejrzyjmy rezultat w programie \IDA:
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/05_passing_arguments/gcc_PL.asm}
+
+Efekt jest taki sam, z małymi różnicami, które już omówiliśmy wcześniej.
+
+\glslink{stack pointer}{Wskaźnik stosu} nie jest przywracany po dwóch wywołaniach funkcji (f oraz \printf),
+ponieważ przedostatnia instrukcja \TT{LEAVE} (\myref{x86_ins:LEAVE}) zajmie się tym na końcu.

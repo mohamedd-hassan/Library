@@ -1,0 +1,128 @@
+\subsection{MIPS}
+
+\subsubsection{\q{グローバルポインタ}について少し}
+\label{MIPS_GP}
+
+\myindex{MIPS!\GlobalPointer}
+
+1つの重要なMIPSコンセプトは、\q{グローバルポインタ}です。
+既にわかっているように、各MIPS命令のサイズは32ビットなので、32ビットアドレスを1つの命令に組み込むことは不可能です
+この例ではGCCのように対を使用しなければなりません読み込み）。
+ただし、1つの命令を使用してレジスタ$register-32768...register+32767$の範囲のアドレスからデータをロードすることは可能です
+（16ビットの符号付きオフセットを1つの命令でエンコードできるため）。
+したがって、この目的のためにいくつかのレジスタを割り当てて、最も多く使用されているデータの64KiB領域を割り当てることができます。
+この割り当てられたレジスタは "グローバルポインタ"と呼ばれ、64KiB領域の中央を指します。
+この領域には通常、 \printf のようなインポートされた関数のグローバル変数とアドレスが含まれています。
+なぜなら、GCCの開発者は、関数のアドレスを得ることは2つではなく1つの命令の実行と同じくらい速くなければならないと判断したからです。 
+ELFファイルでは、この64KiB領域は初期化されていないデータの場合は.sbss（\q{small \ac{BSS}}）、
+初期化されたデータの場合は.sdata（ \q{small data}）のセクションに部分的に配置されています。
+これはプログラマがどのデータを高速にアクセスしたいのかを選択して.sdata / .sbssに入れることを意味します。
+いくつかの古い学校のプログラマは、MS-DOSメモリモデル\myref{8086_memory_model}、またはすべてのメモリが64KiBブロックに分割されたXMS / EMSのようなMS-DOSメモリマネージャ。
+
+\myindex{PowerPC}
+
+この概念はMIPS特有のものではありません。少なくともPowerPCはこの手法も使用しています。
+
+\subsubsection{\Optimizing GCC}
+
+グローバルポインタの概念を示す次の例を考えてみましょう。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),numbers=left,style=customasmMIPS]{patterns/01_helloworld/MIPS/hw_O3_EN.s}
+
+我々が見るように、\$GPレジスタは関数のプロローグでこの領域の中央を指すように設定されています。 
+\ac{RA}レジスタもローカルスタックに保存されます。 
+\printf の代わりに \puts もここで使用されます。 
+\myindex{MIPS!\Instructions!LW}
+
+\puts 関数のアドレスは、\INS{LW}命令（\q{Load Word}）を使用して \$25 にロードされます。 
+\myindex{MIPS!\Instructions!LUI}
+\myindex{MIPS!\Instructions!ADDIU}
+\INS{LUI}（\q{Load Upper Immediate}）と\INS{ADDIU}（\q{Add Immediate Unsigned Word}）命令のペアを使用して、テキスト文字列のアドレスが\$4にロードされます。 
+\INS{LUI}はレジスタの上位16ビット（したがって\q{命令名の上位ワード}）を設定し、\INS{ADDIU}はアドレスの下位16ビットを加算します。
+
+\INS{ADDIU}は\INS{JALR}に従います（まだ\emph{分岐遅延スロット}を覚えていますか？）。
+レジスタ \$4 は \$A0 とも呼ばれ、最初の関数引数を渡すために使用されます。
+\footnote{MIPSレジスタの表はappendixで見られます：\myref{MIPS_registers_ref}}.
+
+\myindex{MIPS!\Instructions!JALR}
+
+\INS{JALR}（\q{Jump and Link Register}）は、\ac{RA}の次の命令（LW）のアドレスを保存している間、
+\$25 レジスタ（ \puts のアドレス）に格納されているアドレスにジャンプします。
+これはARMと非常によく似ています。
+ああ、重要なことの1つは、RAに保存されたアドレスは、次の命令のアドレスではないことです。
+（\emph{遅延スロット}にあり、ジャンプ命令の前に実行されるため）
+したがって、 $PC + 8$ は\TT{JALR}の実行中に\ac{RA}に書き込まれます。私たちの場合、これは\INS{ADDIU}の次の\INS{LW}命令のアドレスです。
+
+20行目の\INS{LW} (\q{Load Word})は、ローカルスタックから\ac{RA}を復元します（この命令は実際には関数のエピローグの一部です）。
+
+22行目の\INS{MOVE}は、\$0（\$ZERO）レジスタから\$2（\$V0）までの値をコピーします。
+\label{MIPS_zero_register}
+
+MIPSは\emph{定数}レジスタを持ち、常に0を保持します。
+どうやら、MIPSの開発者たちは、実際にはゼロがコンピュータプログラミングで最も忙しいという考えを思いついたので、
+ゼロが必要なたびに\$0レジスタを使用しましょう。
+
+もう1つの興味深い事実は、MIPSにレジスタ間でデータを転送する命令がないことです。 
+実際、\TT{MOVE DST, SRC}は\TT{ADD DST, SRC, \$ZERO} ($DST=SRC+0$)です。これは同じです。 
+明らかに、MIPS開発者はコンパクトなopcodeテーブルを用意したいと考えました。 
+これは、各\INS{MOVE}命令で実際の加算が行われることを意味しません。 
+ほとんどの場合、\ac{CPU}はこれらの疑似命令を最適化し、\ac{ALU}は決して使用されません。
+
+\myindex{MIPS!\Instructions!J}
+
+24行目の\INS{J}は、\ac{RA}のアドレスにジャンプします。これは、関数からの戻り値を効果的に実行しています。 
+\INS{J}の後の\INS{ADDIU}は実際に\INS{J}の前に実行されます（\emph{分岐遅延スロット}を覚えていますか？）。そして関数のエピローグの一部です。 
+ここに \IDA によって生成されたリストもあります。 ここの各レジスタには、独自の擬似名があります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\IDA),numbers=left,style=customasmMIPS]{patterns/01_helloworld/MIPS/hw_O3_IDA_EN.lst}
+
+15行目の命令は、GPの値をローカルスタックに保存します。この命令は、GCCの出力リストから不思議に見えます.GCCのエラーがあります
+\footnote{明らかに、リストを生成する関数はGCCユーザーにとってあまり重要ではないので、修正されていないエラーがまだ存在するかもしれません}
+GPの値は実際に保存しなければなりません。 データウィンドウ。 \puts アドレスを含むレジスタは\$T9と呼ばれ、
+T-が前に付いたレジスタは\q{一時的}と呼ばれ、その内容は保持されない可能性があるためです。
+
+\subsubsection{\NonOptimizing GCC}
+
+\NonOptimizing GCCはもっと冗長です。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\assemblyOutput),numbers=left,style=customasmMIPS]{patterns/01_helloworld/MIPS/hw_O0_EN.s}
+
+レジスタFPはスタックフレームへのポインタとして使用されることがわかります。 
+3つの\ac{NOP}も見てみましょう。 
+2番目と3番目は分岐命令に従います。 
+おそらく、GCCコンパイラは分岐命令の後に常に\emph{分岐遅延スロット}のために\ac{NOP}を追加し、
+最適化がオンになっていればそれらを削除するかもしれません。 
+したがって、この場合、それらはここに残されます。
+
+\IDA のリストもあります：
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\IDA),numbers=left,style=customasmMIPS]{patterns/01_helloworld/MIPS/hw_O0_IDA_EN.lst}
+
+\myindex{MIPS!\Pseudoinstructions!LA}
+
+興味深いことに、 \IDA は\INS{LUI}/\INS{ADDIU}命令のペアを認識し、15行目の1つの
+\INS{LA}（\q{Load Address}）疑似命令に統合しました。
+この疑似命令のサイズは8バイトです。 
+これは実際のMIPS命令ではなく、むしろ命令対のための便利な名前であるため、疑似命令（または\emph{マクロ}）です。
+
+\myindex{MIPS!\Pseudoinstructions!NOP}
+\myindex{MIPS!\Instructions!OR}
+
+もう1つのことは、 \IDA は\ac{NOP}命令を認識していないことです。22行目、26行目、41行目です。
+\TT{OR \$AT, \$ZERO}です。 基本的に、この命令は、 \$AT レジスタの内容にOR演算を0（もちろんアイドル命令）で適用します。 
+MIPSは他の多くの\ac{ISA}と同様に、独立した\ac{NOP}命令を持っていません。
+
+\subsubsection{スタックフレームの役割}
+
+テキスト文字列のアドレスはレジスタに渡されます。 
+とにかくローカルスタックをセットアップする理由は？ 
+これは、 \printf が呼び出されるため、レジスタ\ac{RA}とGPの値をどこかに保存する必要があり、
+ローカルスタックがこの目的のために使用されているという事実にあります。 
+これが \gls{leaf function} であれば、関数のプロローグとエピローグを取り除くことができました。
+例：\myref{MIPS_leaf_function_ex1}
+
+\subsubsection{\Optimizing GCC: GDBにロードしてみる}
+
+\myindex{GDB}
+\lstinputlisting[caption=sample GDB session]{patterns/01_helloworld/MIPS/O3_GDB.txt}
+

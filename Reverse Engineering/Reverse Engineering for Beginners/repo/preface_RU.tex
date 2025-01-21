@@ -1,0 +1,104 @@
+\section*{Предисловие}
+
+\subsection*{Почему два названия?}
+\label{TwoTitles}
+
+В 2014-2018 книга называлась ``Reverse Engineering для начинающих'', но я всегда подозревал что это слишком сужает аудиторию.
+
+Люди от инфобезопасности знают о ``reverse engineering'', но я от них редко слышу слово ``ассемблер''.
+
+Точно также, термин ``reverse engineering'' слишком незнакомый для общей аудитории программистов, но они знают про ``ассемблер''.
+
+В июле 2018, для эксперимента, я заменил название на ``Assembly Language for Beginners''
+и запостил ссылку на сайт Hacker News\footnote{\url{https://news.ycombinator.com/item?id=17549050}}, и книгу приняли, в общем, хорошо.
+
+Так что, пусть так и будет, у книги будет два названия.
+
+Хотя, я поменял второе название на ``Understanding Assembly Language'' (``Понимание языка ассемблера''), потому что кто-то уже написал книгу ``Assembly Language for Beginners''.
+Также, люди говорят что ``для начинающих'' уже звучит немного саркастично для книги объемом в \textasciitilde{}1000 страниц.
+
+Книги отличаются только названием, именем файла (UAL-XX.pdf и RE4B-XX.pdf), URL-ом и парой первых страниц.
+
+\subsection*{О reverse engineering}
+
+У термина \q{\gls{reverse engineering}} несколько популярных значений:
+1) исследование скомпилированных
+программ;
+2) сканирование трехмерной модели для последующего копирования;
+3) восстановление структуры СУБД.
+
+Настоящая книга связана с первым значением.
+
+\subsection*{Желательные знания перед началом чтения}
+
+Очень желательно базовое знание \ac{PL} Си.
+Рекомендуемые материалы: \myref{CCppBooks}.
+
+\subsection*{Упражнения и задачи}
+
+\dots 
+все перемещены на отдельный сайт: \url{http://challenges.re}.
+
+\iffalse
+\subsection*{Об авторе}
+\begin{tabularx}{\textwidth}{ l X }
+
+\raisebox{-\totalheight}{
+\includegraphics[scale=0.60]{Dennis_Yurichev.jpg}
+}
+
+&
+Денис Юричев~--- опытный reverse engineer и программист.
+С ним можно контактировать по емейлу: \textbf{\EMAILS{}}.
+
+% FIXME: no link. \tablefootnote doesn't work
+\end{tabularx}
+\fi
+
+% subsections:
+\input{praise_RU}
+\input{uni_RU}
+\input{thanks}
+\input{FAQ_RU}
+
+\subsection*{О переводе на корейский язык}
+
+В январе 2015, издательство Acorn в Южной Корее сделало много работы в переводе 
+и издании моей книги (по состоянию на август 2014) на корейский язык.
+Она теперь доступна на \href{http://www.acornpub.co.kr/book/reversing-for-beginners}{их сайте}.
+
+\iffalse
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{acorn_cover.jpg}
+\end{figure}
+\fi
+
+Переводил Byungho Min (\href{https://twitter.com/tais9}{twitter/tais9}).
+Обложку нарисовал мой хороший знакомый художник Андрей Нечаевский
+\href{https://www.facebook.com/andydinka}{facebook/andydinka}.
+Они также имеют права на издание книги на корейском языке.
+Так что если вы хотите иметь \emph{настоящую} книгу на полке на корейском языке и
+хотите поддержать мою работу, вы можете купить её.
+
+\subsection*{О переводе на персидский язык (фарси)}
+
+В 2016 году книга была переведена Mohsen Mostafa Jokar (который также известен иранскому сообществу по переводу руководства Radare\footnote{\url{http://rada.re/get/radare2book-persian.pdf}}).
+Книга доступна на сайте издательства\footnote{\url{http://goo.gl/2Tzx0H}} (Pendare Pars).
+
+Первые 40 страниц: \url{https://beginners.re/farsi.pdf}.
+
+Регистрация книги в Национальной Библиотеке Ирана: \url{http://opac.nlai.ir/opac-prod/bibliographic/4473995}.
+
+\subsection*{О переводе на китайский язык}
+
+В апреле 2017, перевод на китайский был закончен китайским издательством PTPress. Они также имеют права на издание книги на китайском языке.
+
+Она доступна для заказа здесь: \url{http://www.epubit.com.cn/book/details/4174}. Что-то вроде рецензии и история о переводе: \url{http://www.cptoday.cn/news/detail/3155}.
+
+Основным переводчиком был Archer, перед которым я теперь в долгу.
+Он был крайне дотошным (в хорошем смысле) и сообщил о большинстве известных ошибок и баг, что крайне важно для литературы вроде этой книги.
+Я буду рекомендовать его услуги всем остальным авторам!
+
+Ребята из \href{http://www.antiy.net/}{Antiy Labs} также помогли с переводом. \href{http://www.epubit.com.cn/book/onlinechapter/51413}{Здесь предисловие} написанное ими.
+

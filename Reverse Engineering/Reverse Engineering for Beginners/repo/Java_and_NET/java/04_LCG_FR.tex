@@ -1,0 +1,106 @@
+% TODO proof-reading
+\subsection{Congruentiel linéaire \ac{PRNG}}
+
+Essayons un simple générateur de nombres pseudo-aléatoires, que nous avons déjà considéré
+une fois dans ce livre (\myref{LCG_simple}):
+
+
+\begin{lstlisting}[style=customjava]
+public class LCG 
+{
+	public static int rand_state;
+
+	public void my_srand (int init)
+	{
+		rand_state=init;
+	}
+
+	public static int RNG_a=1664525;
+	public static int RNG_c=1013904223;
+
+	public int my_rand ()
+	{
+		rand_state=rand_state*RNG_a;
+		rand_state=rand_state+RNG_c;
+		return rand_state & 0x7fff;
+	}
+}
+\end{lstlisting}
+
+Il y a un couple de champs de classe qui sont initialisés au début.
+
+Mais comment?
+Dans la sortie de \TT{javap}, nous pouvons trouver le constructeur de la classe:
+
+
+\begin{lstlisting}
+  static {};
+    flags: ACC_STATIC
+    Code:
+      stack=1, locals=0, args_size=0
+         0: ldc           #5         // int 1664525
+         2: putstatic     #3         // Field RNG_a:I
+         5: ldc           #6         // int 1013904223
+         7: putstatic     #4         // Field RNG_c:I
+        10: return        
+\end{lstlisting}
+
+C'est ainsi que les variables sont initialisées.
+
+\TT{RNG\_a} occupe le 3ème slot dans la classe et  \TT{RNG\_c}---le 4ème,
+et \TT{putstatic} met les constantes ici.
+
+
+La fonction \TT{my\_srand()} stocke simplement la valeur en entrée dans \TT{rand\_state}:
+
+
+\begin{lstlisting}
+  public void my_srand(int);
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=2, args_size=2
+         0: iload_1       
+         1: putstatic     #2         // Field rand_state:I
+         4: return        
+\end{lstlisting}
+
+\TT{iload\_1} prend la valeur en entrée et la pousse sur la pile. Mais pourquoi pas
+\TT{iload\_0}?
+
+C'est parce que cette fonction peut utiliser les champs de la classe, et donc \emph{this}
+est aussi passé à la fonction comme paramètre d'indice zéro.
+
+Le champ \TT{rand\_state} occupe le 2ème slot dans la classe, donc \TT{putstatic}
+copie la valeur depuis le \ac{TOS} dans le 2ème slot.
+
+
+Maintenant \TT{my\_rand()}:
+
+\begin{lstlisting}
+  public int my_rand();
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: getstatic     #2         // Field rand_state:I
+         3: getstatic     #3         // Field RNG_a:I
+         6: imul          
+         7: putstatic     #2         // Field rand_state:I
+        10: getstatic     #2         // Field rand_state:I
+        13: getstatic     #4         // Field RNG_c:I
+        16: iadd          
+        17: putstatic     #2         // Field rand_state:I
+        20: getstatic     #2         // Field rand_state:I
+        23: sipush        32767
+        26: iand          
+        27: ireturn       
+\end{lstlisting}
+
+Ça charge toutes les valeurs depuis les champs de l'objet, effectue l'opération et
+met à jour les valeurs de \TT{rand\_state} en utilisant l'instruction \TT{putstatic}.
+
+À l'offset 20,  \TT{rand\_state} est rechargé à nouveau (car il a été supprimé de
+la pile avant, par \TT{putstatic}).
+
+Ceci semble non-efficient, mais soyez assuré que la \ac{JVM} est en général assez
+bonne pour vraiment bien optimiser de telles choses.
+

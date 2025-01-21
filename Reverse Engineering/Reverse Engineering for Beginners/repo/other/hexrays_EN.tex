@@ -1,0 +1,467 @@
+\mysection{My experience with Hex-Rays 2.2.0}
+\myindex{Hex-Rays}
+\label{hex_rays}
+
+\subsection{Bugs}
+
+There are couple of bugs.
+
+First of all, Hex-Rays is getting lost when \ac{FPU} instructions are interleaved (by compiler codegenerator) with others.
+
+For example, this:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+        	lea     eax, [esp+4]
+	        fild    dword ptr [eax]
+                lea     eax, [esp+8]
+        	fild    dword ptr [eax]
+	        fabs
+                fcompp
+        	fnstsw  ax
+	        test    ah, 1
+                jz      l01
+
+        	mov     eax, 1
+	        retn
+l01:
+                mov     eax, 2
+	        retn
+
+f               endp
+\end{lstlisting}
+
+\dots will be correcly decompiled to:
+
+\begin{lstlisting}[style=customc]
+signed int __cdecl f(signed int a1, signed int a2)
+{
+  signed int result; // eax@2
+
+  if ( fabs((double)a2) >= (double)a1 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+But let's comment one of the instructions at the end:
+
+\begin{lstlisting}[style=customasmx86]
+...
+l01:
+	        ;mov    eax, 2
+        	retn
+...
+\end{lstlisting}
+
+\dots we getting an obvious bug:
+
+\begin{lstlisting}[style=customc]
+void __cdecl f(char a1, char a2)
+{
+  fabs((double)a2);
+}
+\end{lstlisting}
+
+This is another bug:
+
+\begin{lstlisting}[style=customasmx86]
+extrn f1:dword
+extrn f2:dword
+
+f               proc    near
+
+	        fld     dword ptr [esp+4]
+        	fadd    dword ptr [esp+8]
+                fst     dword ptr [esp+12]
+	        fcomp   ds:const_100
+                fld     dword ptr [esp+16]      ; comment this instruction and it will be OK
+	        fnstsw  ax
+        	test    ah, 1
+
+                jnz     short l01
+
+	        call    f1
+        	retn
+l01:
+	        call    f2
+        	retn
+
+f               endp
+
+...
+
+const_100       dd 42C80000h            ; 100.0
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(float a1, float a2, float a3, float a4)
+{
+  double v5; // st7@1
+  char v6; // c0@1
+  int result; // eax@2
+
+  v5 = a4;
+  if ( v6 )
+    result = f2(v5);
+  else
+    result = f1(v5);
+  return result;
+}
+\end{lstlisting}
+
+\emph{v6} variable has \emph{char} type and if you'll try to compile this code, compiler will warn you about variable
+usage before assignment.
+
+Another bug: \INS{FPATAN} instruction is correctly decompiled into \emph{atan2()}, but arguments are swapped.
+
+\subsection{Odd peculiarities}
+
+Hex-Rays too often promotes 32-bit \emph{int} to 64-bit one.
+Here is example:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+	        mov     eax, [esp+4]
+                cdq
+	        xor     eax, edx
+        	sub     eax, edx
+                ; EAX=abs(a1)
+
+	        sub     eax, [esp+8]
+        	; EAX=EAX-a2
+
+                ; EAX at this point somehow gets promoted to 64-bit (RAX)
+
+	        cdq
+        	xor     eax, edx
+                sub     eax, edx
+	        ; EAX=abs(abs(a1)-a2)
+
+                retn
+
+f               endp
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1, int a2)
+{
+  __int64 v2; // rax@1
+
+  v2 = abs(a1) - a2;
+  return (HIDWORD(v2) ^ v2) - HIDWORD(v2);
+}
+\end{lstlisting}
+
+Perhaps, this is result of \INS{CDQ} instruction? I'm not sure.
+Anyway, whenever you see \emph{\_\_int64} type in 32-bit code, pay attention.
+
+This is also weird:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+	        mov     esi, [esp+4]
+
+        	lea     ebx, [esi+10h]
+                cmp     esi, ebx
+	        jge     short l00
+
+                cmp     esi, 1000
+	        jg      short l00
+
+                mov     eax, 2
+	        retn
+
+l00:
+	        mov     eax, 1
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+signed int __cdecl f(signed int a1)
+{
+  signed int result; // eax@3
+
+  if ( __OFSUB__(a1, a1 + 16) ^ 1 && a1 <= 1000 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+The code is correct, but needs manual intervention.
+
+Sometimes, Hex-Rays doesn't fold (or reduce) division by multiplication code:
+
+\begin{lstlisting}[style=customasmx86]
+f               proc    near
+
+        	mov     eax, [esp+4]
+	        mov     edx, 2AAAAAABh
+                imul    edx
+        	mov     eax, edx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1)
+{
+  return (unsigned __int64)(715827883i64 * a1) >> 32;
+}
+\end{lstlisting}
+
+This can be folded (rewritten) manually.
+
+Many of these peculiarities can be solved by manual reordering of instructions, recompiling assembly code,
+and then feeding it to Hex-Rays again.
+
+\subsection{Silence}
+
+\begin{lstlisting}[style=customasmx86]
+extrn some_func:dword
+
+f               proc    near
+
+        	mov     ecx, [esp+4]
+	        mov     eax, [esp+8]
+                push    eax
+        	call    some_func
+	        add     esp, 4
+
+                ; use ECX
+        	mov     eax, ecx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+int __cdecl f(int a1, int a2)
+{
+  int v2; // ecx@1
+
+  some_func(a2);
+  return v2;
+}
+\end{lstlisting}
+
+\emph{v2} variable (from ECX) is lost \dots
+Yes, this code is incorrect (ECX value doesn't saved during call to another function),
+but it would be good for Hex-Rays to give a warning.
+
+Another one:
+
+\begin{lstlisting}[style=customasmx86]
+extrn some_func:dword
+
+f               proc    near
+
+	        call    some_func
+        	jnz     l01
+
+                mov     eax, 1
+	        retn
+l01:
+	        mov     eax, 2
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Result:
+
+\begin{lstlisting}[style=customc]
+signed int f()
+{
+  char v0; // zf@1
+  signed int result; // eax@2
+
+  some_func();
+  if ( v0 )
+    result = 1;
+  else
+    result = 2;
+  return result;
+}
+\end{lstlisting}
+
+Again, warning would be great.
+
+Anyway, whenever you see variable of \emph{char} type, or variable which is used without initialization, this is clear sign
+that something went wrong and needs manual intervention.
+
+\subsection{Comma}
+\myindex{\CLanguageElements!Comma}
+
+Comma in C/C++ has a bad fame, because it can lead to a confusing code.
+
+Quick quiz, what does this C/C++ function return?
+
+\begin{lstlisting}[style=customc]
+int f()
+{
+	return 1, 2;
+};
+\end{lstlisting}
+
+It's 2: when compiler encounters comma-expression, it generates code which executes all sub-expressions, and
+\emph{returns} value of the last sub-expression.
+
+I've seen something like that in production code:
+
+\begin{lstlisting}[style=customc]
+if (cond)
+	return global_var=123, 456; // 456 is returned
+else
+	return global_var=789, 321; // 321 is returned
+\end{lstlisting}
+
+Apparently, programmer wanted to make code slightly shorter without additional curly brackets.
+In other words, comma allows to pack couple of expressions into one, without forming
+statement/code block inside of curly brackets.
+
+\myindex{Scheme}
+\myindex{Racket}
+Comma in C/C++ is close to \TT{begin} in Scheme/Racket: \url{https://docs.racket-lang.org/guide/begin.html}.
+
+Perhaps, the only widely accepted usage of comma is in \emph{for()} statements:
+
+\begin{lstlisting}[style=customc]
+char *s="hello, world";
+for(int i=0; *s; s++, i++);
+// i = string length
+\end{lstlisting}
+
+Both \emph{s++} and \emph{i++} are executed at each loop iteration.
+
+Read more: \url{https://stackoverflow.com/q/52550}.
+
+\myindex{\CLanguageElements!Short-circuit}
+I'm writing all this because Hex-Rays produces (at least in my case) code which is rich with both commas and short-circuit
+expressions.
+For example, this is real output from Hex-Rays:
+
+\begin{lstlisting}[style=customc]
+ if ( a >= b || (c = a, (d[a] - e) >> 2 > f) )
+    {
+    	...
+\end{lstlisting}
+
+This is correct, it compiles and works, and let god help you to understand it.
+Here is it rewritten:
+
+\begin{lstlisting}[style=customc]
+if (cond1 || (comma_expr, cond2))
+{
+	...
+\end{lstlisting}
+
+Short-circuit is effective here: first \emph{cond1} is checked, if it's \emph{true}, \emph{if()} body is executed, the rest
+of \emph{if()} expression is ignored completely.
+If \emph{cond1} is \emph{false}, \emph{comma\_expr} is executed (in the previous example, \emph{a} gets copied to \emph{c}),
+then \emph{cond2} is checked.
+If \emph{cond2} is \emph{true}, \emph{if()} body gets executed, or not.
+In other words, \emph{if()} body gets executed if \emph{cond1} is \emph{true} or \emph{cond2} is \emph{true},
+but if the latter is \emph{true}, \emph{comma\_expr} is also executed.
+
+Now you can see why comma is so notorious.
+
+\textbf{A word about short-circuit.}
+A common beginner's misconception is that sub-conditions are checked in some unspecified order, which is not true.
+In \TT{a | b | c} expression, $a$, $b$ and $c$ gets evaluated in unspecified order, so that is why \TT{||} has also been
+added to C/C++, to apply short-circuit explicitly.
+
+\subsection{Data types}
+
+Data types is a problem for decompilers.
+
+Hex-Rays can be blind to arrays in local stack, if they weren't set correctly before decompilation.
+Same story about global arrays.
+
+Another problem is too big functions, where a single slot in local stack can be used by several variables
+across function's execution.
+It's not a rare case when a slot is used for \emph{int}-variable, then for pointer, then for \emph{float}-variable.
+Hex-Rays correctly decompiles it: it creates a variable with some type, then cast it to another type in various
+parts of functions.
+This problem has been solved by me by manual splitting big function into several smaller.
+Just make local variables as global ones, etc, etc.
+And don't forget about tests.
+
+\subsection{Long and messed expressions}
+
+Sometimes, during rewriting, you can end up with long and hard to understand expressions in \emph{if()} constructs, like:
+
+\begin{lstlisting}[style=customc]
+if ((! (v38 && v30 <= 5 && v27 != -1)) && ((! (v38 && v30 <= 5) && v27 != -1) || (v24 >= 5 || v26)) && v25)
+{
+...
+}
+\end{lstlisting}
+
+Wolfram Mathematica can minimize some of them, using \TT{BooleanMinimize[]} function:
+
+\begin{lstlisting}
+In[1]:= BooleanMinimize[(! (v38 && v30 <= 5 && v27 != -1)) && v38 && v30 <= 5 && v25 == 0]
+
+Out[1]:= v38 && v25 == 0 && v27 == -1 && v30 <= 5
+\end{lstlisting}
+
+There is even better way, to find common subexpressions:
+
+\begin{lstlisting}
+In[2]:= Experimental`OptimizeExpression[(! (v38 && v30 <= 5 && 
+      v27 != -1)) && ((! (v38 && v30 <= 5) && 
+      v27 != -1) || (v24 >= 5 || v26)) && v25]
+
+Out[2]= Experimental`OptimizedExpression[
+ Block[{Compile`$1, Compile`$2}, Compile`$1 = v30 <= 5; 
+  Compile`$2 = 
+   v27 != -1; ! (v38 && Compile`$1 && 
+      Compile`$2) && ((! (v38 && Compile`$1) && Compile`$2) || 
+     v24 >= 5 || v26) && v25]]
+\end{lstlisting}
+
+Mathematica has added two new variables: \TT{Compile`\$1} and \TT{Compile`\$2}, values of which are to be used several times in expression.
+So we can add two additional variables.
+
+\input{other/DeMorgan_EN}
+
+\subsection{My plan}
+
+\begin{itemize}
+\item Split big functions (and don't forget about tests).
+Sometimes it's very helpful to form new functions out of big loop bodies.
+
+\item Check/set data type of variables, arrays, etc.
+
+\item If you see odd result, \emph{dangling} variable (which used before initialization), try to swap instructions manually,
+recompile it and feed to Hex-Rays again.
+\end{itemize}
+
+\subsection{Summary}
+
+Nevertheless, quality of Hex-Rays 2.2.0 is very, very good.
+It makes life way easier.
+

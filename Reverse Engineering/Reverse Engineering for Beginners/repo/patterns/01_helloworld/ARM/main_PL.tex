@@ -1,0 +1,32 @@
+\subsection{ARM}
+\label{sec:hw_ARM}
+
+\myindex{\idevices}
+\myindex{Raspberry Pi}
+\myindex{Xcode}
+\myindex{LLVM}
+\myindex{Keil}
+Do eksperymentów z ARM skorzystamy z kilku kompilatorów:
+
+\begin{itemize}
+\item popularnego w systemach wbudowanych Keil Release 6/2013,
+
+\item Apple Xcode 4.6.3 IDE z kompilatorem LLVM-GCC 4.2
+\footnote{W rzeczywistości Apple Xcode 4.6.3 korzysta z GCC jako front-endu i z LLVM jako generatora kodu binarnego},
+
+\item GCC 4.9 (Linaro) (dla ARM64), 
+jest dostępny w postaci pliku wykonywalnego dla win32 na \url{http://www.linaro.org/projects/armv8/}.
+
+\end{itemize}
+
+Wszędzie w tej książce, jeżeli zaznaczono inaczej, mówimy o 32-bitowym ARM (włączając tryb Thumb i Thumb-2).
+64-bitowym ARM będzie oznaczony explicite jako ARM64.
+
+% subsections
+\input{patterns/01_helloworld/ARM/keil_ARM_PL}
+\input{patterns/01_helloworld/ARM/keil_T_PL}
+\input{patterns/01_helloworld/ARM/xcode_ARM_PL}
+\input{patterns/01_helloworld/ARM/xcode_T2_PL}
+\input{patterns/01_helloworld/ARM/ARM64_PL}
+
+

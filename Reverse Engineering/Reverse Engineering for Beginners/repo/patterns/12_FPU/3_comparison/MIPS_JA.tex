@@ -1,0 +1,28 @@
+﻿\subsubsection{MIPS}
+
+\myindex{MIPS!\Registers!FCCR}
+MIPSプロセッサのコプロセッサには条件ビットがあり、これをFPUにセットしてCPUでチェックすることができます。
+
+以前のMIPSには1つの条件ビット（FCC0と呼びます）があり、後のモデルには8つのビット（FCC7-FCC0と呼びます）があります。
+
+このビット（または複数のビット）はFCCRと呼ばれるレジスタに配置されています。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/12_FPU/3_comparison/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!C.LT.D}
+\INS{C.LT.D}は2つの値を比較します。 
+\GTT{LT}は\q{Less Than}の条件です。
+\GTT{D}は \Tdouble 型の値を意味します。 
+比較の結果に応じて、FCC0条件ビットはセットまたはクリアされます。
+
+\myindex{MIPS!\Instructions!BC1T}
+\myindex{MIPS!\Instructions!BC1F}
+\INS{BC1T} checks the FCC0 bit and jumps if the bit is set.
+\GTT{T} means that the jump is to be taken if the bit is set (\q{True}).
+There is also the instruction \INS{BC1F} which jumps if the bit is cleared (\q{False}).
+
+\INS{BC1T}はFCC0ビットをチェックし、ビットがセットされていればジャンプします。 
+\GTT{T}は、ビットがセット（\q{True}）されている場合にジャンプが行われることを意味します。 
+ビットがクリアされるとジャンプする\INS{BC1F}命令もあります。（\q{False}）
+
+ジャンプに応じて、関数引数の1つが \$F0 に配置されます。

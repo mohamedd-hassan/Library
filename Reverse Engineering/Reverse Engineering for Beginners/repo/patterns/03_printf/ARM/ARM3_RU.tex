@@ -1,0 +1,117 @@
+\subsubsection{ARM: 3 целочисленных аргумента}
+
+В ARM традиционно принята такая схема передачи аргументов в функцию: 
+4 первых аргумента через регистры \Reg{0}-\Reg{3}; а остальные~--- через стек.
+Это немного похоже на то, как аргументы передаются в 
+fastcall~(\myref{fastcall}) или win64~(\myref{sec:callingconventions_win64}).
+
+\myparagraph{32-битный ARM}
+
+\mysubparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 40 2D E9   STMFD   SP!, {R4,LR}
+.text:00000004 03 30 A0 E3   MOV     R3, #3
+.text:00000008 02 20 A0 E3   MOV     R2, #2
+.text:0000000C 01 10 A0 E3   MOV     R1, #1
+.text:00000010 08 00 8F E2   ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:00000014 06 00 00 EB   BL      __2printf
+.text:00000018 00 00 A0 E3   MOV     R0, #0          ; return 0
+.text:0000001C 10 80 BD E8   LDMFD   SP!, {R4,PC}
+\end{lstlisting}
+
+Итак, первые 4 аргумента передаются через регистры \Reg{0}-\Reg{3}, по порядку: 
+указатель на формат-строку для \printf
+в \Reg{0}, затем 1 в \Reg{1}, 2 в \Reg{2} и 3 в \Reg{3}.
+
+Инструкция на \GTT{0x18} записывает 0 в \Reg{0} --- это выражение в Си \emph{return 0}.
+Пока что здесь нет ничего необычного.
+\OptimizingKeilVI генерирует точно такой же код.
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 B5        PUSH    {R4,LR}
+.text:00000002 03 23        MOVS    R3, #3
+.text:00000004 02 22        MOVS    R2, #2
+.text:00000006 01 21        MOVS    R1, #1
+.text:00000008 02 A0        ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:0000000A 00 F0 0D F8  BL      __2printf
+.text:0000000E 00 20        MOVS    R0, #0
+.text:00000010 10 BD        POP     {R4,PC}
+\end{lstlisting}
+
+Здесь нет особых отличий от неоптимизированного варианта для режима ARM.
+\mysubparagraph{\OptimizingKeilVI (\ARMMode) + убираем return}
+\label{ARM_B_to_printf}
+
+Немного переделаем пример, убрав \emph{return 0}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf("a=%d; b=%d; c=%d", 1, 2, 3);
+};
+\end{lstlisting}
+
+Результат получится необычным:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/03_printf/ARM/tmp3.asm}
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!B}
+\myindex{Function epilogue}
+Это оптимизированная версия (\Othree) для режима ARM, и здесь мы видим последнюю инструкцию 
+\INS{B} вместо привычной нам \INS{BL}.
+Отличия между этой оптимизированной версией и предыдущей, скомпилированной без оптимизации, 
+ещё и в том, что здесь нет пролога и эпилога функции (инструкций, сохраняющих состояние регистров \Reg{0} и \ac{LR}).
+\myindex{x86!\Instructions!JMP}
+Инструкция \INS{B} просто переходит на другой адрес, без манипуляций с регистром \ac{LR}, то есть это аналог \JMP в x86.
+Почему это работает нормально? Потому что этот код эквивалентен предыдущему.
+
+Основных причин две: 1) стек не модифицируется, как и \glslink{stack pointer}{указатель стека} \ac{SP}; 2) вызов функции \printf последний, после него ничего не происходит.
+Функция \printf, отработав, просто возвращает управление по адресу, записанному в \ac{LR}.
+
+Но в \ac{LR} находится адрес места, откуда была вызвана наша функция!
+А следовательно, управление из \printf вернется сразу туда.
+
+Значит нет нужды сохранять \ac{LR}, потому что нет нужды модифицировать \ac{LR}.
+А нет нужды модифицировать \ac{LR}, потому что нет иных вызовов функций, кроме \printf, к тому же, после этого вызова не нужно ничего здесь больше делать!
+Поэтому такая оптимизация возможна.
+
+Эта оптимизация часто используется в функциях, где последнее выражение~--- это вызов другой функции.
+
+Ещё один похожий пример описан здесь:
+\myref{jump_to_last_printf}.
+
+% TBT
+% A somewhat simpler case was described above: \myref{Boolector}.
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM3_O0_RU.lst}
+
+\myindex{ARM!\Instructions!STP}
+Итак, первая инструкция \INS{STP} (\emph{Store Pair}) сохраняет \ac{FP} (X29) и \ac{LR} (X30) в стеке.
+Вторая инструкция \INS{ADD X29, SP, 0} формирует стековый фрейм.
+Это просто запись значения \ac{SP} в X29.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+Далее уже знакомая пара инструкций \INS{ADRP}/\ADD формирует указатель на строку.
+
+\myindex{ARM64!lo12}
+\emph{lo12} означает младшие 12 бит, т.е., линкер запишет младшие 12 бит адреса метки LC1 в опкод инструкции \ADD.
+1, 2 и 3 это 32-битные значения типа \Tint{}, так что они загружаются в 32-битные части регистров
+\footnote{Изменение 1 на 1L изменит эту константу на 64-битную и она будет загружаться в 64-битный регистр.
+См. о целочисленных константах/литералах:
+\href{https://en.cppreference.com/w/c/language/integer_constant}{1},
+\href{https://en.cppreference.com/w/cpp/language/integer_literal}{2}.}
+
+\Optimizing GCC (Linaro) 4.9 генерирует почти такой же код.
+

@@ -1,0 +1,51 @@
+﻿\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+We get (MSVC 2010):
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/08_switch/2_lot/lot_msvc_JA.asm}
+
+\myindex{jumptable}
+
+ここでは、さまざまな引数を持つ \printf 呼び出しのセットを見ていきます。
+すべては、プロセスのメモリだけでなく、コンパイラによって割り当てられた内部シンボリックラベルも持っています。
+これらのラベルはすべて \TT{\$LN11@f} 内部テーブルにも記載されています。
+
+関数の開始時に、 $a$ が4より大きい場合、制御フローはラベル \TT{\$LN1@f}に渡されます。
+引数 \TT{'something unknown'}をとって \printf が呼び出されます。
+
+しかし、 $a$ の値が4以下の場合は、4を乗算して \TT{\$LN11@f}テーブルアドレスで加算します。 
+これはテーブル内のアドレスがどのように構築され、必要な要素を正確に指し示すものです。 
+たとえば、 $a$ が2に等しいとしましょう。$2*4 = 8$（すべてのテーブル要素は
+32ビットプロセスのアドレスなので、すべての要素が4バイト幅です）。
+\TT{\$LN11@f}テーブルのアドレス+ 8は\TT{\$LN4@f}ラベルが格納されているテーブル要素です。
+\JMP はテーブルから\TT{\$LN4@f}アドレスを取り出し、それにジャンプします。
+
+このテーブルはしばしば\emph{jumptable} または \emph{branch table}\footnote{The whole method was once called 
+\emph{computed GOTO} in early versions of Fortran:
+\href{http://en.wikipedia.org/wiki/Branch_table}{wikipedia}.
+Not quite relevant these days, but what a term!}と呼ばれます。
+
+それから、対応する \printf は引数 \TT{'two'}で呼び出されます。
+実際、\TT{jmp DWORD PTR \$LN11@f[ecx*4]}命令は\emph{jump to the DWORD that is stored at address} \TT{\$LN11@f + ecx * 4}
+
+\TT{npad}（\myref{sec:npad}）は、4バイト（または16バイト）の境界に整列したアドレスに格納されるように次のラベルを整列するアセンブリ言語マクロです。
+これは、メモリバス、キャッシュメモリなどを介してメモリから32ビット値をフェッチすることができるため、
+プロセッサが整列している場合にはより効果的な方法でプロセッサに非常に適しています。
+
+\input{patterns/08_switch/2_lot/olly_JA}
+
+\myparagraph{\NonOptimizing GCC}
+\label{switch_lot_GCC}
+
+GCC 4.4.1が生成するものを見てみましょう：
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/08_switch/2_lot/lot_gcc.asm}
+
+\myindex{x86!\Registers!JMP}
+
+引数\TT{arg\_0}は2ビット左にシフトすることで4倍されます
+（これは4倍の乗算とほぼ同じです）。~(\myref{SHR})
+\TT{off\_804855C}配列からラベルのアドレスを取り出し、 \EAX に格納してから、\TT{JMP EAX}が実際のジャンプを行います。
+

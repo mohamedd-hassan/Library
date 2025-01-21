@@ -1,0 +1,691 @@
+% TODO translate
+% TODO: OpenSSL tool, URLs, etc
+\mysection{Cas de base de données chiffrée \#1}
+\label{encrypted_DB1}
+
+(Cette partie est apparue initialement dans mon blog le 26 août 2015.
+Discussion: \url{https://news.ycombinator.com/item?id=10128684}.)
+
+\subsection{Base64 et entropie}
+
+\myindex{XML}
+J'ai un fichier \ac{XML} contenant des données chiffrées.
+Peut-être est-ce relatif à des commandes et/ou des information clients.
+
+\begin{lstlisting}
+<?xml version = "1.0" encoding = "UTF-8"?>
+<Orders>
+	<Order>
+		<OrderID>1</OrderID>
+		<Data>yjmxhXUbhB/5MV45chPsXZWAJwIh1S0aD9lFn3XuJMSxJ3/E+UE3hsnH</Data>
+	</Order>
+	<Order>
+		<OrderID>2</OrderID>
+		<Data>0KGe/wnypFBjsy+U0C2P9fC5nDZP3XDZLMPCRaiBw9OjIk6Tu5U=</Data>
+	</Order>
+	<Order>
+		<OrderID>3</OrderID>
+		<Data>mqkXfdzvQKvEArdzh+zD9oETVGBFvcTBLs2ph1b5bYddExzp</Data>
+	</Order>
+	<Order>
+		<OrderID>4</OrderID>
+		<Data>FCx6JhIDqnESyT3HAepyE1BJ3cJd7wCk+APCRUeuNtZdpCvQ2MR/7kLXtfUHuA==</Data>
+	</Order>
+...
+\end{lstlisting}
+
+Le fichier est disponible \href{\RepoURL/examples/encrypted_DB1/encrypted.xml}{ici}.
+
+\myindex{base64}
+Ce sont clairement des données encodées en base64, car toutes les chaînes consistent
+en des caractères Latin, chiffres, plus (+) et symbole slash (/).
+Il peut y avoir 1 ou 2 symboles de remplissage (=), mais ils ne se trouvent jamais
+au milieu d'une chaîne.
+Gardez à l'esprit ces propriétés du base64, il est très facile de les reconnaître.
+
+Décodons les et calculons l'entropie (\myref{entropy}) de ces blocs dans Wolfram Mathematica:
+
+\begin{lstlisting}
+In[]:= ListOfBase64Strings =
+  Map[First[#[[3]]] &, Cases[Import["encrypted.xml"], XMLElement["Data", _, _], Infinity]];
+
+In[]:= BinaryStrings =
+  Map[ImportString[#, {"Base64", "String"}] &, ListOfBase64Strings];
+
+In[]:= Entropies = Map[N[Entropy[2, #]] &, BinaryStrings];
+
+In[]:= Variance[Entropies]
+Out[]= 0.0238614
+\end{lstlisting}
+
+\myindex{Variance}
+La variance est basse.
+Cela signifie que l'entropie des valeurs ne sont pas très différentes les unes des autres.
+Ceci est visible sur le graphique:
+
+\begin{lstlisting}
+In[]:= ListPlot[Entropies]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/encrypted_DB1/entropy.png}
+\end{figure}
+
+La plupart des valeurs sont entre 5.0 et 5.4.
+Ceci est un signe que les données sont compressées et/ou chiffrées
+
+Pour comprendre la variance, calculons l'entropie de toutes les liens du livre de
+Conan Doyle \emph{The Hound of the Baskervilles}:
+
+\begin{lstlisting}
+In[]:= BaskervillesLines = Import["http://www.gutenberg.org/cache/epub/2852/pg2852.txt", "List"];
+
+In[]:= EntropiesT = Map[N[Entropy[2, #]] &, BaskervillesLines];
+
+In[]:= Variance[EntropiesT]
+Out[]= 2.73883
+
+In[]:= ListPlot[EntropiesT]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/encrypted_DB1/conan_doyle.png}
+\end{figure}
+
+La plupart des valeurs sont regroupées autour de 4, mais il y a aussi des valeurs
+qui sont plus petites, et elles influencent la valeur finale de la variance.
+
+Peut-être que les chaînes courtes ont une entropie plus petite, prenons les chaînes
+courtes du livre de Conan Doyle.
+
+\begin{lstlisting}
+In[]:= Entropy[2, "Yes, sir."] // N
+Out[]= 2.9477
+\end{lstlisting}
+
+Essayons encore plus petit:
+
+\begin{lstlisting}
+In[]:= Entropy[2, "Yes"] // N
+Out[]= 1.58496
+
+In[]:= Entropy[2, "No"] // N
+Out[]= 1.
+\end{lstlisting}
+
+\subsection{Est-ce que les données sont compressées?}
+
+OK, donc nos données sont compressées et/ou chiffrées.
+Sont-elles compressées? Presque tous les compresseurs de données ajoutent un entête
+au début, une signature ou quelque chose comme ça.
+Comme on peut le voir, il n'y a pas de motifs communs au début de chaque bloc.
+Il est toujours possible qu'il s'agisse d'un compresseur de données écrit à la main,
+mais c'est très rare.
+D'un autre côté, les algorithmes de chiffrement maison sont plus répandus, car il
+est facile d'en faire un.
+\myindex{memfrob()}
+\myindex{ROT13}
+Même des systèmes de chiffrement sans clef primitifs comme \emph{memfrob()}\footnote{\url{http://linux.die.net/man/3/memfrob}}
+et ROT13 fonctionnent bien sans erreur.
+C'est un gros défi d'écrire un compresseur depuis zéro, en utilisant seulement sa
+fantaisie et son imagination de façon à ce qu'il n'ait pas de bugs évidents.
+Certains programmeurs implémentent des fonctions de compression de données en lisant
+des livres, mais ceci est aussi rare.
+Les deux moyens les plus fréquents sont:
+\myindex{zlib}
+1) utiliser simplement la bibliothèque open-source zlib;
+2) copier/coller quelque chose de quelque part.
+Les algorithmes de compression open-source mettent en général une sorte d'en-tête,
+ainsi que les algorithmes de sites comme \url{http://www.codeproject.com/}.
+
+\subsection{Est-ce que les données sont chiffrées?}
+
+Les algorithmes majeurs de chiffrement de données traitent les données par bloc.
+DES---8 octets, AES---16 octets. 
+Si le buffer en entrée n'est pas divisible par la taille du bloc, des zéros sont
+ajoutés (ou quelque chose d'autre), afin que les donnés chiffrées soient alignées
+sur la taille du bloc de l'algorithme.
+Ce n'est pas notre cas.
+
+En utilisant Wolfram Mathematica, j'ai analysé la longueur des blocs:
+
+\begin{lstlisting}
+In[]:= Counts[Map[StringLength[#] &, BinaryStrings]]
+Out[]= <|42 -> 1858, 38 -> 1235, 36 -> 699, 46 -> 1151, 40 -> 1784,
+ 44 -> 1558, 50 -> 366, 34 -> 291, 32 -> 74, 56 -> 15, 48 -> 716,
+ 30 -> 13, 52 -> 156, 54 -> 71, 60 -> 3, 58 -> 6, 28 -> 4|>
+\end{lstlisting}
+
+1858 blocs ont une taille de 42 octets, 1235 blocs ont une taille de 38 octets, etc.
+
+J'ai fait un graphe:
+
+\begin{lstlisting}
+ListPlot[Counts[Map[StringLength[#] &, BinaryStrings]]]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/encrypted_DB1/lengths.png}
+\end{figure}
+
+Donc, la plupart des blocs ont une taille entre $\textasciitilde{}36$ et $\textasciitilde{}48$.
+Il y a un autre chose à remarquer: tous les blocs ont une taille paire.
+Pas un bloc n'a une taille impaire.
+
+Il y a, toutefois, des flux de chiffrement qui opèrent au niveau de l'octet ou même
+du bit.
+
+\subsection{CryptoPP}
+\myindex{CryptoPP}
+
+Le programme qui peut parcourir cette base de données chiffrées est écrit en C\#
+et le code .NET est fortement obscurci.
+Néanmoins, il y a une DLL avec du code x86, qui, après un bref examen, contient des
+parties de la bibliothèque open-source connue CryptoPP!
+(J'ai juste repéré des chaînes \q{CryptoPP} dedans.)
+Maintenant, c'est très facile de trouver toutes les fonctions à l'intérieur de la
+DLL car la bibliothèque CryptoPP est open-source.
+
+\myindex{AES}
+La bibliothèque CryptoPP contient beaucoup de fonctions de chiffrement, AES inclus (AKA Rijndael).
+Les CPUs x86 récents possèdent des instructions dédiées à AES comme \INS{AESENC}, \INS{AESDEC}
+et \INS{AESKEYGENASSIST}\footnote{\url{https://en.wikipedia.org/wiki/AES_instruction_set}}.
+Elles ne font pas le chiffrement/déchiffrement complètement, mais elles font une
+part significative du travail.
+Et les nouvelles versions de CryptoPP les utilisent.
+Par exemple, ici:
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L1034}{1},
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L1000}{2}.
+\myindex{x86!\Instructions!AESENC}
+\myindex{x86!\Instructions!AESDEC}
+\myindex{tracer}
+À ma surprise, lors du déchiffrement, \INS{AESENC} est exécutée, tandis que \INS{AESDEC}
+ne l'est pas (j'ai vérifié avec mon utilitaire tracer, mais n'importe quel débogueur
+peut être utilisé).
+J'ai vérifié, si mon CPU supporte réellement les instructions AES. Certains CPUs
+Intel i3 ne les supportent pas.
+Et si non, la bibliothèque CryptoPP se rabat sur les fonctions implémentées de l'ancienne façon
+\footnote{\url{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L355}}.
+Mais mon CPU les supporte.
+Pourquoi \INS{AESDEC} n'est pas exécuté?
+Pourquoi le programme utilise le chiffrement AES pour déchiffrer la base de données?
+
+OK, ce n'est pas un problème de trouver la fonction qui chiffre les blocs.
+Elle est appelée \\
+\emph{CryptoPP::Rijndael::Enc::ProcessAndXorBlock}:
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L349}{src},
+et elle peut être appelée depuis une autre fonction: \\
+\emph{Rijndael::Enc::AdvancedProcessBlocks()}
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L1179}{src},
+qui, à son tour, appelle les deux fonctions: (
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L1000}{AESNI\_Enc\_Block}
+et
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L1012}{AESNI\_Enc\_4\_Blocks}
+)
+qui ont les instructions  \INS{AESENC}.
+
+Donc, a en juger par les entrailles de CryptoPP \\
+\emph{CryptoPP::Rijndael::Enc::ProcessAndXorBlock()} chiffre un bloc 16-octet.
+Mettons un point d'arrêt dessus et voyons ce qui se produit pendant le déchiffrement.
+J'utilise à nouveau mon petit outil tracer.
+Le logiciel doit déchiffrer le premier bloc de données maintenant.
+Oh, à propos, voici le premier bloc de données converti de l'encodage en base64 vers
+des données hexadécimale, faisons le manuellement:
+
+\lstinputlisting{examples/encrypted_DB1/1.lst}
+
+Voici les arguments de la fonction d'après les fichiers sources de CryptoPP:
+
+\begin{lstlisting}
+size_t Rijndael::Enc::AdvancedProcessBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, size_t length, word32 flags);
+\end{lstlisting}
+
+Donc, il y a 5 arguments. Les flags possibles sont:
+
+\begin{lstlisting}
+enum {BT_InBlockIsCounter=1, BT_DontIncrementInOutPointers=2, BT_XorInput=4, BT_ReverseDirection=8, BT_AllowParallel=16} FlagsForAdvancedProcessBlocks;
+\end{lstlisting}
+
+OK, lançons tracer sur la fonction \emph{ProcessAndXorBlock()}:
+
+\lstinputlisting{examples/encrypted_DB1/2.lst}
+
+Ici nous pouvons voir l'entrée de la fonction \emph{ProcessAndXorBlock()}, et sa sortie.
+
+Ceci est la sortie de la fonction lors du premier appel:
+
+\begin{lstlisting}
+00000000: C7 39 4E 7B 33 1B D6 1F-B8 31 10 39 39 13 A5 5D ".9N{3....1.99..]"
+\end{lstlisting}
+
+Puis la fonction \emph{ProcessAndXorBlock()} est appelée avec un bloc de longueur zéro,\\
+mais avec le flag 8 (\emph{BT\_ReverseDirection}).
+
+Second appel:
+
+\begin{lstlisting}
+00000000: 45 00 20 00 4A 00 4F 00-48 00 4E 00 53 00 00 00 "E. .J.O.H.N.S..."
+\end{lstlisting}
+
+Maintenant, il y a des chaînes qui nous sont familières!
+
+Troisième appel:
+
+\begin{lstlisting}
+00000000: B1 27 7F E4 9F 01 E3 81-CF C6 12 FB B9 7C F1 BC ".'...........|.."
+\end{lstlisting}
+
+La première sortie est très similaire aux 16 premiers octets du buffer chiffré.
+
+Sortie du premier appel à \emph{ProcessAndXorBlock()}:
+
+\begin{lstlisting}
+00000000: C7 39 4E 7B 33 1B D6 1F-B8 31 10 39 39 13 A5 5D ".9N{3....1.99..]"
+\end{lstlisting}
+
+16 premiers octets du buffer chiffré:
+
+\begin{lstlisting}
+00000000: CA 39 B1 85 75 1B 84 1F F9 31 5E 39 72 13 EC 5D  .9..u....1^9r..]
+\end{lstlisting}
+
+Il y a trop d'octets égaux!
+Comment le résultat du chiffrement AES peut-il être aussi similaire au buffer chiffré
+alors que ceci n'est pas du chiffrement mais bien du déchiffrement?!
+
+\subsection{Mode Cipher Feedback}
+
+\myindex{Cipher Feedback mode}
+\myindex{XOR}
+La réponse est \ac{CFB}:
+Dans ce mode, l'algorithme AES n'est pas utilisé comme un algorithme de chiffrement,
+mais comme un dispositif qui génère des données aléatoires cryptographiquement sûres.
+Le chiffrement effectif est obtenu en utilisant une simple opération XOR.
+
+Voici l'algorithme de chiffrement (les images proviennent de Wikipédia):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/encrypted_DB1/601px-CFB_encryption.png}
+\end{figure}
+
+Et le déchiffrement:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/encrypted_DB1/601px-CFB_decryption.png}
+\label{fig:CFB_decryption}
+\end{figure}
+
+Maintenant regardons: le chiffrement AES génère 16 octets (ou 128 bits) de données
+\emph{aléatoires} destinées à être utilisées lors du XOR, qui nous oblige à utiliser
+tous les 16 octets?
+Si à la dernière itération nous n'avons qu'un octet de données, nous ne chiffrons
+qu'un octet avec un octet de données \emph{aléatoires} générée.
+Ceci conduit à une propriété importante du mode \ac{CFB}: les données ne doivent
+pas être adaptées à une taille, des données de taille arbitraire peuvent être chiffrées
+et déchiffrées.
+
+Oh, c'est pour ça que les blocs chiffrés ne sont pas complétés.
+Et c'est pourquoi l'instruction \INS{AESDEC} n'est jamais appelée.
+
+Essayons de déchiffrer le premier bloc manuellement, en utilisant Python.
+Le mode \ac{CFB} utilise aussi un \ac{IV}, comme \emph{semence} pour \ac{CSPRNG}.
+Dans notre cas, l'\ac{IV} est le bloc qui est chiffré à la première itération:
+
+\begin{lstlisting}
+0038B920: 01 00 00 00 FF FF FF FF-79 C1 69 0B 67 C1 04 7D "........y.i.g..}"
+\end{lstlisting}
+
+Oh, et nous devons aussi retrouver la clef de chiffrement.
+\myindex{x86!\Instructions!AESKEYGENASSIST}
+Il y a \INS{AESKEYGENASSIST} dans la DLL, et elle est appelée, et elle est utilisée dans la fonction \\
+\href{https://github.com/mmoss/cryptopp/blob/2772f7b57182b31a41659b48d5f35a7b6cedd34d/src/rijndael.cpp#L198}{src}.
+C'est facile de la trouver dans \IDA et de mettre un point d'arrêt. Voyons:
+
+\begin{lstlisting}
+... tracer.exe -l:filename.exe bpf=filename.exe!0x435c30,args:3,dump_args:0x10
+
+Warning: no tracer.cfg file.
+PID=2068|New process software.exe
+no module registered with image base 0x77320000
+no module registered with image base 0x76e20000
+no module registered with image base 0x77320000
+no module registered with image base 0x77220000
+Warning: unknown (to us) INT3 breakpoint at ntdll.dll!LdrVerifyImageMatchesChecksum+0x96c (0x776c103b)
+(0) software.exe!0x435c30(0x15e8000, 0x10, 0x14f808) (called from software.exe!.text+0x22fa1 (0x13d3fa1))
+Argument 1/3
+015E8000: CD C5 7E AD 28 5F 6D E1-CE 8F CC 29 B1 21 88 8E "..~.(_m....).!.."
+Argument 3/3
+0014F808: 38 82 58 01 C8 B9 46 00-01 D1 3C 01 00 F8 14 00 "8.X...F...<....."
+Argument 3/3 +0x0: software.exe!.rdata+0x5238
+Argument 3/3 +0x8: software.exe!.text+0x1c101
+(0) software.exe!0x435c30() -> 0x13c2801
+PID=2068|Process software.exe exited. ExitCode=0 (0x0)
+\end{lstlisting}
+
+Donc, ceci est la clef: \emph{CD C5 7E AD 28 5F 6D E1-CE 8F CC 29 B1 21 88 8E}.
+
+Durant le déchiffrement manuel, nous obtenons ceci:
+
+\begin{lstlisting}
+00000000: 0D 00 FF FE 46 00 52 00  41 00 4E 00 4B 00 49 00  ....F.R.A.N.K.I.
+00000010: 45 00 20 00 4A 00 4F 00  48 00 4E 00 53 00 66 66  E. .J.O.H.N.S.ff
+00000020: 66 66 66 9E 61 40 D4 07  06 01                    fff.a@....
+\end{lstlisting}
+
+Maintenant, c'est quelque chose de lisible!
+Et nous comprenons pourquoi il y avait autant d'octets égaux dans la première
+itération de déchiffrement:
+car le text en clair a beaucoup d'octet à zéro!
+Déchiffrons le second bloc:
+
+\begin{lstlisting}
+00000000: 17 98 D0 84 3A E9 72 4F  DB 82 3F AD E9 3E 2A A8  ....:.rO..?..>*.
+00000010: 41 00 52 00 52 00 4F 00  4E 00 CD CC CC CC CC CC  A.R.R.O.N.......
+00000020: 1B 40 D4 07 06 01                                 .@....
+\end{lstlisting}
+
+Les troisième, quatrième et cinquième:
+
+\begin{lstlisting}
+00000000: 5D 90 59 06 EF F4 96 B4  7C 33 A7 4A BE FF 66 AB  ].Y.....|3.J..f.
+00000010: 49 00 47 00 47 00 53 00  00 00 00 00 00 C0 65 40  I.G.G.S.......e@
+00000020: D4 07 06 01                                       ....
+\end{lstlisting}
+
+\begin{lstlisting}
+00000000: D3 15 34 5D 21 18 7C 6E  AA F8 2D FE 38 F9 D7 4E  ..4]!.|n..-.8..N
+00000010: 41 00 20 00 44 00 4F 00  48 00 45 00 52 00 54 00  A. .D.O.H.E.R.T.
+00000020: 59 00 48 E1 7A 14 AE FF  68 40 D4 07 06 02        Y.H.z...h@....
+\end{lstlisting}
+
+\begin{lstlisting}
+00000000: 1E 8B 90 0A 17 7B C5 52  31 6C 4E 2F DE 1B 27 19  .....{.R1lN...'.
+00000010: 41 00 52 00 43 00 55 00  53 00 00 00 00 00 00 60  A.R.C.U.S.......
+00000020: 66 40 D4 07 06 03                                 f@....
+\end{lstlisting}
+
+Tous les blocs déchiffrés semblent correct, à l'exception des 16 premiers octets.
+
+\subsection{Initializing Vector}
+
+Qu'est-ce qui peut affecter les 16 premiers octets?
+
+Revenons à nouveau à l'algorithme de déchiffrement \ac{CFB}: \myref{fig:CFB_decryption}.
+
+Nous pouvons voir que l'\ac{IV} peut affecter le déchiffrement de la première opération
+de déchiffrement, mais pas la seconde, car lors de la seconde itération, le texte
+chiffré de la première itération est utilisé, et en cas de déchiffrement, c'est le
+même, quelque soit l'\ac{IV}!
+
+Donc, l'\ac{IV} est sans doute différent à chaque fois.
+En utilisant mon tracer, j'ai regardé la première entrée lors du déchiffrement du
+second bloc du fichier \ac{XML}:
+
+\begin{lstlisting}
+0038B920: 02 00 00 00 FE FF FF FF-79 C1 69 0B 67 C1 04 7D "........y.i.g..}"
+\end{lstlisting}
+
+\dots troisième:
+
+\begin{lstlisting}
+0038B920: 03 00 00 00 FD FF FF FF-79 C1 69 0B 67 C1 04 7D "........y.i.g..}"
+\end{lstlisting}
+
+Il semble que le premier et le cinquième octet changent à chaque fois.
+J'en ai finalement conclu que le premier entier 32-bit est simplement OrderID du fichier
+\ac{XML}, et le second entier 32-bit est aussi OrderID, mais multiplié par -1. Tous
+les 8 autres octets sont les mêmes pour chaque opération.
+Maintenant, j'ai déchiffré la base de données entière:
+\url{\RepoURL/examples/encrypted_DB1/decrypted.full.txt}.
+
+Le script Python utilisé pour ceci est:
+\url{\RepoURL/examples/encrypted_DB1/decrypt_blocks.py}.
+
+Peut-être que l'auteur voulait chiffrer chaque bloc différemment, donc il a utilisé
+OrderID comme une partie de la clef.
+Il aurait aussi été possible de créer une clef AES différente, au lieu de l'\ac{IV}.
+
+Dinc maintenant nous savons que l'\ac{IV} affecte seulement le premier bloc lors
+du déchiffrement en mode \ac{CFB}, ceci en est une caractéristique.
+Tous les autres blocs peuvent être déchiffrés sans connaître l'\ac{IV}, mais en utilisant
+la clef.
+
+OK, donc pourquoi le mode \ac{CFB}? Apparemment, parce que le tout premier exemple
+sur le wiki de CryptoPP utilise le mode \ac{CFB}:
+\url{http://www.cryptopp.com/wiki/Advanced_Encryption_Standard#Encrypting_and_Decrypting_Using_AES}.
+On peut aussi supposer que le développeur l'a choisi pour sa simplicité:
+l'exemple peut chiffrer/déchiffrer des chaînes de texte de longueur arbitraire, sans
+remplissage.
+
+Il est aussi probable que l'auteur du programme a juste copié/collé l'exemple depuis
+la page wiki de CryptoPP.
+Beaucoup de programmeurs font ça.
+
+La seule différence est que l'\ac{IV} est choisi aléatoirement dans l'exemple du
+wiki de CryptoPP, alors que cet indéterminisme n'était pas permis aux programmeurs
+du logiciel que nous disséquons maintenant, donc ils ont choisi d'initialiser l'\ac{IV}
+en utilisant OrderID.
+
+Nous pouvons maintenant procéder à l'analyse du cas de chaque octet dans le bloc
+déchiffré.
+
+\subsection{Structure du buffer}
+
+Prenons les quatre premier bloc déchiffrés:
+
+\begin{lstlisting}
+00000000: 0D 00 FF FE 46 00 52 00  41 00 4E 00 4B 00 49 00  ....F.R.A.N.K.I.
+00000010: 45 00 20 00 4A 00 4F 00  48 00 4E 00 53 00 66 66  E. .J.O.H.N.S.ff
+00000020: 66 66 66 9E 61 40 D4 07  06 01                    fff.a@....
+
+00000000: 0B 00 FF FE 4C 00 4F 00  52 00 49 00 20 00 42 00  ....L.O.R.I. .B.
+00000010: 41 00 52 00 52 00 4F 00  4E 00 CD CC CC CC CC CC  A.R.R.O.N.......
+00000020: 1B 40 D4 07 06 01                                 .@....
+
+00000000: 0A 00 FF FE 47 00 41 00  52 00 59 00 20 00 42 00  ....G.A.R.Y. .B.
+00000010: 49 00 47 00 47 00 53 00  00 00 00 00 00 C0 65 40  I.G.G.S.......e@
+00000020: D4 07 06 01                                       ....
+
+00000000: 0F 00 FF FE 4D 00 45 00  4C 00 49 00 4E 00 44 00  ....M.E.L.I.N.D.
+00000010: 41 00 20 00 44 00 4F 00  48 00 45 00 52 00 54 00  A. .D.O.H.E.R.T.
+00000020: 59 00 48 E1 7A 14 AE FF  68 40 D4 07 06 02        Y.H.z...h@....
+\end{lstlisting}
+
+On voit clairement des chaînes de textes encodées en UTF-16, ce sont les noms et
+noms de famille.
+Le premier octet (ou mot de 16-bit) semble être la longueur de la chaîne, nous pouvons
+vérifier visuellement.
+\emph{FF FE} semble être le \ac{BOM} Unicode.
+
+Il y a 12 autres octets après chaque chaîne.
+
+En utilisant ce script
+(\url{\RepoURL/examples/encrypted_DB1/dump_buffer_rest.py})
+j'ai obtenu une sélection aléatoire de \emph{fins} (de bloc):
+
+\lstinputlisting{examples/encrypted_DB1/tails.lst}
+
+Nous voyons tout d'abord que les octets 0x40 et 0x07 sont présent dans chaque \emph{fin}.
+Le tout dernier octet est toujours dans l'intervalle 1..0x1F (1..31), j'ai vérifié.
+Le pénultième octet est toujours dans l'intervalle 1..0xC (1..12).
+Ouah, ça ressemble à une date!
+L'année peut être représentée comme une valeur 16-bit, et peut-être que les 4 derniers
+octets sont une date (16 bits pour l'année, 8 bits pour le mois et les 8 restants
+pour le jour)?
+0x7DD est 2013, 0x7D5 est 2005, etc. Ça semble juste. Ceci est une date.
+Il y a 8 octets supplémentaires.
+À en juger par le fait que ceci est une base de données appelée \emph{orders}, peut-être
+s'agit-il d'une sorte de somme ici?
+J'ai essayé de les interpréter comme des réels en double précision IEEE 754 et ai
+affiché toutes les valeurs!
+
+Certaines sont:
+
+\begin{lstlisting}
+71.0
+134.0
+51.95
+53.0
+121.99
+96.95
+98.95
+15.95
+85.95
+184.99
+94.95
+29.95
+85.0
+36.0
+130.99
+115.95
+87.99
+127.95
+114.0
+150.95
+\end{lstlisting}
+
+Ça ressemble à des nombres réels
+
+Maintenant, nous pouvons afficher les noms, sommes et dates.
+
+\begin{lstlisting}
+plain:
+00000000: 0D 00 FF FE 46 00 52 00  41 00 4E 00 4B 00 49 00  ....F.R.A.N.K.I.
+00000010: 45 00 20 00 4A 00 4F 00  48 00 4E 00 53 00 66 66  E. .J.O.H.N.S.ff
+00000020: 66 66 66 9E 61 40 D4 07  06 01                    fff.a@....
+OrderID= 1 name= FRANKIE JOHNS sum= 140.95 date= 2004 / 6 / 1
+
+plain:
+00000000: 0B 00 FF FE 4C 00 4F 00  52 00 49 00 20 00 42 00  ....L.O.R.I. .B.
+00000010: 41 00 52 00 52 00 4F 00  4E 00 CD CC CC CC CC CC  A.R.R.O.N.......
+00000020: 1B 40 D4 07 06 01                                 .@....
+OrderID= 2 name= LORI BARRON sum= 6.95 date= 2004 / 6 / 1
+
+plain:
+00000000: 0A 00 FF FE 47 00 41 00  52 00 59 00 20 00 42 00  ....G.A.R.Y. .B.
+00000010: 49 00 47 00 47 00 53 00  00 00 00 00 00 C0 65 40  I.G.G.S.......e@
+00000020: D4 07 06 01                                       ....
+OrderID= 3 name= GARY BIGGS sum= 174.0 date= 2004 / 6 / 1
+
+plain:
+00000000: 0F 00 FF FE 4D 00 45 00  4C 00 49 00 4E 00 44 00  ....M.E.L.I.N.D.
+00000010: 41 00 20 00 44 00 4F 00  48 00 45 00 52 00 54 00  A. .D.O.H.E.R.T.
+00000020: 59 00 48 E1 7A 14 AE FF  68 40 D4 07 06 02        Y.H.z...h@....
+OrderID= 4 name= MELINDA DOHERTY sum= 199.99 date= 2004 / 6 / 2
+
+plain:
+00000000: 0B 00 FF FE 4C 00 45 00  4E 00 41 00 20 00 4D 00  ....L.E.N.A. .M.
+00000010: 41 00 52 00 43 00 55 00  53 00 00 00 00 00 00 60  A.R.C.U.S.......
+00000020: 66 40 D4 07 06 03                                 f@....
+OrderID= 5 name= LENA MARCUS sum= 179.0 date= 2004 / 6 / 3
+\end{lstlisting}
+
+En voir plus: \url{\RepoURL/examples/encrypted_DB1/decrypted.full.with_data.txt}.
+Ou filtré: \url{\RepoURL/examples/encrypted_DB1/decrypted.short.txt}.
+Ça semble correct.
+
+Ceci est une sorte de sérialisation \ac{OOP}, i.e., stockant différents types de
+valeurs dans un buffer binaire pour le stocker et/ou le transmettre.
+
+\subsection{Bruit en fin de buffer}
+
+La seule question qui reste est que, parfois, la \emph{fin} est plus longue:
+
+\begin{lstlisting}
+00000000: 0E 00 FF FE 54 00 48 00  45 00 52 00 45 00 53 00  ....T.H.E.R.E.S.
+00000010: 45 00 20 00 54 00 55 00  54 00 54 00 4C 00 45 00  E. .T.U.T.T.L.E.
+00000020: 66 66 66 66 66 1E 63 40  D4 07 07 1A 00 07 07 19  fffff.c@........
+OrderID= 172 name= THERESE TUTTLE sum= 152.95 date= 2004 / 7 / 26
+\end{lstlisting}
+
+(Les octets \emph{00 07 07 19} ne sont pas utilisés et servent de remplissage.)
+
+\begin{lstlisting}
+00000000: 0C 00 FF FE 4D 00 45 00  4C 00 41 00 4E 00 49 00  ....M.E.L.A.N.I.
+00000010: 45 00 20 00 4B 00 49 00  52 00 4B 00 00 00 00 00  E. .K.I.R.K.....
+00000020: 00 20 64 40 D4 07 09 02  00 02                    . d@......
+OrderID= 286 name= MELANIE KIRK sum= 161.0 date= 2004 / 9 / 2
+\end{lstlisting}
+
+(\emph{00 02} ne sont pas utilisés.)
+
+Après un examen rigoureux, on peut voir que le but à la fin de la \emph{fin} est
+juste le reste d'un chiffrement précédent!
+
+Voici deux buffers consécutifs:
+
+\begin{lstlisting}
+00000000: 10 00 FF FE 42 00 4F 00  4E 00 4E 00 49 00 45 00  ....B.O.N.N.I.E.
+00000010: 20 00 47 00 4F 00 4C 00  44 00 53 00 54 00 45 00   .G.O.L.D.S.T.E.
+00000020: 49 00 4E 00 9A 99 99 99  99 79 46 40 D4 07 07 19  I.N......yF@....
+OrderID= 171 name= BONNIE GOLDSTEIN sum= 44.95 date= 2004 / 7 / 25
+
+00000000: 0E 00 FF FE 54 00 48 00  45 00 52 00 45 00 53 00  ....T.H.E.R.E.S.
+00000010: 45 00 20 00 54 00 55 00  54 00 54 00 4C 00 45 00  E. .T.U.T.T.L.E.
+00000020: 66 66 66 66 66 1E 63 40  D4 07 07 1A 00 07 07 19  fffff.c@........
+OrderID= 172 name= THERESE TUTTLE sum= 152.95 date= 2004 / 7 / 26
+\end{lstlisting}
+
+(Les derniers octets \emph{07 07 19} sont copiés du buffer précédent.) 
+
+Un autre exemple de deux buffers consécutifs:
+
+\begin{lstlisting}
+00000000: 0D 00 FF FE 4C 00 4F 00  52 00 45 00 4E 00 45 00  ....L.O.R.E.N.E.
+00000010: 20 00 4F 00 54 00 4F 00  4F 00 4C 00 45 00 CD CC   .O.T.O.O.L.E...
+00000020: CC CC CC 3C 5E 40 D4 07  09 02                    ...<^@....
+OrderID= 285 name= LORENE OTOOLE sum= 120.95 date= 2004 / 9 / 2
+
+00000000: 0C 00 FF FE 4D 00 45 00  4C 00 41 00 4E 00 49 00  ....M.E.L.A.N.I.
+00000010: 45 00 20 00 4B 00 49 00  52 00 4B 00 00 00 00 00  E. .K.I.R.K.....
+00000020: 00 20 64 40 D4 07 09 02  00 02                    . d@......
+OrderID= 286 name= MELANIE KIRK sum= 161.0 date= 2004 / 9 / 2
+\end{lstlisting}
+
+Le dernier octet 02 a été copié du buffer en texte clair précédent.
+
+C'est possible si le buffer utilisé lors du chiffrement est global et/ou s'il n'est
+pas mis à zéro entre chaque chiffrement.
+La taille du buffer final est aussi chaotique, néanmoins, le bogue reste sans conséquence
+car il n'affecte pas le processus de déchiffrement, qui ignore le bruit à la fin.
+C'est une erreur courante.
+\myindex{OpenSSL}
+\myindex{Heartbleed}
+Il était présent dans OpenSSL (Heartbleed bug).
+
+\subsection{Conclusion}
+
+Résumé:
+Chaque rétro-ingénieur pratiquant doit être familier avec la majorité des algorithmes
+ainsi que la majorité des modes de chiffrement.
+Quelques livres à ce sujet: \myref{crypto_books}.
+
+Le contenu \emph{chiffré} de la base de données a été artificiellement construit
+par moi, pour les besoins de la démonstration.
+J'ai obtenu les nom et noms de famille les plus répandus au USA ici: \url{http://stackoverflow.com/questions/1803628/raw-list-of-person-names},
+et les ai combiné aléatoirement.
+Les dates et montants ont aussi été générés aléatoirement.
+
+Tous les fichiers utilisés dans cette partie sont ici: \url{\RepoURL/examples/encrypted_DB1}.
+
+Néanmoins, j'ai observé de telles caractéristiques dans des logiciels réels.
+Cet exemple est basé dessus.
+
+\subsection{Post Scriptum: brute-force \ac{IV}}
+
+Le cas que vous venez de voir a été construit artificiellement, mais il est basé
+sur des logiciels réels que j'ai rétro-ingénièré.
+Lorsque j'ai travaillé dessus, j'ai d'abord remarqué que l'\ac{IV} avait été généré
+en utilisant un nombre 32-bit, et je n'ai pas été capable de trouver un lien entre
+cette valeur et OrderID.
+Donc j'ai utilisé le brute-force, ce qui est aussi possible ici.
+
+Ce n'est pas un problème d'énumérer toutes les valeurs 32-bit et d'essayer chacune
+d'elle comme base pour l'\ac{IV}.
+Ensuite vous déchiffrez le premier bloc de 16 octets et vérifiez les octets à zéro,
+qui sont toujours à des places fixes.

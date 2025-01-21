@@ -1,0 +1,110 @@
+\subsection{Tableaux multidimensionnels}
+
+En interne, un tableau multidimensionnel est pratiquement la même chose qu'un tableau
+linéaire.
+
+Puisque la mémoire d'un ordinateur est linéaire, c'est un tableau uni-dimensionnel.
+Par commodité, ce tableau multidimensionnel peut facilement être représenté comme
+un uni-dimensionnel.
+
+Par exemple, voici comment les éléments du tableau 3*4 sont placés dans un tableau
+uni-dimensionnel de 12 éléments:
+
+% TODO FIXME not clear. First, horizontal would be better. Second, why two columns?
+% I'd first show 3x4 with numbered elements (e.g. 32-bit ints) in colored lines,
+% then linear with the same numbered elements (and colored blocks)
+% then linear with addresses (offsets) - assuming let say 32-bit ints.
+\begin{table}[H]
+\centering
+\begin{tabular}{ | l | l | }
+\hline
+Offset en mémoire & élément du tableau \\
+\hline
+0 & [0][0] \\
+\hline
+1 & [0][1] \\
+\hline
+2 & [0][2] \\
+\hline
+3 & [0][3] \\
+\hline
+4 & [1][0] \\
+\hline
+5 & [1][1] \\
+\hline
+6 & [1][2] \\
+\hline
+7 & [1][3] \\
+\hline
+8 & [2][0] \\
+\hline
+9 & [2][1] \\
+\hline
+10 & [2][2] \\
+\hline
+11 & [2][3] \\
+\hline
+\end{tabular}
+\caption{Tableau en deux dimensions représenté en mémoire en une dimension}
+\end{table}
+
+Voici comment chacun des éléments du tableau 3*4 sont placés en mémoire:
+
+% TODO coordinates. TikZ?
+\begin{table}[H]
+\centering
+\begin{tabular}{ | l | l | l | l | }
+\hline                        
+0 & 1 & 2 & 3 \\
+\hline  
+4 & 5 & 6 & 7 \\
+\hline  
+8 & 9 & 10 & 11 \\
+\hline  
+\end{tabular}
+\caption{Adresse mémoire de chaque élément d'un tableau à deux dimensions}
+\end{table}
+
+\myindex{row-major order}
+
+Donc, afin de calculer l'adresse de l'élément voulu, nous devons d'abord multiplier
+le premier index par 4 (largeur du tableau) et puis ajouter le second index.
+Ceci est appelé \emph{row-major order} (ordre ligne d'abord),
+et c'est la méthode de représentation des tableaux et des matrices au moins en \CCpp
+et Python.
+Le terme \emph{row-major order} est de l'anglais signifiant: \q{ d'abord, écrire les
+éléments de la première ligne, puis ceux de la seconde ligne \dots et enfin les éléments
+de la dernière ligne}.
+
+\myindex{column-major order}
+\myindex{Fortran}
+Une autre méthode de représentation est appelée \emph{column-major order} (ordre colonne
+d'abord) (les indices du tableau sont utilisés dans l'ordre inverse) et est utilisé
+au moins en ForTran, MATLAB et R.
+Le terme \emph{column-major order} est de l'anglais signifiant: \q{ d'abord, écrire les
+éléments de la première colonne, puis ceux de la seconde colonne \dots et enfin les
+éléments de la dernière colonne}.
+
+Quelle méthode est la meilleure?
+
+En général, en termes de performance et de mémoire cache, le meilleur schéma pour
+l'organisation des données est celui dans lequel les éléments sont accédés séquentiellement.
+
+Donc si votre fonction accède les données par ligne, \emph{row-major order} est meilleur,
+et vice-versa.
+
+% subsubsections
+\input{patterns/13_arrays/5_multidimensional/2D_FR}
+\input{patterns/13_arrays/5_multidimensional/2D_as_1D_FR}
+\input{patterns/13_arrays/5_multidimensional/3D_FR}
+\input{patterns/13_arrays/5_multidimensional/dimensions_FR}
+
+\subsubsection{Plus d'exemples}
+
+L'écran de l'ordinateur est représenté comme un tableau 2D, mais le buffer vidéo
+est un tableau linéaire 1D.
+Nous en parlons ici: \myref{Mandelbrot_demo}.
+
+Un autre exemple dans ce livre est le jeu Minesweeper: son champ est aussi un tableau
+à deux dimensions: \myref{minesweeper_winxp}.
+

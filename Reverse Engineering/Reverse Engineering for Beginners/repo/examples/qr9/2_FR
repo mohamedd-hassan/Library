@@ -1,0 +1,5 @@
+.text:00541369 mov     esi, [esp+2Ch+Str]
+; mettre les 6 bits les plus bas à zéro
+.text:0054136D and     esi, 0FFFFFFC0h
+; aligner la taille sur une limite de 64-octet
+.text:00541370 add     esi, 40h

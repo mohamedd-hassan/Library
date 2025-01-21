@@ -1,0 +1,28 @@
+﻿\subsection{配列についてもう少し}
+
+今や \CCpp のコードでこのように書き込むのが不可能なことを理解しています。
+
+\begin{lstlisting}[style=customc]
+void f(int size)
+{
+    int a[size];
+...
+};
+\end{lstlisting}
+
+
+コンパイラはコンパイル時にローカルスタックレイアウト上の場所を確保するために
+正確な配列のサイズを知る必要があります。
+
+\myindex{\CLanguageElements!C99!variable length arrays}
+\myindex{\CStandardLibrary!alloca()}
+
+配列の任意のサイズを必要とする場合、\TT{malloc()}を使用して確保し、そして確保したメモリブロックに
+必要とする型の変数の配列としてアクセスします。
+
+またはC99標準の機能\InSqBrackets{\CNineNineStd 6.7.5/2}を使用します。
+内部で\emph{alloca()}~(\myref{alloca})を使用しているかのように働きます。
+
+C用のガーベッジコレクションライブラリを使用することも可能です。
+
+C++向けにスマートポインタをサポートするライブラリもあります。

@@ -1,0 +1,98 @@
+﻿\subsection{多次元配列}
+
+内部的には、多次元配列は本質的には一次元の配列と同じです。
+
+コンピュータメモリは一次元なので、メモリは一次元配列です。
+便宜上、多次元配列は一次元として表現可能です。
+
+例えば、3x4の配列の要素が12のセルの1次元配列にどのように配置されるかを示します。
+
+% TODO FIXME not clear. First, horizontal would be better. Second, why two columns?
+% I'd first show 3x4 with numbered elements (e.g. 32-bit ints) in colored lines,
+% then linear with the same numbered elements (and colored blocks)
+% then linear with addresses (offsets) - assuming let say 32-bit ints.
+\begin{table}[H]
+\centering
+\begin{tabular}{ | l | l | }
+\hline
+Offset in memory & array element \\
+\hline
+0 & [0][0] \\
+\hline
+1 & [0][1] \\
+\hline
+2 & [0][2] \\
+\hline
+3 & [0][3] \\
+\hline
+4 & [1][0] \\
+\hline
+5 & [1][1] \\
+\hline
+6 & [1][2] \\
+\hline
+7 & [1][3] \\
+\hline
+8 & [2][0] \\
+\hline
+9 & [2][1] \\
+\hline
+10 & [2][2] \\
+\hline
+11 & [2][3] \\
+\hline
+\end{tabular}
+\caption{1次元配列としてメモリ上で表現される2次元配列}
+\end{table}
+
+3*4配列の各セルがメモリ上でどう配置されるかを示します。
+
+% TODO coordinates. TikZ?
+\begin{table}[H]
+\centering
+\begin{tabular}{ | l | l | l | l | }
+\hline                        
+0 & 1 & 2 & 3 \\
+\hline  
+4 & 5 & 6 & 7 \\
+\hline  
+8 & 9 & 10 & 11 \\
+\hline  
+\end{tabular}
+\caption{2次元配列の各セルのメモリアドレス}
+\end{table}
+
+\myindex{row-major order}
+
+したがって、必要な要素のアドレスを計算するには、まず最初のインデックスに
+4（配列の幅）を掛けてから2番目のインデックスを追加します。
+これは\emph{行優先順位}と呼ばれ、配列と行列表現のこの方法は、少なくとも \CCpp とPythonで使用されます。
+単純な英単語の\emph{行優先順位}は、\q{最初に、最初の行の要素を書き、次に2番目の行 \dots 
+最後に最後の行の要素を書き込む}という意味です。
+
+\myindex{column-major order}
+\myindex{Fortran}
+表現のもう1つの方法は、\emph{列優先順位}（配列の添字は逆順で使用されます）と呼ばれ、
+少なくともFortran、MATLAB、およびRで使用されます。
+\emph{列優先順位}は、単純な英語では、\q{最初に、最初の列の要素を書き込み、次に2番目の列を \dots
+最後に最後の列の要素を書き込む}となります。
+
+どの方法が良いでしょうか？
+
+一般に、パフォーマンスとキャッシュメモリの観点からは、
+データ編成のための最良の方法は、要素が順次アクセスされる方法です。
+
+したがって、関数が行ごとにデータにアクセスする場合は、\emph{行優先順位}が優れていて、逆もまた同様です。
+
+% subsubsections
+\input{patterns/13_arrays/5_multidimensional/2D_JA}
+\input{patterns/13_arrays/5_multidimensional/2D_as_1D_JA}
+\input{patterns/13_arrays/5_multidimensional/3D_JA}
+%\input{patterns/13_arrays/5_multidimensional/dimensions_JA}
+
+\subsubsection{More examples}
+
+コンピュータ画面は2D配列として表現されますが、ビデオバッファは1次元配列です。
+これについてはこちらで：\myref{Mandelbrot_demo}
+
+本書での他の例としてはマインスイーパーゲームがあります。そのフィールドは2次元配列です：\myref{minesweeper_winxp}

@@ -1,0 +1,25 @@
+﻿\subsubsection{Windows x64}
+
+\label{SEH_win64}
+
+Vous imaginez bien qu'il n'est pas très performant de construire le contexte SEH dans le prologue
+de chaque fonction. S'y ajoute les nombreux changements de la valeur de \emph{previous try level}
+durant l'exécution de la fonction.
+
+C'est pourquoi avec x64, la manière de faire a complètement changé. Tous les pointeurs vers les
+blocs \TT{try}, les filtres et les gestionnaires sont désormais stockés dans une nouveau segment
+PE: \TT{.pdata} à partir duquel les gestionnaires d'exception de l'\ac{OS} récupéreront les
+informations.
+
+Voici deux exemples tirés de la section précédente et compilés pour x64:
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{OS/SEH/3/2_x64.asm}
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{OS/SEH/3/3_x64.asm}
+
+Pour plus d'informations sur le sujet, lisez \IgorSkochinsky.
+
+Hormis les informations d'exception, \TT{.pdata} est aussi une section qui contient les adresses
+de début et de fin de toutes les fonctions. Elle revêt donc un intérêt particulier dans le cadre
+d'une analyse automatique d'un programme.
+

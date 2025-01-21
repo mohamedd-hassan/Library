@@ -1,0 +1,25 @@
+\subsubsection{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+Reprenons notre exemple de simple tableau (\myref{arrays_simple}),
+
+à nouveau, nous pouvons voir comment LLVM teste si le \q{canari} est correct:
+
+% TODO shorten the listing a bit? is full display of unrolled loop necessary?
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/3_BO_protection/simple_Xcode_thumb_O3_FR.asm}
+
+\myindex{Unrolled loop}
+
+Tout d'abord, on voit que LLVM a \q{déroulé} la boucle et que toutes les valeurs
+sont écrites une par une, pré-calculée, car LLVM a conclu que c'est plus rapide.
+À propos, des instructions en mode ARM peuvent aider à rendre cela encore plus rapide,
+et les trouver peut être un exercice pour vous.
+
+À la fin de la fonction, nous voyons la comparaison des \q{canaris}---celui sur la
+pile locale et le correct.
+\myindex{ARM!\Instructions!IT}
+
+S'ils sont égaux, un bloc de 4 instructions est exécuté par \INS{ITTTT EQ}, qui
+contient l'écriture de 0 dans \Reg{0}, l'épilogue de la fonction et la sortie.
+Si les \q{canaris} ne sont pas égaux, le bloc est passé, et la fonction saute en
+\TT{\_\_\_stack\_chk\_fail}, qui, peut-être, stoppe l'exécution.
+% TODO1 illustrate this!

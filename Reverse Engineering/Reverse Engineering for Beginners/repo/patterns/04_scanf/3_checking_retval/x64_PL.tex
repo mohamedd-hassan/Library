@@ -1,0 +1,9 @@
+\subsubsection{MSVC: x64}
+
+\myindex{x86-64}
+
+Pracujemy ze zmiennymi typu \Tint{}, które na x86-64 wciaż będą 32-bitowe, stąd w kodzie zobaczymy wykorzystanie 32-bitowych części rejestrów (z prefiksem \TT{E-}).
+Jednak przy pracy ze wskaźnikami będą używane 64-bitowe rejestry, z prefiksem \TT{R-}.
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3_MSVC_x64_PL.asm}
+

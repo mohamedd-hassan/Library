@@ -1,0 +1,9 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),numbers=left,style=customasmMIPS]{patterns/15_structs/3_tm_linux/MIPS/MIPS_O3_IDA_JA.lst}
+
+これは、分岐遅延スロットが私たちを混乱させる可能性のある例です。
+
+たとえば、35行目に\INS{addiu \$a1, 1900}という命令があり、年に1900が加算されます。
+
+これは34行目の対応する\INS{JALR}の前に実行されますが、それを忘れないでください。

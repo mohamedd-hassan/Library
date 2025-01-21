@@ -1,0 +1,87 @@
+﻿\clearpage
+\mysubparagraph{\olly}
+\myindex{\olly}
+
+例を \olly にロードしてみましょう。
+入力値は\TT{0x12345678}です。
+
+$i=1$の場合に、$i$がどう \ECX にロードされるかを見ていきます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_1.png}
+\caption{\olly: $i=1$、 $i$ が \ECX にロードされる}
+\label{fig:shifts_olly1_1}
+\end{figure}
+
+\EDX は1です。 \SHL はたった今実行されます。
+
+\clearpage
+\SHL が実行されました。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_2.png}
+\caption{\olly: $i=1$、 \EDX=$1 \ll 1=2$}
+\label{fig:shifts_olly1_2}
+\end{figure}
+
+\EDX は$1 \ll 1$（または2）を含みます。これはビットマスクです。
+
+\clearpage
+\AND は \ZF を1にセットし、入力値（\TT{0x12345678}）を2でANDして結果が0になることを意味します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_3.png}
+\caption{\olly: $i=1$、
+入力値にそのようなビットはありますか？いいえ (\ZF=1)}
+\label{fig:shifts_olly1_3}
+\end{figure}
+
+従って、入力値には対応するビットはありません。
+
+カウンタを\glslink{increment}{インクリメント}するコード片は実行されません。
+\JZ 命令はバイパスします。
+
+\clearpage
+もう少しトレースしてみましょう。$i$は4です。
+\SHL がここで実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_1.png}
+\caption{\olly: $i=4$、 $i$ は \ECX にロードされる}
+\label{fig:shifts_olly4_1}
+\end{figure}
+
+\clearpage
+\EDX=$1 \ll 4$ (または \TT{0x10} もしくは 16): 
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_2.png}
+\caption{\olly: $i=4$、 \EDX=$1 \ll 4=0x10$}
+\label{fig:shifts_olly4_2}
+\end{figure}
+
+これは別のビットマスクです。
+
+\clearpage
+\AND が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_3.png}
+\caption{\olly: $i=4$、 
+入力値にそのようなビットはありますか？はい(\ZF=0)}
+\label{fig:shifts_olly4_3}
+\end{figure}
+
+\ZF は0です。このビットは入力値にあるからです。
+実際、\TT{0x12345678 \& 0x10 = 0x10} です。
+
+ジャンプは実行されず、ビットカウンタは\glslink{increment}{インクリメント}します
+
+関数は13をリターンします。
+これは、\TT{0x12345678}に設定されたビットの総数です。

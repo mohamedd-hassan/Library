@@ -1,0 +1,43 @@
+\subsection{Un semplice esempio}
+
+\lstinputlisting[style=customc]{patterns/04_scanf/1_simple/ex1.c}
+
+Oggi non è più conveniente usare \scanf per interagire con l'utente. 
+Possiamo però utilizzarla per illustrare il passaggio di un puntatore ad una variabile di tipo \Tint.
+
+\subsubsection{Puntatori}
+\myindex{\CLanguageElements!\Pointers}
+
+I puntatori sono fra i concetti fondamentali in informatica.
+Spesso il passaggio di una struttura, array o più in generale, un oggetto molto grande, è troppo costoso in termini di memoria, mentre passare il suo indirizzo è più efficace. 
+Inoltre se la funzione chiamata (\gls{callee}) necessita di modificare qualcosa nella struttura ricevuta come parametro e successivamente restituirla per intero, la sitauzione si fa ancora più inefficiente.
+Perciò la cosa più semplice da fare è passare l'indirizzo della struttura alla funzione chiamata, e lasciare che operi le modifiche necessarie.
+
+Un puntatore in \CCpp--- è semplicemente un indirizzo di una locazione di mamoria.
+
+\myindex{x86-64}
+In x86, l'indirizzo è rappresentato con un numero a 32-bit (i.e., occupa 4 byte), mentre in x86-64 è un numero a 64-bit (8 byte).
+Per inciso, questo è il motivo per cui alcune persone si lamentano nel passaggio a x86-64 --- tutti i puntatori in architettura x64 richiedono il doppio dello spazio, inclusa la memoria cache, che è memoria ``costosa''.
+
+% TODO ... а делать разные версии memcpy для разных типов - абсурд
+\myindex{\CStandardLibrary!memcpy()}
+E' possibile lavorare soltanto con puntatori senza tipo, con un po' di sforzo. Ad esempio la funzione C standard \TT{memcpy()}, che copia un blocco di memoria da un indirizzo ad un altro, ha come argomenti 2 puntatori di tipo \TT{void*}, poichè è impossibile predire il tipo di dati che si vuole copiare. Il tipo di dato non è importante, conta solo la dimensione del blocco.
+
+I puntatori sono anche moldo usati quando una funzione deve restituire più di un valore
+(torneremo su questo argomento più avanti
+~(\myref{label_pointers})
+).
+
+la funzione \emph{scanf()} --- è uno di questi casi.
+
+Oltre al fatto che la funzione necessita di indicare quanti valori sono stati letti con successo, deve anche restituire tutti questi valori.
+
+In \CCpp il tipo del puntatore è necessario soltanto per i controlli sui tipi a compile-time.
+
+Internamente, nel codice compilato, non vi è alcuna informazione sui tipi dei puntatori.
+% TODO это сильно затрудняет декомпиляцию
+
+\input{patterns/04_scanf/1_simple/x86}
+\input{patterns/04_scanf/1_simple/x64}
+\input{patterns/04_scanf/1_simple/ARM}
+\input{patterns/04_scanf/1_simple/MIPS/main}

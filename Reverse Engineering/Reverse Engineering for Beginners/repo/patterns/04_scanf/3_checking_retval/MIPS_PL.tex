@@ -1,0 +1,4 @@
+\scanf zwraca wynik wykonania przez rejestr \$V0. Jest on sprawdzany pod adresem 0x004006E4,
+przez porównanie jego wartości z \$V1 (wartość 1 została zapisana do \$V1 wcześniej, pod adresem 0x004006DC).
+\INS{BEQ} oznacza \q{Branch Equal}.
+Jeśli dwie wartości są sobie równe (w naszym przykładzie tak będzie w przypadku sukcesu), sterowanie skacze pod adres 0x0040070C.

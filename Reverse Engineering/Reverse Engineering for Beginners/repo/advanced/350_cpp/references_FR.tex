@@ -1,0 +1,53 @@
+\subsection{Références}
+\myindex{\Cpp!References}
+\label{cpp_references}
+
+En \Cpp, les références sont aussi des pointeurs (\myref{label_pointers}), mais
+elles sont dites \emph{sûre}, car il est plus difficile de faire une erreur en les
+utilisant (C++11 8.3.2). % FIXME link
+
+Par exemple, les références doivent toujours pointer sur un objet de type correspondant
+et ne peuvent pas être NULL
+\InSqBrackets{\ParashiftCPPFAQ 8.6}.
+
+Encore mieux que ça, les références ne peuvent être changées, il est impossible de
+les faire pointer sur un autre objet (réassigner)
+\InSqBrackets{\ParashiftCPPFAQ 8.5}.
+
+Si nous essayons de modifier l'exemple avec des pointeurs (\myref{label_pointers})
+pour utiliser des références à la place \dots
+
+\begin{lstlisting}[style=customc]
+void f2 (int x, int y, int & sum, int & product)
+{
+	sum=x+y;
+	product=x*y;
+};
+\end{lstlisting}
+
+\dots alors nous pouvons voir que le code compilé est simplement le même que dans
+l'exemple avec les pointeurs (\myref{label_pointers}):
+
+\begin{lstlisting}[caption=MSVC 2010 \Optimizing,style=customasmx86]
+_x$ = 8		; size = 4
+_y$ = 12	; size = 4
+_sum$ = 16	; size = 4
+_product$ = 20	; size = 4
+?f2@@YAXHHAAH0@Z PROC	; f2
+	mov	ecx, DWORD PTR _y$[esp-4]
+	mov	eax, DWORD PTR _x$[esp-4]
+	lea	edx, DWORD PTR [eax+ecx]
+	imul eax, ecx
+	mov ecx, DWORD PTR _product$[esp-4]
+	push esi
+	mov	esi, DWORD PTR _sum$[esp]
+	mov	DWORD PTR [esi], edx
+	mov	DWORD PTR [ecx], eax
+	pop	esi
+	ret	0
+?f2@@YAXHHAAH0@Z ENDP	; f2
+\end{lstlisting}
+
+(La raison pour laquelle les fonctions \Cpp ont des noms aussi étranges est expliquée ici: \myref{namemangling}.)
+
+De ce fait, les références C++ sont bien plus efficientes que les pointeurs usuels.

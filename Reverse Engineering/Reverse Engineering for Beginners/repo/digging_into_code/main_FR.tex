@@ -1,0 +1,154 @@
+\chapter{Trouver des choses importantes/intéressantes dans le code}
+
+Le minimalisme n'est pas une caractéristique prépondérante des logiciels modernes.
+
+\myindex{\Cpp!STL}
+
+Pas parce que les programmeurs écrivent beaucoup, mais parce que de nombreuses bibliothèques
+sont couramment liées statiquement aux fichiers exécutable.
+Si toutes les bibliothèques externes étaient déplacées dans des fichiers DLL externes,
+le monde serait différent. (Une autre raison pour C++ sont la \ac{STL} et autres
+bibliothèques templates.)
+
+\newcommand{\FOOTNOTEBOOST}{\footnote{\url{http://www.boost.org/}}}
+\newcommand{\FOOTNOTELIBPNG}{\footnote{\url{http://www.libpng.org/pub/png/libpng.html}}}
+
+Ainsi, il est très important de déterminer l'origine de la fonction, si elle provient
+d'une bibliothèque standard ou d'une bibliothèque bien connue (comme Boost\FOOTNOTEBOOST,
+libpng\FOOTNOTELIBPNG), ou si elle est liée à ce que l'on essaye de trouver dans
+le code.
+
+Il est simplement absurde de tout récrire le code en \CCpp pour trouver ce que l'on
+cherche.
+
+Une des premières tâches d'un rétro-ingénieur est de trouver rapidement le code dont
+il a besoin.
+
+\myindex{\GrepUsage}
+
+Le dés-assembleur \IDA nous permet de chercher parmi les chaînes de texte, les séquences
+d'octets et les constantes.
+Il est même possible d'exporter le code dans un fichier texte .lst ou .asm et d'utiliser
+\TT{grep}, \TT{awk}, etc.
+
+Lorsque vous essayez de comprendre ce que fait un certain code, ceci peut être facile
+avec une bibliothèque open-source comme libpng.
+Donc, lorsque vous voyez certaines constantes ou chaînes de texte qui vous semblent
+familières, il vaut toujours la peine de les \emph{googler}.
+Et si vous trouvez le projet open-source où elles sont utilisées, alors il suffit
+de comparer les fonctions.
+Ceci peut permettre de résoudre certaines parties du problème.
+
+Par exemple, si un programme utilise des fichiers XML, la premières étape peut-être
+de déterminer quelle bibliothèque XML est utilisée pour le traitement, puisque les
+bibliothèques standards (ou bien connues) sont en général utilisées au lieu de code
+fait maison.
+
+\myindex{SAP}
+\myindex{Windows!PDB}
+
+Par exemple, j'ai essayé une fois de comprendre comment la compression/décompression
+des paquets réseau fonctionne dans SAP 6.0.
+C'est un logiciel gigantesque, mais un .\gls{PDB} détaillé avec des informations
+de débogage est présent, et c'est pratique.
+J'en suis finalement arrivé à l'idée que l'une des fonctions, qui était appelée par
+\emph{CsDecomprLZC}, effectuait la décompression des paquets réseau.
+Immédiatement, j'ai essayé de googler le nom et rapidement trouvé que la fonction
+était utilisée dans MaxDB (c'est un projet open-source de SAP)
+\footnote{Plus sur ce sujet dans la section concernée~(\myref{sec:SAPGUI})}.
+
+\url{http://www.google.com/search?q=CsDecomprLZC}
+
+Étonnement, les logiciels MaxDB et SAP 6.0 partagent du code comme ceci pour la compression/
+décompression des paquets réseau.
+
+\input{digging_into_code/identification/exec_FR}
+% binary files might be also here
+
+\mysection{Communication avec le monde extérieur (niveau fonction)}
+Il est souvent recommandé de suivre les arguments de la fonction et sa valeur de
+retour dans un débogueur ou \ac{DBI}.
+Par exemple, l'auteur a essayé une fois de comprendre la signification d'une fonction
+obscure, qui s'est avérée être un tri à bulles mal implémenté\footnote{\url{https://yurichev.com/blog/weird_sort_KLEE/}}.
+(Il fonctionnait correctement, mais plus lentement.)
+En même temps, regarder les entrées et sorties de cette fonction aide instantanément
+à comprendre ce quelle fait.
+
+Souvent, lorsque vous voyez une division par la multiplication (\myref{sec:divisionbymult}),
+mais avez oublié tous les détails du mécanisme, vous pouvez seulement observer l'entrée
+et la sortie, et trouver le diviseur rapidement.
+
+% sections:
+\input{digging_into_code/communication_win32_FR}
+\input{digging_into_code/strings_FR}
+\input{digging_into_code/assert_FR}
+\input{digging_into_code/constants_FR}
+\input{digging_into_code/instructions_FR}
+\input{digging_into_code/suspicious_code_FR}
+\input{digging_into_code/magic_numbers_tracing_FR}
+\input{digging_into_code/loops_FR}
+\input{digging_into_code/binary/main_FR}
+\input{digging_into_code/snapshots_comparing_FR}
+\input{digging_into_code/ISA_detect_FR}
+
+\mysection{Autres choses}
+
+\subsection{Idée générale}
+
+Un rétro-ingénieur doit essayer se se mettre dans la peau d'un programmeur aussi
+souvent que possible.
+Pour adopter son point de vue et se demander comment il aurait résolu des tâches
+d'un cas spécifique.
+
+\subsection{Ordre des fonctions dans le code binaire}
+
+Toutes les fonctions situées dans un unique fichier .c ou .cpp sont compilées dans
+le fichier objet (.o) correspondant.
+Plus tard, l'éditeur de liens mets tous les fichiers dont il a besoin ensemble, sans
+changer l'ordre ni les fonctions.
+Par conséquent, si vous voyez deux ou plus fonctions consécutives, cela signifie
+qu'elles étaient situées dans le même fichier source (à moins que vous ne soyez en
+limite de deux fichiers objet, bien sûr).
+Ceci signifie que ces fonctions ont quelque chose en commun, qu'elles sont des fonctions
+du même niveau d'\ac{API}, de la même bibliothèque, etc.
+
+\myindex{CryptoPP}
+Ceci est une histoire vraie de pratique: il était une fois, alors que je cherchais
+des fonctions relatives à Twofish dans un programme lié à la bibliothèque CryptoPP,
+en particulier des fonctions de chiffrement/déchiffrement.\\
+J'ai trouvé la fonction \verb|Twofish::Base::UncheckedSetKey()| mais pas d'autres.
+Après avoir cherché dans le code source
+\verb|twofish.cpp|\footnote{\url{https://github.com/weidai11/cryptopp/blob/b613522794a7633aa2bd81932a98a0b0a51bc04f/twofish.cpp}},
+il devint clair que toutes les fonctions étaient situées dans ce module (\verb|twofish.cpp|).\\
+Donc j'ai essayé toutes les fonctions qui suivaient \verb|Twofish::Base::UncheckedSetKey()|---comme elles arrivaient,\\
+une a été \verb|Twofish::Enc::ProcessAndXorBlock()|, \\
+une autre---\verb|Twofish::Dec::ProcessAndXorBlock()|.
+
+\subsection{Fonctions minuscules}
+
+Les fonctions minuscules comme les fonctions vides (\myref{empty_func})
+ou les fonctions qui renvoient juste ``true'' (1) ou ``false'' (0) (\myref{ret_val_func})
+sont très communes, et presque tous les compilateurs corrects tendent à ne mettre
+qu'une seule fonction de ce genre dans le code de l'exécutable résultant, même si
+il y avait plusieurs fonctions similaires dans le code source.
+Donc, à chaque fois que vous voyez une fonction minuscule consistant seulement en
+\TT{mov eax, 1 / ret} qui est référencée (et peut être appelée) dans plusieurs endroits
+qui ne semblent pas reliés les uns au autres, ceci peut résulter d'une telle optimisation.%
+
+\subsection{\Cpp}
+
+Les données \ac{RTTI}~(\myref{RTTI})- peuvent être utiles pour l'identification des
+classes \Cpp.
+
+%\subsection{Crash on purpose}
+\subsection{Crash délibéré}
+
+Souvent, vous voulez savoir quelle fonction a été exécutée, et laquelle ne l'a pas
+été.
+Vous pouvez utiliser un débogueur, mais sur des architectures exotiques, il peut
+ne pas en avoir, donc la façon la plus simple est d'y mettre un opcode invalide,
+ou quelque chose comme \INS{INT3} (0xCC).
+Le crash signalera le fait que l'instruction a été exécutée.
+
+Un autre exemple de crash délibéré: \myref{dmalloc_KILL_PROCESS}.
+

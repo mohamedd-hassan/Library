@@ -1,0 +1,53 @@
+\section{Building Intel Pin}
+
+Building Intel Pin for Windows may be tricky.
+This is my working recipe.
+
+\begin{itemize}
+
+\item Unpack the latest Intel Pin to, say, \verb|C:\pin-3.20\|
+
+\item Install latest Cygwin, to, say, \verb|c:\cygwin64|
+
+\item Install MSVC 2015 or newer.
+
+\item (If needed) in \verb|C:\pin-3.20\source\tools\SimpleExamples\makefile.rules|, add your pintool to the \verb|TEST_TOOL_ROOTS| list.
+
+\item Open "VS2015 x86 Native Tools Command Prompt". Type:
+
+\begin{lstlisting}
+set PATH=%PATH%;c:\cygwin64/bin
+cd c:\pin-3.20\source\tools
+make all TARGET=ia32
+\end{lstlisting}
+
+(It will require many UNIX utilities, which are available under \verb|c:\cygwin64\bin| path.
+Hence the \verb|PATH| variable is to be modified.)
+
+Now pintools are now in \verb|c:\pin-3.20\source\tools\...\obj-ia32|
+
+\item For winx64, use "x64 Native Tools Command Prompt" and run:
+
+\begin{lstlisting}
+make all TARGET=intel64
+\end{lstlisting}
+
+\item Run a pintool:
+
+\begin{lstlisting}
+c:\pin-3.20\pin.exe -t C:\pin-3.20\source\tools\SimpleExamples\obj-ia32\XOR_ins.dll -- program.exe arguments
+\end{lstlisting}
+
+\end{itemize}
+
+Intel Pin 3.20 require at least Windows 10.
+On Windows 7 you may got an error like:
+
+\begin{lstlisting}
+A: source\pincrt\injector_w\maincrt_windows.cpp: LEVEL_BASE::RootMain: 139: assertion failed: NT_SUCCESS(ntStatus)
+
+NO STACK TRACE AVAILABLE
+\end{lstlisting}
+
+It also works in Windows Sever 2012.
+

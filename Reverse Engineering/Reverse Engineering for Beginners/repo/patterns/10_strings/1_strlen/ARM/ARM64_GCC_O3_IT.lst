@@ -1,0 +1,15 @@
+my_strlen:
+	mov	x1, x0
+	; X1 ora è un puntatore temporaneo (eos), si comporta come un \emph{cursore}
+.L58:
+	; carica un byte da X1 a W2, incrementa X1 (post-index)
+	ldrb	w2, [x1],1
+	; "Compare and Branch if NonZero": controlla se W2 = 0, 
+        ; salta a .L58 se non lo è
+	cbnz	w2, .L58
+	; calcola la differenza tra il puntatore iniziale 
+        ; in X0 e l' indirizzo corrente in X1
+	sub	x0, x1, x0
+	; decrementa il  32° bit più basso del risultato  (LSB)
+	sub	w0, w0, #1
+	ret

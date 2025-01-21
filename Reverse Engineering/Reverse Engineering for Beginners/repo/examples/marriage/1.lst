@@ -1,0 +1,98 @@
+seg008:16B3 draw_prikup     proc far                ; CODE XREF: seg010:00B0
+seg008:16B3                                         ; sub\_15098+6
+seg008:16B3
+seg008:16B3 var_E           = word ptr -0Eh
+seg008:16B3 var_C           = word ptr -0Ch
+seg008:16B3 arg_0           = byte ptr  6
+seg008:16B3
+seg008:16B3                 enter   0Eh, 0
+seg008:16B7                 mov     al, byte_2C0EA
+seg008:16BA                 xor     ah, ah
+seg008:16BC                 imul    ax, 23h
+seg008:16BF                 mov     [bp+var_C], ax
+seg008:16C2                 mov     al, byte_2C0EB
+seg008:16C5                 xor     ah, ah
+seg008:16C7                 imul    ax, 0Ah
+seg008:16CA                 mov     [bp+var_E], ax
+seg008:16CD                 cmp     [bp+arg_0], 0
+seg008:16D1                 jnz     short loc_1334A
+seg008:16D3                 cmp     byte_2BB08, 0
+seg008:16D8                 jz      short loc_13356
+seg008:16DA
+seg008:16DA loc_1334A:                              ; CODE XREF: draw\_prikup+1E
+seg008:16DA                 mov     al, byte ptr word_32084
+seg008:16DD                 mov     byte_293AD, al
+seg008:16E0                 mov     al, byte ptr word_32086
+seg008:16E3                 mov     byte_293AC, al
+seg008:16E6
+seg008:16E6 loc_13356:                              ; CODE XREF: draw\_prikup+25
+seg008:16E6                 mov     al, byte_293AC
+seg008:16E9                 xor     ah, ah
+seg008:16EB                 push    ax
+seg008:16EC                 mov     al, byte_293AD
+seg008:16EF                 xor     ah, ah
+seg008:16F1                 push    ax
+seg008:16F2                 push    [bp+var_C]
+seg008:16F5                 push    [bp+var_E]
+seg008:16F8                 cmp     [bp+arg_0], 0
+seg008:16FC                 jnz     short loc_13379
+seg008:16FE                 cmp     byte_2BB08, 0
+seg008:1703                 jnz     short loc_13379
+seg008:1705                 mov     al, 0
+seg008:1707                 jmp     short loc_1337B
+seg008:1709 ; ---------------------------------------------------------------------------
+seg008:1709
+seg008:1709 loc_13379:                              ; CODE XREF: draw\_prikup+49
+seg008:1709                                         ; draw\_prikup+50
+seg008:1709                 mov     al, 1
+seg008:170B
+seg008:170B loc_1337B:                              ; CODE XREF: draw\_prikup+54
+seg008:170B                 push    ax
+seg008:170C                 push    cs
+seg008:170D                 call    near ptr draw_card
+seg008:1710                 mov     al, byte_2C0EA
+seg008:1713                 xor     ah, ah
+seg008:1715                 mov     si, ax
+seg008:1717                 shl     ax, 1
+seg008:1719                 add     ax, si
+seg008:171B                 add     ax, [bp+var_C]
+seg008:171E                 mov     [bp+var_C], ax
+seg008:1721                 cmp     [bp+arg_0], 0
+seg008:1725                 jnz     short loc_1339E
+seg008:1727                 cmp     byte_2BB08, 0
+seg008:172C                 jz      short loc_133AA
+seg008:172E
+seg008:172E loc_1339E:                              ; CODE XREF: draw\_prikup+72
+seg008:172E                 mov     al, byte ptr word_32088
+seg008:1731                 mov     byte_293AD, al
+seg008:1734                 mov     al, byte ptr word_3208A
+seg008:1737                 mov     byte_293AC, al
+seg008:173A
+seg008:173A loc_133AA:                              ; CODE XREF: draw\_prikup+79
+seg008:173A                 mov     al, byte_293AC
+seg008:173D                 xor     ah, ah
+seg008:173F                 push    ax
+seg008:1740                 mov     al, byte_293AD
+seg008:1743                 xor     ah, ah
+seg008:1745                 push    ax
+seg008:1746                 push    [bp+var_C]
+seg008:1749                 push    [bp+var_E]
+seg008:174C                 cmp     [bp+arg_0], 0
+seg008:1750                 jnz     short loc_133CD
+seg008:1752                 cmp     byte_2BB08, 0
+seg008:1757                 jnz     short loc_133CD
+seg008:1759                 mov     al, 0
+seg008:175B                 jmp     short loc_133CF
+seg008:175D ; ---------------------------------------------------------------------------
+seg008:175D
+seg008:175D loc_133CD:                              ; CODE XREF: draw\_prikup+9D
+seg008:175D                                         ; draw\_prikup+A4
+seg008:175D                 mov     al, 1
+seg008:175F
+seg008:175F loc_133CF:                              ; CODE XREF: draw\_prikup+A8
+seg008:175F                 push    ax
+seg008:1760                 push    cs
+seg008:1761                 call    near ptr draw_card ; prikup \#2
+seg008:1764                 leave
+seg008:1765                 retf    2
+seg008:1765 draw_prikup     endp

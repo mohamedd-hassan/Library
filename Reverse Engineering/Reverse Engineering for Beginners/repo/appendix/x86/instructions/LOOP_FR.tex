@@ -1,0 +1,15 @@
+\myindex{x86!\Instructions!LOOP}
+  \item[LOOP] (M) \glslink{decrement}{décrémente} CX/ECX/RCX,
+  saute si il est toujours non zéro.
+
+L'instruction LOOP était souvent utilisée dans le code DOS qui travaillait avec des
+dispositifs externes.
+Pour ajouter un petit délai, on utilisait ceci:
+
+\begin{lstlisting}[style=customasmx86]
+	MOV	CX, nnnn
+LABEL:	LOOP	LABEL
+\end{lstlisting}
+
+Le défaut est évident: le délai dépend de la vitese du \ac{CPU}.
+

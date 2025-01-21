@@ -1,0 +1,7 @@
+﻿    ; conta da 10 a 1
+    MOV ECX, 10
+body:
+    ; corpo del ciclo
+    ; dai qualcosa qui
+    ; utilizza il contatore in ECX, ma non modificarlo!
+    LOOP body

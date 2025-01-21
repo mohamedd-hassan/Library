@@ -1,0 +1,39 @@
+﻿\subsubsection{MIPS}
+
+MIPSはいくつかのコプロセッサ（最大4個）をサポートすることができます。
+そのうちの0番目\footnote{0から始まる}は特別な制御コプロセッサであり、最初のコプロセッサはFPUです。
+
+ARMと同様に、MIPSコプロセッサはスタックマシンではなく、32個の32ビットレジスタ（\$F0-\$F31）を持ちます。
+\myref{MIPS_FPU_registers}.
+
+64ビットの \Tdouble 値を扱う必要がある場合、32ビットのFレジスタのペアが使用されます。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/12_FPU/1_simple/MIPS_O3_IDA_JA.lst}
+
+新しい命令は以下です。
+
+\myindex{MIPS!\Instructions!LWC1}
+\myindex{MIPS!\Instructions!DIV.D}
+\myindex{MIPS!\Instructions!MUL.D}
+\myindex{MIPS!\Instructions!ADD.D}
+\begin{itemize}
+
+\item \INS{LWC1}は32ビットワードを第1コプロセッサのレジスタにロードします（命令名は\q{1}）。
+\myindex{MIPS!\Pseudoinstructions!L.D}
+
+一対の\INS{LWC1}命令を組み合わせて\INS{L.D}疑似命令にすることができます。
+
+\item \INS{DIV.D}、 \INS{MUL.D}、 \INS{ADD.D}はそれぞれ除算、乗算、加算を行います
+（接尾辞の\q{.D}は倍精度、\q{.S}は単精度を表します）
+
+\end{itemize}
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{\CompilerAnomaly}
+\label{MIPS_FPU_LUI}
+
+また、奇妙なコンパイラの例外があります\INS{LUI}命令に疑問符がついています。 
+\$V0 レジスタに64ビット定数の \Tdouble 型の一部をロードする理由を理解することは難しいです。 
+これらの命令は何の効果もありません。 
+% TODO did you try checking out compiler source code?
+これについて何か知っているなら、著者に電子メール\footnote{\EMAILS}を送ってください。

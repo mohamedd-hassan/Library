@@ -1,0 +1,34 @@
+\subsection{ostream}
+\myindex{\Cpp!ostream}
+
+Recommençons avec l'exemple \q{hello world}, mais cette fois nous allons utiliser
+\emph{ostream}:
+
+\lstinputlisting[style=customc]{\CURPATH/ostream/1.cpp}
+
+Presque tous les livres sur \Cpp nous disent que l'opérateur \TT{<<} peut-être défini
+(\emph{surchargé}) pour tous les types.
+C'est ce qui est fait dans \emph{ostream}.
+Nous voyons que \TT{operator<<} est appelé pour \emph{ostream}:
+
+\lstinputlisting[caption=MSVC 2012 (listing réduit),style=customasmx86]{\CURPATH/ostream/1.asm}
+
+Modifions l'exemple:
+
+\lstinputlisting[style=customc]{\CURPATH/ostream/2.cpp}
+
+À nouveau, dans chaque livre sur \Cpp nous lisons que le résultat de chaque \TT{operator<<}
+dans ostream est transmis au suivant.
+En effet:
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{\CURPATH/ostream/2_FR.asm}
+
+Si nous renommions la méthode \TT{operator<<} en \ttf{}, ce code ressemblerait
+à ceci:
+
+\begin{lstlisting}[style=customc]
+f(f(std::cout, "Hello, "), "world!");
+\end{lstlisting}
+
+GCC génère presque le même code que MSVC.
+

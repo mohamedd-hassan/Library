@@ -1,0 +1,105 @@
+\subsection{Ensemble de chaînes comme un tableau à deux dimensions}
+
+Retravaillons la fonction qui renvoie le nom d'un mois: \lstref{get_month1}.
+
+Comme vous le voyez, au moins une opération de chargement en mémoire est nécessaire
+pour préparer le pointeur sur la chaîne représentant le nom du mois.
+
+Est-il possible de se passer de cette opération de chargement en mémoire?
+
+En fait oui, si vous représentez la liste de chaînes comme un tableau à deux dimensions:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/55_month_2D/month2_FR.c}
+
+Voici ce que nous obtenons:
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{patterns/13_arrays/55_month_2D/MSVC2013_x64_Ox_FR.asm}
+
+Il n'y a pas du tout d'accès à la mémoire.
+
+Tout ce que fait cette fonction, c'est de calculer le point où le premier caractère
+du nom du mois se trouve:
+$pointeur\_sur\_la\_table + mois * 10$.
+
+Il y a deux instructions \LEA, qui fonctionnent en fait comme plusieurs instructions
+\MUL et \MOV.
+
+La largeur du tableau est de 10 octets.
+
+En effet, la chaîne la plus longue ici---\q{septembre}---fait 9 octets, plus l'indicateur
+de fin de chaîne 0, ça fait 10 octets
+
+Le reste du nom de chaque mois est complété par des zéros, afin d'occuper le même
+espace (10 octets).
+
+Donc, notre fonction fonctionne même plus vite, car toutes les chaînes débutent à
+une adresse qui peut être facilement calculée.
+
+GCC 4.9 \Optimizing fait encore plus court:
+
+\begin{lstlisting}[caption=GCC 4.9 x64 \Optimizing,style=customasmx86]
+	movsx	rdi, edi
+	lea	rax, [rdi+rdi*4]
+	lea	rax, month2[rax+rax]
+	ret
+\end{lstlisting}
+
+\LEA est aussi utilisé ici pour la multiplication par 10.
+
+Les compilateurs sans optimisations génèrent la multiplication différemment.
+
+\lstinputlisting[caption=GCC 4.9 x64 \NonOptimizing,style=customasmx86]{patterns/13_arrays/55_month_2D/x64_GCC49_O0_FR.asm}
+
+MSVC \NonOptimizing utilise simplement l'instruction \IMUL:
+\myindex{x86!\Instructions!IMUL}
+
+\lstinputlisting[caption=MSVC 2013 x64 \NonOptimizing,style=customasmx86]{patterns/13_arrays/55_month_2D/MSVC2013_x64_FR.asm}
+
+\myindex{\CompilerAnomaly}
+\label{MSVC2013_anomaly}
+
+Mais une chose est est curieuse: pourquoi ajouter une multiplication par zéro et
+ajouter zéro au résultat final?
+
+Ceci ressemble à une bizarrerie du générateur de code du compilateur, qui n'a pas
+été détectée par les tests du compilateur (le code résultant fonctionne correctement
+après tout).
+% класс!
+%
+Nous examinons volontairement de tels morceaux de code, afin que le lecteur prenne
+conscience qu'il ne doit parfois pas se casser la tête sur des artefacts de compilateur.
+
+\subsubsection{32-bit ARM}
+
+Keil \Optimizing pour le mode Thumb utilise l'instruction de multiplication \INS{MULS}:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/13_arrays/55_month_2D/Keil_O3_thumb_FR.asm}
+
+Keil \Optimizing pour mode ARM utilise des instructions d'addition et de décalage:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/13_arrays/55_month_2D/Keil_O3_ARM_FR.asm}
+
+\subsubsection{ARM64}
+
+\lstinputlisting[caption=GCC 4.9 ARM64 \Optimizing,style=customasmARM]{patterns/13_arrays/55_month_2D/GCC49_ARM64_FR.asm}
+
+\myindex{ARM!\Instructions!SXTW}
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+\INS{SXTW} est utilisée pour étendre le signe, convertir l'entrée 32-bit en 64-bit
+et stocker le résultat dans X0.
+
+La paire \ADRP/\ADD est utilisée pour charger l'adresse de la table.
+
+L'instruction \ADD a aussi un suffixe \LSL, qui aide avec les multiplications.
+
+\subsubsection{MIPS}
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/13_arrays/55_month_2D/MIPS_O3_IDA_FR.lst}
+
+\subsubsection{\Conclusion{}}
+
+C'est une technique surannée de stocker des chaînes de texte.
+Vous pouvez en trouver beaucoup dans \oracle, par exemple.
+Il est difficile de dire si ça vaut la peine de le faire sur des ordinateurs modernes.
+Néanmoins, c'est un bon exemple de tableaux, donc il a été ajouté à ce livre.
+

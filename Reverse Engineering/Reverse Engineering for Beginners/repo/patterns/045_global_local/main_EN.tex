@@ -1,0 +1,11 @@
+\mysection{Worth noting: global vs. local variables}
+
+Now that you know that global variables are filling with zeroes by \ac{OS} at start
+(\myref{BSSClearedByCStd}, \InSqBrackets{\CNineNineStd 6.7.8p10}),
+but local variables are not (\myref{noise_in_stack}).
+
+Sometimes, you have a global variable that you forgot to initialize and your program relies on the fact that it has
+zero at start.
+Then you edit a program and move the global variable into a function to make it local.
+It wouldn't be zeroed at initialization anymore and this can result in nasty bugs.
+

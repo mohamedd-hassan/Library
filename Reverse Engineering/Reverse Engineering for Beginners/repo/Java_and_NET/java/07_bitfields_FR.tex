@@ -1,0 +1,96 @@
+% TODO proof-reading
+\subsection{Champs de bit}
+
+Toutes les opérations au niveau des bits fonctionnent comme sur les autres \ac{ISA}:
+
+\begin{lstlisting}[style=customjava]
+	public static int set (int a, int b)
+	{
+		return a | 1<<b;
+	}
+
+	public static int clear (int a, int b)
+	{
+		return a & (~(1<<b));
+	}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static int set(int, int);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=3, locals=2, args_size=2
+         0: iload_0
+         1: iconst_1
+         2: iload_1
+         3: ishl
+         4: ior
+         5: ireturn
+
+  public static int clear(int, int);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=3, locals=2, args_size=2
+         0: iload_0
+         1: iconst_1
+         2: iload_1
+         3: ishl
+         4: iconst_m1
+         5: ixor
+         6: iand
+         7: ireturn
+\end{lstlisting}
+
+\TT{iconst\_m1} charge $-1$ sur la pile, c'est la même chose que le nombre \TT{0xFFFFFFFF}.
+
+XORé avec \TT{0xFFFFFFFF} a le même effet qu'inverser tous les bits.
+
+Étendons tous les types de données à 64-bit \emph{long}:
+
+\begin{lstlisting}[style=customjava]
+	public static long lset (long a, int b)
+	{
+		return a | 1<<b;
+	}
+
+	public static long lclear (long a, int b)
+	{
+		return a & (~(1<<b));
+	}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static long lset(long, int);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=4, locals=3, args_size=2
+         0: lload_0
+         1: iconst_1
+         2: iload_2
+         3: ishl
+         4: i2l
+         5: lor
+         6: lreturn
+
+  public static long lclear(long, int);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=4, locals=3, args_size=2
+         0: lload_0
+         1: iconst_1
+         2: iload_2
+         3: ishl
+         4: iconst_m1
+         5: ixor
+         6: i2l
+         7: land
+         8: lreturn
+\end{lstlisting}
+
+Le code est le même, mais des instructions avec le préfixe \emph{l} sont utilisées,
+qui opèrent avec des valeurs 64-bit.
+
+Ainsi, le second paramètre de la fonction est toujours du type \emph{int}, et lorsque
+la valeur 32-bit qu'il contient doit être étendues à une valeur 64-bit, l'instruction
+\TT{i2l} est utilisée, 
+

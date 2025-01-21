@@ -1,0 +1,80 @@
+\myparagraph{GCC 4.4.1}
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC_FR.asm}
+
+\myindex{x86!\Instructions!FUCOMPP}
+
+\FUCOMPP{} est presque comme \FCOM, mais dépile deux valeurs de la pile et traite
+les \q{non-nombres} différemment.
+
+\myindex{Non-a-numbers (NaNs)}
+Quelques informations à propos des \emph{not-a-numbers} (non-nombres).
+
+Le FPU est capable de traiter les valeurs spéciales que sont les \emph{not-a-numbers}
+(non-nombres) ou \gls{NaN}s.
+Ce sont les infinis, les résultat de division par 0, etc.
+Les non-nombres peuvent être \q{quiet} et \q{signaling}. Il est possible de continuer
+à travailler avec les \q{quiet} NaNs, mais si l'on essaye de faire une opération avec
+un \q{signaling} NaNs, une exception est levée.
+
+\myindex{x86!\Instructions!FCOM}
+\myindex{x86!\Instructions!FUCOM}
+
+\FCOM lève une exception si un des opérandes est \gls{NaN}.
+\FUCOM lève une exception seulement si un des opérandes est un signaling \gls{NaN}
+(SNaN).
+
+\myindex{x86!\Instructions!SAHF}
+\label{SAHF}
+
+L'instruction suivante est \SAHF (\emph{Store AH into Flags} stocker AH dans les Flags)~---est
+une instruction rare dans le code non relatif au FPU.
+8 bits de AH sont copiés dans les 8-bits bas dans les flags du CPU dans l'ordre suivant:
+
+\input{SAHF_LAHF}
+
+\myindex{x86!\Instructions!FNSTSW}
+
+Rappelons que \FNSTSW déplace des bits qui nous intéressent (\CThreeBits) dans \AH
+et qu'ils sont aux positions 6, 2, 0 du registre \AH.
+
+\input{C3_in_AH}
+
+En d'autres mots, la paire d'instructions \INS{fnstsw  ax / sahf} déplace \CThreeBits
+dans \ZF, \PF et \CF.
+
+Maintenant, rappelons les valeurs de \CThreeBits sous différentes conditions:
+
+\begin{itemize}
+\item Si $a$ est plus grand que $b$ dans notre exemple, alors les \CThreeBits sont
+mis à: 0, 0, 0.
+\item Si $a$ est plus petit que $b$, alors les bits sont mis à: 0, 0, 1.
+\item Si $a=b$, alors: 1, 0, 0.
+\end{itemize}
+% TODO: table?
+
+En d'autres mots, ces états des flags du CPU sont possible après les
+trois instructions \FUCOMPP/\FNSTSW/\SAHF:
+
+\begin{itemize}
+\item Si $a>b$, les flags du CPU sont mis à: \GTT{ZF=0, PF=0, CF=0}.
+\item Si $a<b$, alors les flags sont mis à: \GTT{ZF=0, PF=0, CF=1}.
+\item Et si $a=b$, alors: \GTT{ZF=1, PF=0, CF=0}.
+\end{itemize}
+% TODO: table?
+
+\myindex{x86!\Instructions!SETcc}
+\myindex{x86!\Instructions!JNBE}
+
+Suivant les flags du CPU et les conditions, \SETNBE met 1 ou 0 dans AL.
+C'est presque la contrepartie de \JNBE, avec l'exception que \SETcc\footnote{\emph{cc}
+est un \emph{condition code}} met 1 ou 0 dans \AL, mais \Jcc effectue un saut ou non.
+\SETNBE met 1 seulement si \GTT{CF=0} et \GTT{ZF=0}.
+Si ce n'est pas vrai, 0 est mis dans \AL.
+
+Il y a un seul cas où \CF et \ZF sont à 0: si $a>b$.
+
+Alors 1 est mis dans \AL, le \JZ subséquent n'est pas pris et la fonction va renvoyer
+{\_a}.
+Dans tous les autres cas, {\_b} est renvoyé.
+

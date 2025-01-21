@@ -1,0 +1,15 @@
+\subsection{Valori di input in Swap}
+
+Questo è il codice:
+
+\lstinputlisting[style=customc]{patterns/061_pointers/swap/5_IT.c}
+
+Come possiamo vedere, i byte sono caricati nelle parti basse a 8 bit di \TT{ECX} e \TT{EBX} usando \INS{MOVZX}
+(quindi le parti alte di questi registri saranno pulite) e poi i byte saranno riscritti scambiati.
+
+\lstinputlisting[style=customasmx86,caption=Optimizing GCC 5.4]{patterns/061_pointers/swap/5_GCC_O3_x86.s}
+
+Gli indirizzi di entrambi i byte sono presi dagli argomenti e attraverso l' esecuzione della funzione sono allocati in \TT{EDX} and \TT{EAX}.
+
+Abbiamo usato i puntatori: probabilmente, senza di essi non esiste metodo migliore per questo compito.
+

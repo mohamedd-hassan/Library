@@ -1,0 +1,15 @@
+﻿\subsubsection{\OptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[label=ARM_leaf_example1,style=customasmARM]
+.text:00000098             f
+.text:00000098 91 20 20 E0       MLA     R0, R1, R0, R2
+.text:0000009C 1E FF 2F E1       BX      LR
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!MLA}
+
+Keilコンパイラによって完全最適化モード（\Othree）でコンパイルされた \ttf 関数があります。
+
+\MOV 命令は最適化され（または縮小され）、
+\TT{MLA}はすべての入力レジスタを使用し、
+結果を\Reg{0}に配置します。

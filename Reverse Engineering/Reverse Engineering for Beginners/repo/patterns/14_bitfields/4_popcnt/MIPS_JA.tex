@@ -1,0 +1,26 @@
+﻿\subsubsection{MIPS}
+
+\myparagraph{\NonOptimizing GCC}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/14_bitfields/4_popcnt/MIPS_O0_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!SLL}
+\myindex{MIPS!\Instructions!SLLV}
+
+これは冗長です。ローカル変数はすべてローカルスタックに配置され、必要なとき毎にリロードされます。
+
+\SLLV 命令は\q{Shift Word Left Logical Variable}で、 \SLL との違いは \SLL 命令にエンコードされたシフトの量
+だけです。（そして結果として固定されています）
+しかし、 \SLLV はレジスタからシフト量を取ってきます。
+
+\myparagraph{\Optimizing GCC}
+
+これはより簡潔です。
+1つではなく2つシフト命令がありますが、
+なぜでしょうか？
+
+最初の \SLLV 命令を 2つめの \SLLV にジャンプする無条件分岐命令に置き換えることは可能です。
+しかし、これは関数内の別の分岐命令であり、常にそれらを取り除くのは好都合です：\myref{branch_predictors}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/14_bitfields/4_popcnt/MIPS_O3_IDA_JA.lst}
+

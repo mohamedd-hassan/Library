@@ -1,0 +1,562 @@
+\subsection{Win32 PE}
+\label{win32_pe}
+\myindex{Windows!Win32}
+
+\acs{PE} est un format de fichier exécutable utilisé sur Windows.
+La différence entre .exe, .dll et .sys est que les .exe et .sys n'ont en général
+pas d'exports, uniquement des imports.
+
+\myindex{OEP}
+
+Une \ac{DLL}, tout comme n'importe quel fichier PE, possède un point d'entrée (\ac{OEP})
+(la fonction DllMain() se trouve là) mais cette fonction ne fait généralement rien.
+.sys est généralement un pilote de périphérique.
+Pour les pilotes, Windows exige que la somme de contrôle soit présente dans le fichier
+PE et qu'elle soit correcte
+\footnote{Par exemple, Hiew(\myref{Hiew}) peut la calculer}.
+
+\myindex{Windows!Windows Vista}
+A partir de Windows Vista, un fichier de pilote doit aussi être signé avec une signature
+numérique. Le chargement échouera sinon.
+
+\myindex{MS-DOS}
+Chaque fichier PE commence avec un petit programme DOS qui affiche un message comme
+\q{Ce programme ne peut pas être lancé en mode DOS.}---si vous lancez sous DOS ou
+Windows 3.1 (\ac{OS}-es qui ne supportent pas le format PE), ce message sera affiché.
+
+\subsubsection{Terminologie}
+
+\myindex{VA}
+\myindex{Base address}
+\myindex{RVA}
+\myindex{Windows!IAT}
+\myindex{Windows!INT}
+
+\begin{itemize}
+\item Module---un fichier séparé, .exe ou .dll.
+
+\item Process---un programme chargé dans la mémoire et fonctionnant actuellement.
+Consiste en général d'un fichier .exe et d'un paquet de fichiers .dll.
+
+\item Process memory---la mémoire utilisée par un processus. Chaque processus a la
+sienne. Il y a en général des modules chargés, la mémoire pour la pile, \gls{heap}(s),
+etc.
+
+\item \ac{VA}---une adresse qui est utilisée pendant le déroulement du programme.
+
+\item Base address (du module)---l'adresse dans la mémoire du processus à laquelle
+le module est chargé. Le chargeur de l'\ac{OS} peut la changer, si l'adresse de base
+est occupée par un module déjà chargé.
+
+\item \ac{RVA}---l'adresse \ac{VA}-moins l'adresse de base.
+
+De nombreuses adresses dans les fichiers PE utilisent l'adresse \ac{RVA}.
+
+%\item
+%Data directory --- ...
+
+\item \ac{IAT}---un tableau d'adresses des symboles importés \footnote{\PietrekPE}.\\
+Parfois, le répertoire de données \TT{IMAGE\_DIRECTORY\_ENTRY\_IAT} pointe sur l'\ac{IAT}.
+\label{IDA_idata}
+Il est utile de noter qu'\ac{IDA} (à partir de 6.1) peut allouer une pseudo-section
+nommée \TT{.idata} pour l'\ac{IAT}, même si l'\ac{IAT} fait partie d'une autre section!
+
+\item \ac{INT}---une tableau de noms de symboles qui doivent être importés\footnote{\PietrekPE}.
+\end{itemize}
+
+\subsubsection{Adresse de base}
+
+Le problème est que plusieurs auteurs de module peuvent préparer des fichiers DLL
+pour que d'autres les utilisent et qu'il n'est pas possible de s'accorder pour assigner
+une adresse à ces modules.
+
+C'est pourquoi si deux DLLs nécessaires pour un processus ont la même adresse de base,
+une des deux sera chargée à cette adresse de base, et l'autre---à un autre espace
+libre de la mémoire du processus et chaque adresse virtuelle de la seconde DLL sera
+corrigée.
+
+\par Avec \ac{MSVC} l'éditeur de lien génère souvent les fichiers .exe avec une adresse
+de base en \TT{0x400000}\footnote{L'origine de ce choix d'adresse est décrit ici:
+\href{http://blogs.msdn.com/b/oldnewthing/archive/2014/10/03/10562176.aspx}{MSDN}}, et avec une section de code débutant
+en \TT{0x401000}.
+Cela signifie que la \ac{RVA} du début de la section de code est \TT{0x1000}.
+
+Les DLLs sont souvent générées par l'éditeur de lien de MSVC avec une adresse de
+base de \TT{0x10000000}\footnote{Cela peut être changé avec l'option /BASE de l'éditeur
+de liens}.
+
+\myindex{ASLR}
+
+Il y a une autre raison de charger les modules a des adresses de base variées, aléatoires
+dans ce cas. C'est l'\ac{ASLR}\footnote{\href{https://en.wikipedia.org/wiki/Address_space_layout_randomization}{Wikipédia}}.
+
+\myindex{Shellcode}
+
+Un shellcode essayant d'être exécuté sur une système compromis doit appeler des fonctions
+systèmes, par conséquent, connaître leurs adresses.
+
+Dans les anciens \ac{OS} (dans la série \gls{Windows NT}: avant Windows Vista), les
+DLLs système (comme kernel32.dll, user32.dll) étaient toujours chargées à une adresse
+connue, et si nous nous rappelons que leur version changeait rarement, l'adresse
+des fonctions était fixe et le shellcode pouvait les appeler directement.
+
+Pour éviter ceci, la méthode \ac{ASLR} charge votre programme et tous les modules
+dont il a besoin à des adresses de base aléatoires, différentes à chaque fois.
+
+Le support de l'\ac{ASLR} est indiqué dans un fichier PE en mettant le flag\\
+\TT{IMAGE\_DLL\_CHARACTERISTICS\_DYNAMIC\_BASE} \InSqBrackets{voir \Russinovich}.
+
+\subsubsection{Sous-système}
+
+Il a aussi un champ \emph{sous-système}, d'habitude c'est:
+
+\myindex{Native API}
+
+\begin{itemize}
+\item natif\footnote{Signifiant que le module utilise l'API Native au lieu de Win32} (.sys-driver), 
+
+\item console (application en console) ou
+
+\item \ac{GUI} (non-console).
+\end{itemize}
+
+\subsubsection{Version d'OS}
+
+Un fichier PE indique aussi la version de Windows minimale requise pour pouvoir être
+chargé.
+
+La table des numéros de version stockés dans un fichier PE et les codes de Windows
+correspondants est ici\footnote{\href{https://en.wikipedia.org/wiki/Windows_NT#Releases}{Wikipédia}}.
+
+\myindex{Windows!Windows NT4}
+\myindex{Windows!Windows 2000}
+Par exemple, \ac{MSVC} 2005 compile les fichiers .exe pour tourner sur Windows NT4
+(version 4.00), mais \ac{MSVC} 2008 ne le fait pas (les fichiers générés ont une
+version de 5.00, il faut au moins Windows 2000 pour les utiliser).
+
+\myindex{Windows!Windows XP}
+
+\ac{MSVC} 2012 génère des fichiers .exe avec la version 6.00 par défaut, visant au
+moins Windows Vista.
+Toutefois, en changeant l'option du compilateur\footnote{\href{http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx}{MSDN}},
+il est possible de le forcer à compiler pour Windows XP.
+
+\subsubsection{Sections}
+
+Il semble que la division en section soit présente dans tous les formats de fichier
+exécutable.
+
+C'est divisé afin de séparer le code des données, et les données---des données constantes.
+
+\begin{itemize}
+\item Si l'un des flags \emph{IMAGE\_SCN\_CNT\_CODE} ou \emph{IMAGE\_SCN\_MEM\_EXECUTE}
+est mis dans la section de code---c'est de code exécutable.
+
+\item Dans la section de données---les flags \emph{IMAGE\_SCN\_CNT\_INITIALIZED\_DATA},\\
+\emph{IMAGE\_SCN\_MEM\_READ} et \emph{IMAGE\_SCN\_MEM\_WRITE}.
+
+\item Dans une section vide avec des données non initialisées---\\
+\emph{IMAGE\_SCN\_CNT\_UNINITIALIZED\_DATA}, \emph{IMAGE\_SCN\_MEM\_READ} et\\
+\emph{IMAGE\_SCN\_MEM\_WRITE}.
+
+\item Dans une section de données constantes (une qui est protégée contre l'écriture),
+les flags \emph{IMAGE\_SCN\_CNT\_INITIALIZED\_DATA} et \emph{IMAGE\_SCN\_MEM\_READ} peuvent
+être mis, mais pas \emph{IMAGE\_SCN\_MEM\_WRITE}.
+Un processus plantera s'il essaye d'écrire dans cette section.
+\end{itemize}
+
+\myindex{TLS}
+\myindex{BSS}
+Chaque section dans un fichier PE peut avoir un nom, toutefois, ce n'est pas très
+important.
+(peut-être que \TT{.rdata} signifie \emph{read-only-data}).
+Souvent (mais pas toujours) la section de code est appelée \TT{.text}, la section
+de données---\TT{.data}, la section de données constante --- \TT{.rdata} \emph{(readable data)}.
+D'autres noms de section courants sont:
+
+\myindex{MIPS}
+\begin{itemize}
+\item \TT{.idata}---section d'imports.
+\ac{IDA} peut créer une pseudo-section appelée ainsi: \myref{IDA_idata}.
+\item \TT{.edata}---section d'exports section (rare)
+\item \TT{.pdata}---section contenant toutes les informations sur les exceptions
+dans Windows NT pout MIPS, \ac{IA64} et x64: \myref{SEH_win64}
+\item \TT{.reloc}---section de relocalisation
+\item \TT{.bss}---données non initialisées (\ac{BSS})
+\item \TT{.tls}---stockage local d'un thread (\ac{TLS})
+\item \TT{.rsrc}---ressources
+\item \TT{.CRT}---peut être présente dans les fichiers binaire compilés avec des
+anciennes versions de MSVC
+\end{itemize}
+
+Les packeurs/chiffreurs rendent souvent les noms de sections inintelligibles ou les
+remplacent avec des noms qui leurs sont propres.
+
+\ac{MSVC} permet de déclarer des données dans une section de n'importe quel nom
+\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/desktop/cc307397.aspx}{MSDN}}.
+
+Certains compilateurs et éditeurs de liens peuvent ajouter une section avec des symboles
+et d'autres informations de débogage (MinGW par exemple).
+\myindex{Windows!PDB}
+Toutefois ce n'est pas comme cela dans les dernières versions de \ac{MSVC} (des fichiers
+\gls{PDB} séparés sont utilisés dans ce but).\\
+\\
+Voici comment une section PE est décrite dans le fichier:
+
+\begin{lstlisting}
+typedef struct _IMAGE_SECTION_HEADER {
+  BYTE  Name[IMAGE_SIZEOF_SHORT_NAME];
+  union {
+    DWORD PhysicalAddress;
+    DWORD VirtualSize;
+  } Misc;
+  DWORD VirtualAddress;
+  DWORD SizeOfRawData;
+  DWORD PointerToRawData;
+  DWORD PointerToRelocations;
+  DWORD PointerToLinenumbers;
+  WORD  NumberOfRelocations;
+  WORD  NumberOfLinenumbers;
+  DWORD Characteristics;
+} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+\end{lstlisting}
+\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/desktop/ms680341(v=vs.85).aspx}{MSDN}}
+
+\myindex{Hiew}
+Un mot à propos de le terminologie: \emph{PointerToRawData} est appelé \q{Offset} dans
+Hiew et \emph{VirtualAddress} est appelé \q{RVA} ici.
+
+\subsubsection{.rdata --- section de données en lecture seule (read-only)}
+
+Les chaînes sont généralement situées ici (car elles ont le type \TT{const char*}),
+ainsi que d'autres variables marquées comme \emph{const}, les noms des fonctions
+importées.
+
+Voir aussi: \myref{const_in_rdata}.
+
+\subsubsection{Relocs (relocalisation)}
+\label{subsec:relocs}
+
+\ac{AKA} FIXUP-s (au moins dans Hiew).
+
+Elles sont aussi présentes dans presque tous les formats de fichiers exécutables
+\footnote{Même dans les fichiers .exe pour MS-DOS}.
+Les exceptions sont les bibliothèques dynamiques partagées compilées avec \ac{PIC},
+ou tout autre code \ac{PIC}.
+
+À quoi servent-elles?
+
+Évidemment, les modules peuvent être chargés à différentes adresse de base, mais
+comment traiter les variables globales, par exemple? Elles doivent être accédées
+par adresse. Une solution est le \PICcode{} (\myref{sec:PIC}).
+Mais ce n'est pas toujours pratique.
+
+C'est pourquoi une table des relocalisations est présente.
+Elle contient les adresses des points qui doivent être corrigés en cas de chargement
+à une adresse de base différente.
+
+% TODO тут бы пример с HIEW или objdump..
+Par exemple, il y a une variable globale à l'adresse \TT{0x410000} et voici comment
+elle est accédée:
+
+\begin{lstlisting}
+A1 00 00 41 00         mov         eax,[000410000]
+\end{lstlisting}
+
+L'adresse de base du module est \TT{0x400000}, le \ac{RVA} de la variable globale est
+\TT{0x10000}.
+
+Si le module est chargé à l'adresse de base \TT{0x500000}, l'adresse réelle de la
+variable globale doit être \TT{0x510000}.
+
+\myindex{x86!\Instructions!MOV}
+
+Comme nous pouvons le voir, l'adresse de la variable est encodée dans l'instruction
+\TT{MOV}, après l'octet \TT{0xA1}.
+
+C'est pourquoi l'adresse des 4 octets aprés \TT{0xA1} est écrite dans la table de
+relocalisations.
+
+Si le module est chargé à une adresse de base différente, le chargeur de l'\ac{OS}
+parcourt toutes les adresses dans la table, trouve chaque mot de 32-bit vers lequel
+elles pointent, soustrait l'adresse de base d'origine (nous obtenons le \ac{RVA} ici),
+et ajoute la nouvelle adresse de base.
+
+Si un module est chargé à son adresse de base originale, rien ne se passe.
+
+Toutes les variables globales sont traitées ainsi.
+
+Relocs peut avoir différent types, toutefois, dans Windows pour processeurs x86, le type est généralement \\
+\emph{IMAGE\_REL\_BASED\_HIGHLOW}.
+
+\myindex{Hiew}
+Á propos, les relocs sont plus foncés dans Hiew, par exemple: \figref{fig:scanf_ex3_hiew_1}.
+(vous devez éviter ces octets lors d'un patch.)
+
+\myindex{\olly}
+\olly souligne les endroits en mémoire où sont appliqués les relocs, par exemple:
+\figref{fig:switch_lot_olly3}.
+
+\subsubsection{Exports et imports}
+
+\label{PE_exports_imports}
+Comme nous le savons, tout programme exécutable doit utiliser les services de l'\ac{OS}
+et autres bibliothèques d'une manière ou d'une autre.
+
+On peut dire que les fonctions d'un module (en général DLL) doivent être reliées
+aux points de leur appel dans les autres modules (fichier .exe ou autre DLL).
+
+Pour cela, chaque DLL a une table d'\q{exports}, qui consiste en les fonctions plus
+leur adresse dans le module.
+
+Et chaque fichier .exe ou DLL possède des \q{imports}, une table des fonctions requises
+pour l'exécution incluant une liste des noms de DLL.
+
+Après le chargement du fichier .exe principal, le chargeur de l'\ac{OS} traite la
+table des imports: il charge les fichiers DLL additionnels, trouve les noms des fonctions
+parmi les exports des DLL et écrit leur adresse dans le module \ac{IAT} de l'.exe
+principal.
+
+\myindex{Windows!Win32!Ordinal}
+
+Comme on le voit, pendant le chargement, le chargeur doit comparer de nombreux noms
+de fonctions, mais la comparaison des chaînes n'est pas une procédure très rapide,
+donc il y a un support pour \q{ordinaux} ou \q{hints}, qui sont les numéros de fonctions
+stockés dans une table au lieu de leurs noms.
+
+C'est ainsi qu'elles peuvent être localisées plus rapidement lors du chargement d'une
+DLL. Les ordinaux sont toujours présents dans la table d'\q{export}.
+
+\myindex{MFC}
+% TODO clarifier
+Par exemple, un programme utilisant la bibliothèque \ac{MFC} charge en général mfc*.dll
+par ordinaux, et dans un programme n'ayant aucun nom de fonction \ac{MFC} dans \ac{INT}.
+
+% TODO example!
+Lors du chargement d'un tel programme dans \IDA, il va demander le chemin vers les
+fichiers mfc*.dll, afin de déterminer le nom des fonctions.
+
+Si vous ne donnez pas le chemin vers ces DLLs à \IDA, il y aura \emph{mfc80\_123} à
+la place des noms de fonctions.
+
+\myparagraph{Section d'imports}
+
+Souvent, une section séparée est allouée pour la table d'imports et tout ce qui y
+est relatif (avec un nom comme \TT{.idata}), toutefois, ce n'est pas une règle stricte.
+
+Les imports sont un sujet prêtant à confusion à cause de la terminologie confuse.
+Essayons de regrouper toutes les informations au même endroit.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{OS/PE/unnamed0.png}
+\caption{
+Un schéma qui regroupe toutes les structures concernant les imports d'un fichier PE}
+\end{figure}
+
+La structure principale est le tableau \emph{IMAGE\_IMPORT\_DESCRIPTOR}, qui comprend
+un élément pour chaque DLL importée.
+
+Chaque élément contient l'adresse \ac{RVA} de la chaîne de texte (nom de la DLL) (\emph{Name}).
+
+\emph{OriginalFirstThunk} est l'adresse \ac{RVA} de la table \ac{INT}.
+C'est un tableau d'adresses \ac{RVA}, qui pointe chacune sur une chaîne de texte
+avec le nom d'une fonction.
+Chaque chaîne est préfixée par un entier 16-bit (\q{hint})---\q{ordinal} de la fonction.
+
+Pendant le chargement, s'il est possible de trouver une fonction par ordinal, la
+comparaison de chaînes n'a pas lieu. Le tableau est terminé par zéro.
+
+Il y a aussi un pointeur sur la table \ac{IAT} appelé \emph{FirstThunk}, qui est juste
+l'adresse \ac{RVA} de l'endroit où le chargeur écrit l'adresse résolue de la fonction.
+
+Les endroits où le chargeur écrit les adresses sont marqués par \IDA comme ceci:
+\emph{\_\_imp\_CreateFileA}, etc.
+
+Il y a au moins deux façons d'utiliser les adresses écrites par le chargeur.
+
+\myindex{x86!\Instructions!CALL}
+\begin{itemize}
+\item Le code aura des instructions comme \emph{call \_\_imp\_CreateFileA}, et puisque
+le champ avec l'adresse de la fonction importée est en un certain sens une variable
+globale, l'adresse de l'instruction \emph{call} (plus 1 ou 2) doit être ajoutée à la
+table de relocs, pour le cas où le module est chargé à une adresse de base différente.
+
+Mais, évidemment, ceci augmente significativement la table de relocs.
+
+Car il peut y avoir un grand nombre d'appels aux fonctions importées dans le module.
+
+En outre, une grosse table de relocs ralenti le processus de chargement des modules.
+
+\myindex{x86!\Instructions!JMP}
+\myindex{thunk-functions}
+\item Pour chaque fonction importée, il y a seulement un saut alloué, en utilisant
+l'instruction \JMP ainsi qu'un reloc sur lui.
+De tel point sont aussi appelés \q{thunks}.
+
+Tous les appels aux fonction importées sont juste des instructions \CALL au \q{thunk}
+correspondant. Dans ce cas, des relocs supplémentaires ne sont pas nécessaire car
+cex \CALL{}-s ont des adresses relatives et ne doivent pas être corrigés.
+\end{itemize}
+
+Ces deux méthodes peuvent être combinées.
+
+Il est possible que l'éditeur de liens créé des \q{thunk}s individuels si il n'y
+a pas trop d'appels à la fonction, mais ce n'est pas fait par défaut \\
+\\
+Á propos, le tableau d'adresses de fonction sur lequel pointe FirstThunk ne doit
+pas nécessairement se trouver dans la section \ac{IAT}. Par exemple, j'ai écrit une
+fois l'utilitaire PE\_add\_import\footnote{\href{http://yurichev.com/PE_add_imports.html}{yurichev.com}}
+pour ajouter des imports à un fichier .exe existant.
+
+Quelques temps plus tôt, dans une version précédente de cet utilitaire, à la place
+de la fonction que vous vouliez substituer par un appel à une autre DLL, mon utilitaire
+écrivait le code suivant:
+
+\begin{lstlisting}
+MOV EAX, [yourdll.dll!function]
+JMP EAX
+\end{lstlisting}
+
+FirstThunk pointe sur la première instruction. En d'autres mots, en chargeant yourdll.dll,
+le chargeur écrit l'adresse de la fonction \emph{function} juste après le code.
+
+Il est à noter qu'une section de code est en général protégée contre l'écriture,
+donc mon utilitaire ajoute le flag \\
+\emph{IMAGE\_SCN\_MEM\_WRITE}
+pour la section de code. Autrement, le programme planterait pendant le chargement
+avec le code d'erreur 5 (access denied). \\
+\\
+On pourrait demander: pourrais-je fournir à un programme un ensemble de fichiers
+DLL qui n'est pas supposé changer (incluant les adresses des fonctions DLL), est-il
+possible d'accélérer le processus de chargement?
+
+Oui, il est possible d'écrire les adresses des fonctions qui doivent être importées
+en avance dans le tableau FirstThunk. \\
+Le champ \emph{Timestamp} est présent dans la structure \emph{IMAGE\_IMPORT\_DESCRIPTOR}.
+
+Si une valeur est présente ici, alors le loader compare cette valeur avec la date
+et l'heure du fichier DLL.
+
+Si les valeurs sont égales, alors le loader ne fait rien, et le processus de chargement
+peut être plus rapide.
+Ceci est appelé \q{old-style binding}
+\footnote{\href{http://blogs.msdn.com/b/oldnewthing/archive/2010/03/18/9980802.aspx}{MSDN}. Il y a aussi le \q{new-style binding}.}.
+\myindex{BIND.EXE}
+
+L'utilitaire BIND.EXE dans le SDK est fait pour ça.
+Pour accélérer le chargement de votre programme, Matt Pietrek dans \PietrekPEURL,
+suggère de faire le binding juste après l'installation de votre programme sur l'ordinateur
+de l'utilisateur final. \\
+\\
+Les packeurs/chiffreurs de fichier PE peuvent également compresser/chiffrer la table
+des imports.
+
+Dans ce cas, le loader de Windows, bien sûr, ne va pas charger les DLLs nécessaires.
+\myindex{Windows!Win32!LoadLibrary}
+\myindex{Windows!Win32!GetProcAddress}
+
+Par conséquent, le packeur/chiffreur fait cela lui même, avec l'aide des fonctions
+\emph{LoadLibrary()} et \emph{GetProcAddress()}.
+
+C'est pourquoi ces deux fonctions sont souvent présentes dans l'\ac{IAT} des fichiers
+packés.\\
+\\
+Dans les DLLs standards de l'installation de Windows, \ac{IAT} es souvent situé juste
+après le début du fichier PE.
+Supposément, c'est fait par soucis d'optimisation.
+
+Pendant le chargement, le fichier .exe n'est pas chargé dans la mémoire d'un seul
+coup (rappelez-vous ces fichiers d'installation énormes qui sont démarrés de façon
+douteusement rapide), ils sont \q{mappés}, et chargés en mémoire par parties lorsqu'elles
+sont accédées.
+
+Les développeurs de Microsoft ont sûrement décidé que ça serait plus rapide.
+
+\subsubsection{Ressources}
+
+\label{PEresources}
+
+Les ressources dans un fichier PE sont seulement un ensemble d'icônes, d'images,
+de chaînes de texte, de descriptions de boîtes de dialogues.
+
+Peut-être qu'elles ont été séparées du code principal afin de pouvoir être multilingue,
+et il est plus simple de prendre du texte ou une image pour la langue qui est définie
+dans l'\ac{OS}. \\
+\\
+Par effet de bord, elles peuvent être éditées facilement et sauvées dans le fichier
+exécutable, même si on n'a pas de connaissance particulière, en utilisant l'éditeur
+ResHack, par exemple (\myref{ResHack}).
+
+\subsubsection{.NET}
+
+\myindex{.NET}
+
+Les programmes .NET ne sont pas compilés en code machine, mais dans un bytecode spécial.
+\myindex{OEP}
+Strictement parlant, il y a du bytecode à la place du code x86 usuel dans le fichier
+.eexe, toutefois, le point d'entrée (\ac{OEP}) point sur un petit fragment de code
+x86:
+
+\begin{lstlisting}
+jmp         mscoree.dll!_CorExeMain
+\end{lstlisting}
+
+Le loader de .NET se trouve dans mscoree.dll, qui traite le fichier PE.
+\myindex{Windows!Windows XP}
+
+Il en était ainsi dans tous les \ac{OS}es pre-Windows XP. Á partir de XP, le loader
+de l'\ac{OS} est capable de détecter les fichiers .NET et le lance sans exécuter
+cette instruction \JMP
+\footnote{\href{http://msdn.microsoft.com/en-us/library/xh0859k0(v=vs.110).aspx}{MSDN}}.
+
+\myindex{TLS}
+\subsubsection{TLS}
+
+Cette section contient les données initialisées pour le \ac{TLS}(\myref{TLS}) (si
+nécessaire). Lorsque qu'une nouvelle thread démarre, ses données \ac{TLS} sont initialisées
+en utilisant les données de cette section. \\
+\\
+\myindex{TLS!Callbacks}
+
+Á part ça, la spécification des fichiers PE fourni aussi l'initialisation de la section
+\ac{TLS}, aussi appelée TLS callbacks.
+
+Si elles sont présentes, elles doivent être appelées avant que le contrôle ne soit
+passé au point d'entrée principal (\ac{OEP}).
+
+Ceci est largement utilisé dans les packeurs/chiffreurs de fichiers PE.
+
+\subsubsection{Outils}
+
+\myindex{objdump}
+\myindex{Cygwin}
+\myindex{Hiew}
+\label{ResHack}
+
+\begin{itemize}
+\item objdump (présent dans cygwin) pour afficher toutes les structures d'un fichier PE.
+
+\item Hiew(\myref{Hiew}) comme éditeur.
+
+\item pefile---bibliothèque-Python pour le traitement des fichiers PE \footnote{\url{https://code.google.com/p/pefile/}}.
+
+\item ResHack \acs{AKA} Resource Hacker---éditeur de ressources\footnote{\url{https://code.google.com/p/pefile/}}.
+
+\item PE\_add\_import\footnote{\url{http://yurichev.com/PE_add_imports.html}}---outil simple
+pour ajouter des symboles à la table d'imports d'un exécutable au format PE.
+
+\item PE\_patcher\footnote{\href{http://yurichev.com/PE_patcher.html}{yurichev.com}}---outil
+simple pour patcher les exécutables PE.
+
+\item PE\_search\_str\_refs\footnote{\href{http://yurichev.com/PE_search_str_refs.html}{yurichev.com}}---outil
+simple pour chercher une fonction dans un exécutable PE qui utilise une certaine chaîne de texte.
+\end{itemize}
+
+\subsubsection{Autres lectures}
+
+% FIXME: bibliography per chapter or section
+\begin{itemize}
+\item Daniel Pistelli---The .NET File Format \footnote{\url{http://www.codeproject.com/Articles/12585/The-NET-File-Format}}
+\end{itemize}
+

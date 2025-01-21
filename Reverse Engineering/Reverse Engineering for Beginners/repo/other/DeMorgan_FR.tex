@@ -1,0 +1,115 @@
+\subsection{Loi de De Morgan et décompilation}
+\myindex{De Morgan's laws}
+
+Parfois l'optimiseur du compilateur peut utiliser la loi de De Morgan pour rendre
+le code plus court/rapide.
+
+Par exemple, ceci:
+
+\begin{lstlisting}[style=customc]
+void f(int a, int b, int c, int d)
+{
+	if (a>0 && b>0)
+		printf ("both a and b are positive\n");
+	else if (c>0 && d>0)
+		printf ("both c and d are positive\n");
+	else
+		printf ("something else\n");
+};
+\end{lstlisting}
+
+\dots ça semble assez anodin, lorsque c'est compilé avec GCC 5.4.0 x64 avec optimisation:
+
+\begin{lstlisting}[style=customasmx86]
+; \verb|int __fastcall f(int a, int b, int c, int d)|
+                public f
+f               proc near
+                test    edi, edi
+                jle     short loc_8
+                test    esi, esi
+                jg      short loc_30
+
+loc_8:
+                test    edx, edx
+                jle     short loc_20
+                test    ecx, ecx
+                jle     short loc_20
+                mov     edi, offset s   ; "both c and d are positive"
+                jmp     puts
+
+loc_20:
+                mov     edi, offset aSomethingElse ; "something else"
+                jmp     puts
+
+loc_30:
+                mov     edi, offset aAAndBPositive ; "both a and b are positive"
+
+loc_35:
+                jmp     puts
+f               endp
+\end{lstlisting}
+
+\dots ça semble donc anodin, mais Hex-Rays 2.2.0 n'arrive pas vraiment à détecter
+qu'en fait des opérations double AND ont été utilisées dans le code source:
+
+\begin{lstlisting}[style=customc]
+int __fastcall f(int a, int b, int c, int d)
+{
+  int result;
+
+  if ( a > 0 && b > 0 )
+  {
+    result = puts("both a and b are positive");
+  }
+  else if ( c <= 0 || d <= 0 )
+  {
+    result = puts("something else");
+  }
+  else
+  {
+    result = puts("both c and d are positive");
+  }
+  return result;
+}
+\end{lstlisting}
+
+L'expression \verb~c <= 0 || d <= 0~ est la contraposée de \verb|c>0 && d>0| puisque
+$\overline{A \cup B} = \overline{A} \cap \overline{B}$ et
+$\overline{A \cap B} = \overline{A} \cup \overline{B}$,
+Autrement dit,
+\verb~!(cond1 || cond2) == !cond1 && !cond2~ et \verb~!(cond1 && cond2) == !cond1 || !cond2~.
+
+Ça vaut la peine de garder ces règles à l'esprit, puisque ces optimisations du
+compilateur sont utilisées massivement presque partout.
+
+C'est parfois une bonne idée d'inverser une condition, afin de mieux comprendre
+le code.
+Ceci est un morceau de code réel décompilé par Hex-Rays:
+
+\begin{lstlisting}[style=customc]
+	for (int i=0; i<12; i++)
+	{
+		if (v1[i-12] != 0.0 || v1[i] != 0.0)
+		{
+			v108=min(v108, (float)v0[i*24 -2]);
+			v113=max(v113, (float)v0[i*24]);
+		};
+	}
+\end{lstlisting}
+
+\dots qui peut être récrit comme:
+
+\begin{lstlisting}[style=customc]
+	for (int i=0; i<12; i++)
+	{
+		if (v1[i-12] == 0.0 && v1[i] == 0.0)
+			continue;
+
+		v108=min(v108, (float)v0[i*24 -2]);
+		v113=max(v113, (float)v0[i*24]);
+	}
+\end{lstlisting}
+
+Lequel est le meilleur? Je ne sais pas encore, mais pour une meilleure compréhension,
+c'est bien de regarder les deux.
+

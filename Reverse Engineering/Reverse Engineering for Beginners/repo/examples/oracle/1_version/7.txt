@@ -1,0 +1,11 @@
+SQL> select * from x$version;
+
+ADDR           INDX    INST_ID
+-------- ---------- ----------
+BANNER
+------------------------------
+
+0DBAF574          0          1
+Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - Production
+
+...

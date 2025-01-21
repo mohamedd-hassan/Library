@@ -1,0 +1,20 @@
+\mysection{Appels à assert()}
+\myindex{\CStandardLibrary!assert()}
+
+Parfois, la présence de la macro \TT{assert()} est aussi utile:
+En général, cette macro laisse le nom du fichier source, le numéro de ligne et une
+condition dans le code.
+
+L'information la plus utile est contenue dans la condition d'assert, nous pouvons
+en déduire les noms de variables ou les noms de champ de la structure. Les autres
+informations utiles sont les noms de fichier---nous pouvons essayer d'en déduire
+le type de code dont il s'agit ici.
+Il est aussi possible de reconnaître les bibliothèques open-source connues d'après
+les noms de fichier.
+
+\lstinputlisting[caption=Exemple d'appels à assert() informatifs,style=customasmx86]{digging_into_code/assert_examples.lst}
+
+Il est recommandé de \q{googler} à la fois les conditions et les noms de fichier,
+qui peuvent nous conduire à une bibliothèque open-source.
+Par exemple, si nous \q{googlons} \q{sp->lzw\_nbits <= BITS\_MAX}, cela va comme
+prévu nous donner du code open-source relatif à la compression LZW.

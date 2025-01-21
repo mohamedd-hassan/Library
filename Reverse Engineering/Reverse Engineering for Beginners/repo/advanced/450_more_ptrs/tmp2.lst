@@ -1,0 +1,55 @@
+;       \verb|_checknull()    check for null pointer zapping copyright message|
+
+...
+
+;       Check for null pointers before exit
+
+__checknull     PROC    DIST
+                PUBLIC  __checknull
+
+IF      LDATA  EQ  false
+  IFNDEF  __TINY__
+                push    si
+                push    di
+                mov     es, cs:DGROUP@@
+                xor     ax, ax
+                mov     si, ax
+                mov     cx, lgth_CopyRight
+ComputeChecksum label   near
+                add     al, es:[si]
+                adc     ah, 0
+                inc     si
+                loop    ComputeChecksum
+                sub     ax, CheckSum
+                jz      @@SumOK
+                mov     cx, lgth_NullCheck
+                mov     dx, offset DGROUP: NullCheck
+                call    ErrorDisplay
+@@SumOK:        pop     di
+                pop     si
+  ENDIF
+ENDIF
+
+_DATA           SEGMENT
+
+;       Magic symbol used by the debug info to locate the data segment
+                public DATASEG@
+DATASEG@        label   byte
+
+;       The CopyRight string must NOT be moved or changed without
+;       changing the null pointer check logic
+
+CopyRight       db      4 dup(0)
+                db      'Borland C++ - Copyright 1991 Borland Intl.',0
+lgth_CopyRight  equ     $ - CopyRight
+
+IF      LDATA  EQ  false
+IFNDEF  __TINY__
+CheckSum        equ     00D5Ch
+NullCheck       db      'Null pointer assignment', 13, 10
+lgth_NullCheck  equ     $ - NullCheck
+ENDIF
+ENDIF
+
+...
+

@@ -1,0 +1,61 @@
+\subsubsection{\NonOptimizingKeilVI (\ThumbMode)}
+
+Skompilujmy ten sam przykład za pomocą Keil w trybie
+ Thumb:
+
+\begin{lstlisting}
+armcc.exe --thumb --c90 -O0 1.c 
+\end{lstlisting}
+
+Otrzymamy (listing z programu \IDA):
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ThumbMode) + \IDA,style=customasmARM]
+.text:00000000             main
+.text:00000000 10 B5          PUSH    {R4,LR}
+.text:00000002 C0 A0          ADR     R0, aHelloWorld ; "hello, world"
+.text:00000004 06 F0 2E F9    BL      __2printf
+.text:00000008 00 20          MOVS    R0, #0
+.text:0000000A 10 BD          POP     {R4,PC}
+
+.text:00000304 68 65 6C 6C+aHelloWorld  DCB "hello, world",0    ; DATA XREF: main+2
+\end{lstlisting}
+
+Od razu można zauważyć 2 bajtowe (16-bitowe) kody operacji (opcode) --- jest to już wcześniej wspomniany tryb Thumb.
+
+\myindex{ARM!\Instructions!BL}
+Wyjątkiem jest instrukcja \TT{BL}, która składa się z dwóch 16-bitowych instrukcji.
+W jednym 16-bitowym kodzie operacji (opcode) jest za mało miejsca na przesunięcie, po którym znajduje się funkcja \printf.
+Dlatego pierwsza 16-bitowa instrukcja ładuje starsze 10 bitów przesunięcia, a druga~--- młodsze 11 bitów przesunięcia.
+
+% TODO:
+% BL has space for 11 bits, so if we don't encode the lowest bit,
+% then we should get 11 bits for the upper half, and 12 bits for the lower half.
+% And the highest bit encodes the sign, so the destination has to be within
+% \pm 4M of current_PC.
+% This may be less if adding the lower half does not carry over,
+% but I'm not sure --all my programs have 0 for the upper half,
+% and don't carry over for the lower half.
+% It would be interesting to check where __2printf is located relative to 0x8
+% (I think the program counter is the next instruction on a multiple of 4
+% for THUMB).
+% The lower 11 bytes of the BL instructions and the even bit are
+% 000 0000 0110 | 001 0010 1110 0 = 000 0000 0110 0010 0101 1100 = 0x00625c,
+% so __2printf should be at 0x006264.
+% But if we only have 10 and 11 bits, then the offset would be:
+% 00 0000 0110 | 01 0010 1110 0 = 0 0000 0011 0010 0101 1100 = 0x00325c,
+% so __2printf should be at 0x003264.
+% In this case, though, the new program counter can only be 1M away,
+% because of the highest bit is used for the sign.
+
+Skoro wszystkie instrukcje w trybie Thumb są 2-bajtowe (16-bitowe), to sytuacja, w której instrukcja zaczyna się pod adresem nieparzystym, jest niemożliwa.
+
+Wniosek z tego jest taki, że ostatniego bitu adresu można nie kodować.
+Dzięki temu instrukcja \TT{BL} w trybie Thumb może zakodować adres z przedziału $current\_PC \pm{}\approx{}2M$.
+
+\myindex{ARM!\Instructions!PUSH}
+\myindex{ARM!\Instructions!POP}
+Co do pozostałych instrukcji: \PUSH i \POP działają jak opisane wyżej \TT{STMFD}/\TT{LDMFD}, tyle że rejestr \ac{SP} nie jest tu jawnie wskazany.
+\INS{ADR} działa dokładnie tak samo jak w poprzednim przykładzie.
+\INS{MOVS} zapisuje wartość 0 do rejestru \Reg{0}, by funkcja zwróciła zero.
+
+

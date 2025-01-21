@@ -1,0 +1,91 @@
+﻿\clearpage
+\mysubparagraph{\olly}
+\myindex{\olly}
+
+Chargeons cet exemple dans \olly.
+Définissons la valeur d'entrée à \TT{0x12345678}.
+
+Pour $i=1$, nous voyons comment $i$ est chargé dans \ECX:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_1.png}
+\caption{\olly: $i=1$, $i$ est chargé dans \ECX}
+\label{fig:shifts_olly1_1}
+\end{figure}
+
+\EDX contient 1. \SHL va être exécuté maintenant.
+
+\clearpage
+\SHL a été exécuté:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_2.png}
+\caption{\olly: $i=1$, \EDX=$1 \ll 1=2$}
+\label{fig:shifts_olly1_2}
+\end{figure}
+
+\EDX contient $1 \ll 1$ (ou 2). Ceci est un masque de bit.
+
+\clearpage
+\AND met \ZF à 1, ce qui implique que la valeur en entrée (\TT{0x12345678}) ANDée
+avec 2 donne 0:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly1_3.png}
+\caption{\olly: $i=1$, 
+y a-t-il ce bit dans la valeur en entrée? Non. (\ZF=1)}
+\label{fig:shifts_olly1_3}
+\end{figure}
+
+Donc, il n'y a pas le bit correspondant dans la valeur en entrée.
+
+Le morceau de code, qui \glslink{increment}{incrémente} le compteur ne va pas être
+exécuté:
+l'instruction \JZ l'évite.
+
+\clearpage
+Avançons un peu plus et $i$ vaut maintenant 4.
+\SHL va être exécuté maintenant:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_1.png}
+\caption{\olly: $i=4$, $i$ est chargée dans \ECX}
+\label{fig:shifts_olly4_1}
+\end{figure}
+
+\clearpage
+\EDX=$1 \ll 4$ (ou \TT{0x10} ou 16):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_2.png}
+\caption{\olly: $i=4$, \EDX=$1 \ll 4=0x10$}
+\label{fig:shifts_olly4_2}
+\end{figure}
+
+Ceci est un autre masque de bit.
+
+\clearpage
+\AND est exécuté:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/4_popcnt/olly4_3.png}
+\caption{\olly: $i=4$, 
+y a-t-il ce bit dans la valeur en entrée? Oui. (\ZF=0)}
+\label{fig:shifts_olly4_3}
+\end{figure}
+
+\ZF est à 0 car ce bit est présent dans la valeur en entrée.\\
+En effet, \TT{0x12345678 \& 0x10 = 0x10}.
+
+Ce bit compte: le saut n'est pas effectué et le compteur de bit est
+\glslink{increment}{incrémenté}.
+
+La fonction renvoie 13.
+C'est le nombre total de bits à 1 dans \TT{0x12345678}.
+

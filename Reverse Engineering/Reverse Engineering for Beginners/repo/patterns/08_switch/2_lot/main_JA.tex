@@ -1,0 +1,22 @@
+﻿\subsection{A lot of cases}
+
+\TT{switch()}ステートメントに大量のケースが含まれている場合、コンパイラが多くの \JE/\JNE 命令で大きすぎるコードを
+出力することはあまり便利ではありません。
+
+\lstinputlisting[label=switch_lot_c,style=customc]{patterns/08_switch/2_lot/lot.c}
+
+\input{patterns/08_switch/2_lot/lot_x86_JA}
+\input{patterns/08_switch/2_lot/lot_ARM_JA}
+\input{patterns/08_switch/2_lot/lot_MIPS_JA}
+
+\subsubsection{\Conclusion{}}
+
+\emph{switch()} の大まかなスケルトン：
+
+% TODO: ARM, MIPS skeleton
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/08_switch/2_lot/skel1_JA.lst}
+
+ジャンプテーブルのアドレスへのジャンプはこの命令で用いて実装されるでしょう：\TT{JMP jump\_table[REG*4]}
+もしくはx64では\TT{JMP jump\_table[REG*8]} 。
+
+\emph{jumptable}は単にポインタの配列で、後で説明します：\myref{array_of_pointers_to_strings}

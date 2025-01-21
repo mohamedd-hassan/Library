@@ -1,0 +1,185 @@
+\subsection{Sistemi di numerazione}
+
+\epigraph{Nowadays octal numbers seem to be
+used for exactly one purpose---file permissions on POSIX systems---but hexadecimal numbers
+are widely used to emphasize the bit pattern of a number over its numeric value.}
+{Alan A. A. Donovan, Brian W. Kernighan ---  The Go Programming Language}
+
+Le persone si sono abituate ad usare il sistema numerico decimale probabilmente perchè quasi tutti hanno 10 dita.
+Ciononostante, il numero \q{10} non ha alcun significato rilevante nelle scienze e nella matematica.
+Il sistema di numerazione naturale nell'elettronica digitale è quello binario: 0 per l'assenza di corrente nel filo e 1 per la sua presenza.
+10 in binario è 2 in decimale, 100 in binary è 4 in decimale, e così via.
+
+% This sentence is a bit unweildy - maybe try 'Our ten-digit system would be described as having a radix...' - Renaissance
+Se il sistema numerico ha 10 cifre, ha una \emph{radice} (o \emph{base}) di 10.
+Il sistema numerico binario ha \emph{radice} 2.
+
+Cose importanti da ricordare:
+
+1) Un \emph{numero} è un numero, mentre una \emph{cifra} è un termine che deriva dai sistemi di scrittura,
+ed è solitamente un carattere
+
+% The original is 'number' is not changed; I think the intent is value, and changed it - Renaissance
+2) Il valore di un numero non cambia quando viene convertito ad un'altra radice;
+cambia solo la forma di scrittura del suo valore (e quindi il modo in cui viene rappresentato in \ac{RAM}).
+
+\subsection{Convertire da una radice ad un'altra}
+
+La notazione posizionale è usata in praticamente tutti i sistemi numerici.
+Questo significa che la cifra ha un "peso" diverso in base alla posizone in cui si trova all'interno del numero più grande.
+Se 2 si trova nella parte più a destra del numero, è 2, ma se si trova nella penultima posizione a destra è 20.
+
+Per cosa sta $1234$?
+
+$10^3 \cdot 1 + 10^2 \cdot 2 + 10^1 \cdot 3 + 1 \cdot 4 = 1234$ o anche
+$1000 \cdot 1 + 100 \cdot 2 + 10 \cdot 3 + 4 = 1234$
+
+Lo stesso vale per i numeri binari, ma la base è 2 invece di 10.
+Per cosa sta 0b101011?
+
+$2^5 \cdot 1 + 2^4 \cdot 0 + 2^3 \cdot 1 + 2^2 \cdot 0 + 2^1 \cdot 1 + 2^0 \cdot 1 = 43$ o anche
+$32 \cdot 1 + 16 \cdot 0 + 8 \cdot 1 + 4 \cdot 0 + 2 \cdot 1 + 1 = 43$
+
+Esiste anche una notazione non-posizionale, come ad esempio il sistema numerico Romano.
+\footnote{Riguardo l'evoluzione dei sistemi numerici, vedi \InSqBrackets{\TAOCPvolII{}, 195--213.}}.
+% Maybe add a sentence to fill in that X is always 10, and is therefore non-positional, even though putting an I before subtracts and after adds, and is in that sense positional
+Forse l'umanità ha deciso di passare alla notazione posizionale perchè è più facile effettuare operazioni di base (addizione, moltiplicazione, etc.) a mano su carta.
+
+I numeri binari possono essere addizionati, sottratti e così via, nello stesso modo in cui ci è stato insegnato a scuola, con l'unica differenza che si sono solo 2 cifre a disposizione.
+
+I numeri binari possono risultare ingombranti quando usati in codici sorgenti e dump, ed in questi casi può tornare utile il sistema esadecimale.
+
+Il sistema esadecimale usa le cifre 0..9 ed in aggiunta 6 caratteri latini: A..F.
+Ogni cifra esadecimale occupa 4 bit o 4 cifre binarie, ed è quindi molto facile convertire da binario a esadecimale e viceversa, anche a mente.
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor hexadecimal & \HeaderColor binary & \HeaderColor decimal \\
+\hline
+0	&0000	&0 \\
+1	&0001	&1 \\
+2	&0010	&2 \\
+3	&0011	&3 \\
+4	&0100	&4 \\
+5	&0101	&5 \\
+6	&0110	&6 \\
+7	&0111	&7 \\
+8	&1000	&8 \\
+9	&1001	&9 \\
+A	&1010	&10 \\
+B	&1011	&11 \\
+C	&1100	&12 \\
+D	&1101	&13 \\
+E	&1110	&14 \\
+F	&1111	&15 \\
+\hline
+\end{longtable}
+\end{center}
+
+Come identificare quale radice si sta usando in un certo caso?
+
+I numeri decimali sono solitamente scritti così come sono, es. 1234. Alcuni assembler consentono di utilizzare un identificatore per i numeri in radice decimale, ed il numero può essere scritto con il suffisso "d": 1234d.
+
+I numeri binari sono a volte preceduti dal prefisso "0b": 0b100110111 (\ac{GCC} ha un'estensione non standard del linguaggio per questo\footnote{\url{https://gcc.gnu.org/onlinedocs/gcc/Binary-constants.html}}).
+C'è anche un altro modo: utilizzando il suffisso "b", ad esempio: 100110111b.
+Il libro cerca di usare in modo coerente il prefisso "0b" per identificare i numeri binari.
+
+I numeri esadecimali sono preceduti dal prefisso "0x" in \CCpp e altri \ac{PL}s: 0x1234ABCD.
+In alternativa viene utilizzato il suffisso "h": 1234ABCDh. Questo è il modo in cui vengono comunemente rappresentati negli assembler e nei debugger.
+In questa convenzione, se il numero inizia con una lettera A..F, uno "0" viene aggiunto all'inizio: 0ABCDEFh.
+C'era inoltre una convenzione popolare durante l'era dei PC ad 8-bit, utilizzando il prefisso \$, ad esempio \$ABCD.
+Nel corso del libro si cercherà di usare in modo costante il prefisso "0x" per identificare i numeri esadecimali.
+
+Si dovrebbe imparare a convertire i numeri a mente? Una tabella di numeri decimali ad una cifra può essere memorizzata facilmente.
+Per numeri più grandi, probabilmente, non è il caso di tormentarsi.
+
+Probabilmente i numeri esadecimali più visibili sono quelli all'interno degli \ac{URL}s.
+Questo è il modo con cui vengono codificati i caratteri non latini.
+Ad esempio:
+\url{https://en.wiktionary.org/wiki/na\%C3\%AFvet\%C3\%A9} è l'\ac{URL} dell'articolo di Wiktionary sulla parola \q{naïveté}.
+
+\subsubsection{Sistema di numerazione ottale}
+
+Un altro sistema di numerazione molto usato in passato in programmazione è quello ottale.
+In questo sistema ci sono 8 cifre (0..7) e ciascuna è associata a 3 bit, quindi è facile convertire numeri da una radice all'altra.
+Praticamente ovunque è stato rimpiazzato dal sistema esadecimale, ma sorprendentemente esiste una utility *NIX usata spesso e da molte persone che ha per argomento un numero ottale: \TT{chmod}.
+
+\myindex{UNIX!chmod}
+Come molti utenti *NIX sanno, l'argomento di \TT{chmod} può essere un numero di 3 cifre. La prima rappresenta i diritti del proprietario del file (lettura, scrittura ed esecuzione), la seconda i diritti del gruppo a cui il file appartiene, la terza i diritti per chiunque altro.
+Ogni cifra che \TT{chmod} riceve può essere rappresentata in forma binaria:
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor decimale & \HeaderColor binario & \HeaderColor significato \\
+\hline
+7	&111	&\textbf{rwx} \\
+6	&110	&\textbf{rw-} \\
+5	&101	&\textbf{r-x} \\
+4	&100	&\textbf{r-{}-} \\
+3	&011	&\textbf{-wx} \\
+2	&010	&\textbf{-w-} \\
+1	&001	&\textbf{-{}-x} \\
+0	&000	&\textbf{-{}-{}-} \\
+\hline
+\end{longtable}
+\end{center}
+
+Quindi ogni bit corrisponde ad un flag: read/write/execute.
+
+La ragione per cui sto parlando di \TT{chmod} è che l'intero numero dell'argomento può essere rappresentato in ottale.
+Prendiamo per esempio 644.
+Quando si esegue \TT{chmod 644 file}, si impostano i permessi di lettura/scrittura per il proprietario, il permesso di lettura per il gruppo, ed il permesso di lettura per tutti gli altri.
+Convertiamo il numero ottale 644 in binario, sara' \TT{110100100}, o (in gruppi di 3 bit) \TT{110 100 100}.
+
+Possiamo notare che ogni tripletta descrive i permessi per proprietario/gruppo/altri (owner/group/others): il primo è \TT{rw-}, il secondo è \TT{r--} ed il terzo è \TT{r--}.
+
+Il sistema ottale era anche molto diffuso nei vecchi computer come PDP-8, perchè una word poteva essere di 12, 24 o 36 bit, e questi numeri sono tutti divisibili per 3, quindi il sistema ottale era naturale in quell'ambiente.
+Oggi tutti i computer comuni utilizano word/indirizzi lunghi 16, 32 o 64 bit, e questi numeri sono tutti divisibili per 4, di conseguenza l'esadecimale risulta più naturale.
+
+Il sistema ottale è supportato da tutti i compilatori \CCpp standard.
+Talvolta ciò è fonte di confusione, perchè i numeri ottali sono codificati preponendo uno zero, per esempio 0377 è 255.
+A volte si potrebbe scrivere per errore "09" invece di 9, e il compilatore segnalerebbe un errore.
+GCC potrebbe presentare un errore del genere:\\
+\TT{error: invalid digit "9" in octal constant}.
+
+Inoltre, il sistema ottale è in qualche modo popolare in Java. Quando IDA mostra delle stringhe Java contenenti dei caratteri non visualizzabili,
+li codifica nel sistema ottale invece che in quello esadecimale.
+\myindex{JAD}
+Il decompilatore per Java JAD si comporta allo stesso modo.
+
+\subsubsection{Divisibilità}
+
+Quando si vede un numero decimale come 120, si può velocemente dedurre che è divisibile per 10, perchè l'ultima cifra è uno zero.
+Allo stesso modo, 123400 è divisibile per 100 perchè le ultime due cifre sono zeri.
+
+In maniera simile, il numero esadecimale 0x1230 è divisible per 0x10 (ovvero 16), 0x123000 è divisibile per 0x1000 (ovvero 4096), etc.
+
+Il numero binario 0b1000101000 è divisibile per 0b1000 (8), etc.
+
+Questa proprietà può essere spesso usata per capire velocemente se un indirizzo o la dimensione di un dato blocco di memoria sono stati "allungati" (padded) per raggiungere un certo allineamento.
+Per esempio, le sezioni in un file \ac{PE} iniziano quasi sempre ad indirizzi che terminano con 3 zeri esadecimali: 0x41000, 0x10001000, etc.
+La ragione per cui questo accade risiede nel fatto che quasi tutte le sezioni di un \ac{PE} sono allinate per raggiungere blocchi di dimensioni multiple di 0x1000 (4096) byte.
+
+\subsubsection{Aritmetica e radici a precisione multipla}
+
+\myindex{RSA}
+L'aritmetica a precisione multipla può utilizzare numeri enormi, e ognuno può venire memorizzato in più byte.
+Ad esempio, le chiavi RSA, sia pubbliche che private, arrivano fino a 4096 bit e più.
+
+% I'm not sure how to change this, but the normal format for quoting would be just to mention the author or book, and footnote to the full reference
+In \InSqBrackets{\TAOCPvolII, 265} possiamo trovare questa idea: quando memorizzi un numero a precisione multipla su più byte,
+l'intero numero può essere rappresentato utilizzando una radice di $2^8=256$, e ogni cifra va nel byte corrispondente.
+Allo stesso modo, se memorizzi un numero a precisione multipla in diversi valori interi da 32 bit, ogni cifra corrisponde a ciascuno slot da 32 bit,
+e puoi pensare a questo numero come rappresentato in radice $2^{32}$.
+
+\subsubsection{Come Pronunciare Numeri non Decimali}
+
+I numeri in base non decimale sono tipicamente pronunciati cifra per cifra: ``uno-zero-zero-uno-uno-...''.
+Parole come ``dieci'' e ``mille'' generalmente non vengono pronunciate, per evitare confusione con il sistema a base decimale.
+
+\subsubsection{Numeri a virgola mobile (Floating point)}
+
+Per distinguere i numeri floating point dai numeri interi, vengono generalmente scritti con un ``.0'' alla fine,
+ad esempio $0.0$, $123.0$, etc.

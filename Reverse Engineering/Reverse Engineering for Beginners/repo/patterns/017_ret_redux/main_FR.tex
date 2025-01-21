@@ -1,0 +1,11 @@
+\mysection{Renvoyer des valeurs: redux}
+
+À nouveau, quand on connaît le prologue et l'épilogue de fonction, recompilons un
+exemple renvoyant une valeur (\myref{ret_val_func}, \myref{lst:ret_val_func}) en
+utilisant GCC sans optimisation:
+
+\lstinputlisting[caption=GCC 8.2 x64 \NonOptimizing (\assemblyOutput),style=customasmx86]{patterns/017_ret_redux/1.s}
+
+Les seules instructions efficaces ici sont \INS{MOV} et \INS{RET}, les autres
+sont -- prologue et épilogue.
+

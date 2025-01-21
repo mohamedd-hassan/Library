@@ -1,0 +1,15 @@
+\subsection{\ShiftsSectionName}
+
+Les décalages de bit sont implémentés en \CCpp avec les opérateurs $\ll$ et $\gg$.
+Le x86 \ac{ISA} possède les instructions SHL (SHift Left / décalage à gauche) et
+SHR (SHift Right / décalage à droite) pour ceci.
+Les instructions de décalage sont souvent utilisées pour la division et la multiplication
+par des puissances de deux: $2^{n}$ (e.g., 1, 2, 4, 8, etc.):
+\myref{subsec:mult_using_shifts},
+\myref{division_by_shifting}.
+
+% FIXME: rework this
+
+Les opérations de décalage sont aussi si importantes car elles sont souvent utilisées
+pour isoler des bits spécifiques ou pour construire une valeur à partir de plusieurs
+bits épars.

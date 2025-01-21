@@ -1,0 +1,34 @@
+﻿\subsection{x86}
+
+\dots est compilée de manière très prédictive:
+
+\lstinputlisting[caption=MSVC,style=customasmx86]{\CURPATH/11_1_msvc_FR.asm}
+
+\myindex{x86!\Instructions!IDIV}
+
+\IDIV divise le nombre 64-bit stocké dans la paire de registres \TT{EDX:EAX} par
+la valeur dans \ECX.
+Comme résultat, \EAX contiendra le \gls{quotient}, et \EDX --- le reste.
+Le résultat de la fonction \ttf est renvoyé dans le registre \EAX, donc la valeur
+n'est pas déplacée après la division, elle est déjà à la bonne place.
+
+Puisque \IDIV utilise la valeur dans la paire de registres \TT{EDX:EAX}, l'instruction
+\TT{CDQ} (avant \IDIV) étend la valeur dans \EAX en une valeur 64-bit, en tenant
+compte du signe, tout comme \MOVSX le fait.
+
+Si nous mettons l'optimisation (\Ox), nous obtenons:
+
+\lstinputlisting[caption=MSVC \Optimizing,style=customasmx86]{\CURPATH/11_1_msvc_Ox.asm}
+
+Ceci est la division par la multiplication. L'opération de multiplication est bien
+plus rapide.
+Et il possible d'utiliser cette astuce
+\footnote{En savoir plus sur la division par la multiplication dans \InSqBrackets{\HenryWarren 10-3}}
+pour produire du code effectivement équivalent et plus rapide.
+
+Ceci est aussi appelé \q{strength reduction} dans les optimisations du compilateur.
+
+GCC 4.4.1 génère presque le même code, même sans flag d'optimisation, tout comme
+MSVC avec l'optimisation:
+
+\lstinputlisting[caption=GCC 4.4.1 \NonOptimizing,style=customasmx86]{\CURPATH/11_2_gcc.asm}

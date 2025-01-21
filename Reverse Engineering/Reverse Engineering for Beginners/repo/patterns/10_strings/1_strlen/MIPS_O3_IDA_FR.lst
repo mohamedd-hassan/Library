@@ -1,0 +1,18 @@
+my_strlen:
+; la variable "eos" sera toujours dans \$v1:
+                move    $v1, $a0
+
+loc_4:
+; charger l'octet à l'adresse dans "eos" dans \$a1:
+                lb      $a1, 0($v1)
+                or      $at, $zero ; slot de délai de branchement, NOP
+; si l'octet chargé n'est pas zéro, sauter en loc\_4:
+                bnez    $a1, loc_4
+; incrémenter "eos" de toutes façons:
+                addiu   $v1, 1 ; slot de délai de branchement
+; boucle terminée. inverser variable "str":
+                nor     $v0, $zero, $a0
+; \$v0=-str-1
+                jr      $ra
+; valeur de retour = \$v1 + \$v0 = eos + ( -str-1 ) = eos - str - 1
+                addu    $v0, $v1, $v0 ; slot de délai de branchement

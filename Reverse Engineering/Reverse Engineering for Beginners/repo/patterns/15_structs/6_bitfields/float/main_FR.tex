@@ -1,0 +1,31 @@
+﻿\subsubsection{\WorkingWithFloatAsWithStructSubSubSectionName}
+\label{sec:floatasstruct}
+
+Comme nous l'avons expliqué dans la section traitant de la FPU~(\myref{sec:FPU}), les types \Tfloat et 
+\Tdouble sont constitués d'un \emph{signe}, d'un \emph{significande} (ou \emph{fraction}) et d'un \emph{exposant}.
+Mais serions nous capable de travailler avec chacun de ces champs indépendamment? Essayons avec un \Tfloat.
+
+\input{float_IEEE754.tex}
+
+\lstinputlisting[style=customc]{patterns/15_structs/6_bitfields/float/float_FR.c}
+
+La structure \TT{float\_as\_struct} occupe le même espace qu'un \Tfloat, soit 4 octets ou 32 bits.
+
+Nous positionnons maintenant le signe pour qu'il soit négatif puis en ajoutant à la valeur de l'exposant, 
+ce qui fait que nous multiplions le nombre par \TT{$2^2$}, soit 4.
+
+Compilons notre exemple avec MSVC 2008, sans optimisation:
+
+\lstinputlisting[caption=MSVC 2008 \NonOptimizing,style=customasmx86]{patterns/15_structs/6_bitfields/float/float_msvc_FR.asm}
+
+Si nous avions compilé avec le flag \Ox il n'y aurait pas d'appel à la fonction \TT{memcpy()}, et la variable 
+\TT{f} serait utilisée directement. Mais la compréhension est facilitée lorsque l'on s'intéresse à la version 
+non optimisée.
+
+A quoi cela ressemblerait si nous utilisions l'option \Othree avec le compilateur GCC 4.4.1 ?
+
+\lstinputlisting[caption=GCC 4.4.1 \Optimizing,style=customasmx86]{patterns/15_structs/6_bitfields/float/float_gcc_O3_FR.asm}
+
+La fonction \ttf est à peu près compréhensible. Par contre ce qui est intéressant c'est que GCC a été 
+capable de calculer le résultat de \TT{f(1.234)} durant la compilation malgré tous les triturages des champs 
+de la structure et a directement préparé l'argument passé à \printf{} durant la compilation!

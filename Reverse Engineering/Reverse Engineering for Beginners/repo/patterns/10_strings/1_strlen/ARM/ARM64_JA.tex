@@ -1,0 +1,29 @@
+﻿\myparagraph{ARM64}
+
+\mysubparagraph{\Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O3_JA.lst}
+
+アルゴリズムは、\myref{strlen_MSVC_Ox}と同じです。
+ゼロバイトを見つけて、
+ポインタの差を計算し、結果を1減らします。
+この本の著者によっていくつかのコメントが追加されました。
+
+注目すべきは、私たちの例が少し間違っていることです。
+\TT{my\_strlen()}は32ビット \Tint を返しますが、\TT{size\_t}または別の64ビット型を返す必要があります。
+
+その理由は、理論的には、\TT{strlen()}は4GBを超える膨大なメモリブロックに対して呼び出すことができるため、
+64ビットプラットフォームで64ビットの値を返すことができなければならないからです。
+
+私の間違いのために、最後の \SUB 命令はレジスタの32ビット部分で動作し、
+最後から2番目の \SUB 命令は64ビットレジスタ全体で動作します（ポインタ間の差を計算します）。
+
+間違いですが、そのような場合にコードがどのように見えるかの例として、そのまま残す方が良いです。
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O0_JA.lst}
+
+もっと冗長です。
+変数は、ここではメモリ（ローカルスタック）との間で頻繁に投げられます。
+同じミスもあります。デクリメント操作は32ビットのレジスタ部分で行われます。

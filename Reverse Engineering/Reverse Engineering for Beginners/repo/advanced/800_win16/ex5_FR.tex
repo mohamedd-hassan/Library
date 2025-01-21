@@ -1,0 +1,47 @@
+\subsection{\Example{} \#5}
+\label{win16_near_far_pointers}
+
+\lstinputlisting[style=customc]{\CURPATH/ex5.c}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/ex5.lst}
+
+\myindex{Intel!8086!Modèle de mémoire}
+Nous voyons ici une différence entre les pointeurs appelés \q{near} et \q{far}: un
+autre effet bizarre de la mémoire segmentée en 16-bit 8086.
+
+Vous pouvez en lire plus à ce sujet ici: \myref{8086_memory_mode}.
+
+Les pointeurs \q{near} sont ceux qui pointent dans le segment de données courant.
+C'est pourquoi la fonction \TT{string\_compare()} prend seulement deux pointeurs 16-bit,
+et accède des données dans le segment sur lequel \TT{DS} pointe (L'instruction \TT{mov al, [bx]}
+fonctionne en fait comme \TT{mov al, ds:[bx]}---\TT{DS} est implicite ici).
+
+Les pointeurs \q{far} sont ceux qui pointent sur des données dans un autre segment
+de mémoire.
+C'est pourquoi \TT{string\_compare\_far()} prend la paire de 16-bit comme un pointeur,
+charge la partie haute dans le registre de segment \TT{ES} et accède aux données
+à travers lui (\TT{mov al, es:[bx]}).
+Les pointeurs \q{far} sont aussi utilisés dans mon exemple win16
+\TT{MessageBox()}: \myref{win16_messagebox}.
+En effet, le noyau de Windows n'est pas au courant du segment de données qui doit être
+utilisé pour accéder aux chaînes de texte, donc il a besoin de l'information complète.
+La raison de cette distinction est qu'un programme compact peut n'utiliser qu'un
+segment de données de 64kb, donc il n'a pas besoin de passer la partie haute de l'adresse,
+qui est toujours la même.
+Un programme plus gros peut utiliser plusieurs segments de données de 64kb, donc il
+doit spécifier le segment de données à chaque fois.
+
+C'est la même histoire avec les segments de code.
+Un programme compact peut avoir tout son code exécutable dans un seul segment de 64kb,
+donc toutes les fonctions y seront appelées en utilisant l'instruction \TT{CALL NEAR},
+et le contrôle du flux sera renvoyé en utilisant \TT{RETN}.
+Mais si il y a plusieurs segments de code, alors l'adresse d'une fonction devra être
+spécifiée par une paire, et sera appelée en utilisant l'instruction \TT{CALL FAR},
+et le contrôle du flux renvoyé en utilisant \TT{RETF}.
+
+Ceci est ce qui est mis dans le compilateur en spécifiant le \q{modèle de mémoire}.
+
+Les compilateurs qui ciblent MS-DOS et Win16 ont des bibliothèques spécifiques pour
+chaque modèle de mémoire: elles diffèrent par le type de pointeurs pour le code et
+les données.
+

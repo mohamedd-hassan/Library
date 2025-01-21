@@ -1,0 +1,68 @@
+\mysection{Ritornare valori}
+\label{ret_val_func}
+
+Un'altra funzione semplice è quella che ritorna un valore costante:
+
+\lstinputlisting[label=lst:ret_val_func,caption=\ITph{},style=customc]{patterns/011_ret/1.c}
+
+Compiliamola.
+
+\subsection{x86}
+
+Questo è quello che i compilatori GCC e MSVC producono (con ottimizzazione) per x86:
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/011_ret/1.s}
+
+\myindex{x86!\Instructions!RET}
+Ci sono solo due istruzioni: la prima inserisce il valore 123 nel registro \EAX,
+che per convenzione viene utilizzato per memorizzare i valori di ritorno,
+e la seconda è \RET, che ritorna l'esecuzione al \gls{caller}.
+
+La funzione chiamante troverà quindi il valore di ritorno nel registro \EAX.
+
+\subsection{ARM}
+
+Ci sono alcune differenze nella piattaforma ARM:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode) ASM Output,style=customasmARM]{patterns/011_ret/1_Keil_ARM_O3.s}
+
+ARM utilizza il registro \Reg{0} per ritornare i risultati delle funzioni, quindi 123 viene copiato in \Reg{0}.
+
+\myindex{ARM!\Instructions!MOV}
+\myindex{x86!\Instructions!MOV}
+Occorre notare che \MOV è un nome di funzione fuorviante sia nella \ac{ISA} x86 che ARM.
+
+I dati non vengono infatti \emph{spostati}, ma \emph{copiati}.
+
+\subsection{MIPS}
+
+\label{MIPS_leaf_function_ex1}
+
+L'output in assembly di GCC assembly qua sotto chiama i registri per numero:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/011_ret/MIPS.s}
+
+\dots mentre \IDA utilizza gli pseudonimi:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/011_ret/MIPS_IDA.lst}
+
+Il registro \$2 (o \$V0) viene utilizzato per memorizzare il valore di ritorno della funzione.
+\myindex{MIPS!\Pseudoinstructions!LI}
+\INS{LI} sta per ``Load Immediate'' ed è l'equivalente MIPS di \MOV.
+
+\myindex{MIPS!\Instructions!J}
+L'altra istruzione è il salto (J or JR) che ritorna il flusso di esecuzione al \gls{caller}.
+
+\myindex{MIPS!Branch delay slot}
+Potresti domandarti perchè le posizioni delle istruzioni Load Immediate (LI) ed il jump (J or JR) siano invertite. Questo è dovuto ad una funzionalità di \ac{RISC} chiamata``branch delay slot''.
+
+Il motivo per cui accade è dovuto ad un problema nell'architettura di alcune \ac{ISA} RISC e non è importante per i nostri
+scopi---dobbiamo semplicemente tenere a mente che in MIPS, l'istruzione che segue un jump o un'istruzione condizionale
+viene eseguita \emph{prima} del salto/ramificazione stessi.
+
+Come conseguenza, le istruzioni di ramificazione vengono sempre scambiate di posto con l'istruzione immediatamente precedente.
+
+In pratica, le funzioni che ritornano semplicemente 1 (\emph{true}) o 0 (\emph{false}) sono molto frequenti.
+
+Le più piccole utility UNIX in assoluto, \emph{/bin/true} e \emph{/bin/false} ritornano 0 ed 1 rispettivamente, come codice di uscita.
+(Zero come codice di uscita generalmente indica successo, valori diversi da zero indicano errori.)

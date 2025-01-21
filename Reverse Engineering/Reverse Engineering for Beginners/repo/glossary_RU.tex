@@ -1,0 +1,305 @@
+\newglossaryentry{tail call}
+{
+  name=хвостовая рекурсия,
+  description={Это когда компилятор или интерпретатор превращает рекурсию 
+  (с которой возможно это проделать, т.е. \emph{хвостовую}) в итерацию для эффективности}
+}
+
+\newglossaryentry{endianness}
+{
+  name=endianness,
+  description={Порядок байт}
+}
+
+\newglossaryentry{caller}
+{
+  name=caller,
+  description={Функция вызывающая другую функцию}
+}
+
+\newglossaryentry{callee}
+{
+  name=callee,
+  description={Вызываемая функция}
+}
+
+\newglossaryentry{debuggee}
+{
+  name=debuggee,
+  description={Отлаживаемая программа}
+}
+
+\newglossaryentry{leaf function}
+{
+  name=leaf function,
+  description={Функция не вызывающая больше никаких функций}
+}
+
+\newglossaryentry{link register}
+{
+  name=link register,
+  description=(RISC) {Регистр в котором обычно записан адрес возврата.
+  Это позволяет вызывать leaf-функции без использования стека, т.е. быстрее}
+}
+
+\newglossaryentry{anti-pattern}
+{
+  name=anti-pattern,
+  description={Нечто широко известное как плохое решение}
+}
+
+\newglossaryentry{stack pointer}
+{
+  name=указатель стека,
+  description={Регистр указывающий на место в стеке}
+}
+
+\newglossaryentry{decrement}
+{
+  name=декремент,
+  description={Уменьшение на 1}
+}
+
+\newglossaryentry{increment}
+{
+  name=инкремент,
+  description={Увеличение на 1}
+}
+
+\newglossaryentry{loop unwinding}
+{
+  name=loop unwinding,
+  description={Это когда вместо организации цикла на $n$ итераций, компилятор генерирует $n$ копий тела
+  цикла, для экономии на инструкциях, обеспечивающих сам цикл}
+}
+
+\newglossaryentry{register allocator}
+{
+  name=register allocator,
+  description={Функция компилятора распределяющая локальные переменные по регистрам процессора}
+}
+
+\newglossaryentry{quotient}
+{
+  name=частное,
+  description={Результат деления}
+}
+
+\newglossaryentry{product}
+{
+  name={произведение},
+  description={Результат умножения}
+}
+
+\newglossaryentry{NOP}
+{
+  name=NOP,
+  description={\q{no operation}, холостая инструкция}
+}
+
+\newglossaryentry{POKE}
+{
+  name=POKE,
+  description={Инструкция языка BASIC записывающая байт по определенному адресу}
+}
+
+\newglossaryentry{keygenme}
+{
+  name=keygenme,
+  description={Программа, имитирующая защиту вымышленной программы, для которой нужно сделать 
+  генератор ключей/лицензий}
+} % TODO clarify: A software which generate key/license value to bypass sotfware protection?
+
+\newglossaryentry{dongle}
+{
+  name=dongle,
+  description={Небольшое устройство подключаемое к LPT-порту для принтера (в прошлом) или к USB}
+}
+
+\newglossaryentry{thunk function}
+{
+  name=thunk function,
+  description={Крохотная функция делающая только одно: вызывающая другую функцию}
+}
+
+\newglossaryentry{user mode}
+{
+  name=user mode,
+  description={Режим CPU с ограниченными возможностями в котором он исполняет прикладное ПО. ср.}
+}
+
+\newglossaryentry{kernel mode}
+{
+  name=kernel mode,
+  description={Режим CPU с неограниченными возможностями в котором он исполняет ядро OS и драйвера. ср.}
+}
+
+\newglossaryentry{Windows NT}
+{
+  name=Windows NT,
+  description={Windows NT, 2000, XP, Vista, 7, 8, 10}
+}
+
+\newglossaryentry{atomic operation}
+{
+  name=atomic operation,
+  description={
+  \q{$\alpha{}\tau{}o\mu{}o\varsigma{}$}
+  %\q{atomic}
+  означает \q{неделимый} в греческом языке, так что атомарная операция ---
+  это операция которая гарантированно не будет прервана другими тредами}
+}
+
+% to be proofreaded (begin)
+\newglossaryentry{NaN}
+{
+  name=NaN,
+  description={
+  	не число: специальные случаи чисел с плавающей запятой, 
+  	обычно сигнализирующие об ошибках
+  }
+}
+
+\newglossaryentry{basic block}
+{
+  name=basic block,
+  description={
+  	группа инструкций, не имеющая инструкций переходов,
+	а также не имеющая переходов в середину блока извне.
+	В \IDA он выглядит как просто список инструкций без строк-разрывов
+  }
+}
+
+\newglossaryentry{NEON}
+{
+  name=NEON,
+  description={\ac{AKA} \q{Advanced SIMD} --- от ARM}
+}
+
+\newglossaryentry{reverse engineering}
+{
+  name=reverse engineering,
+  description={процесс понимания как устроена некая вещь, иногда, с целью клонирования оной}
+}
+
+\newglossaryentry{compiler intrinsic}
+{
+  name=compiler intrinsic,
+  description={Специфичная для компилятора функция не являющаяся обычной библиотечной функцией.
+	Компилятор вместо её вызова генерирует определенный машинный код.
+	Нередко, это псевдофункции для определенной инструкции \ac{CPU}. Читайте больше:}
+}
+
+\newglossaryentry{heap}
+{
+  name=heap,
+  description={(куча) обычно, большой кусок памяти предоставляемый \ac{OS}, так что прикладное ПО может делить его
+  как захочет. malloc()/free() работают с кучей}
+}
+
+\newglossaryentry{name mangling}
+{
+  name=name mangling,
+  description={применяется как минимум в \Cpp, где компилятору нужно закодировать имя класса,
+  метода и типы аргументов в одной
+  строке, которая будет внутренним именем функции. читайте также здесь: \myref{namemangling}}
+}
+
+\newglossaryentry{xoring}
+{
+  name=xoring,
+  description={нередко применяемое в английском языке, означает применение операции 
+  \ac{XOR}}
+}
+
+\newglossaryentry{security cookie}
+{
+  name=security cookie,
+  description={Случайное значение, разное при каждом исполнении. Читайте больше об этом тут}
+}
+
+\newglossaryentry{tracer}
+{
+  name=tracer,
+  description={Моя простейшая утилита для отладки. Читайте больше об этом тут: \myref{tracer}}
+}
+
+\newglossaryentry{GiB}
+{
+  name=GiB,
+  description={Гибибайт: $2^{30}$ или 1024 мебибайт или 1073741824 байт}
+}
+
+\newglossaryentry{CP/M}
+{
+  name=CP/M,
+  description={Control Program for Microcomputers: очень простая дисковая \ac{OS} использовавшаяся перед MS-DOS}
+}
+
+\newglossaryentry{stack frame}
+{
+  name=stack frame,
+  description={Часть стека, в которой хранится информация, связанная с текущей функцией: локальные переменные,
+  аргументы функции, \ac{RA}, итд.}
+}
+
+\newglossaryentry{jump offset}
+{
+  name=jump offset,
+  description={Часть опкода JMP или Jcc инструкции, просто прибавляется к адресу следующей инструкции,
+  и так вычисляется новый \ac{PC}. Может быть отрицательным}
+}
+
+\newglossaryentry{integral type}
+{
+  name=интегральный тип данных,
+  description={обычные числа, но не вещественные. могут использоваться для передачи булевых типов и перечислений (enumerations)}
+}
+
+\newglossaryentry{real number}
+{
+  name=вещественное число,
+  description={числа, которые могут иметь точку. в \CCpp это \Tfloat и \Tdouble}
+}
+
+\newglossaryentry{PDB}
+{
+  name=PDB,
+  description={(Win32) Файл с отладочной информацией, обычно просто имена функций, 
+  но иногда имена аргументов функций и локальных переменных}
+}
+
+\newglossaryentry{NTAPI}
+{
+  name=NTAPI,
+  description={\ac{API} доступное только в линии Windows NT. 
+  Большей частью не документировано Microsoft-ом}
+}
+
+\newglossaryentry{stdout}
+{
+  name=stdout,
+  description={standard output}
+}
+
+\newglossaryentry{word}
+{
+  name=word,
+  description={(слово) тип данных помещающийся в \ac{GPR}. 
+  В компьютерах старше персональных, память часто измерялась не в байтах, 
+  а в словах}
+}
+
+\newglossaryentry{arithmetic mean}
+{
+  name=среднее арифметическое,
+  description={сумма всех значений, разделенная на их количество}
+}
+\newglossaryentry{padding}
+{
+  name=padding,
+  description={\emph{Padding} в английском языке означает набивание подушки чем-либо для придания ей желаемой (большей)
+  формы. В компьютерных науках, \emph{padding} означает добавление к блоку дополнительных байт, чтобы он имел нужный
+  размер, например, $2^n$ байт.}
+}
+

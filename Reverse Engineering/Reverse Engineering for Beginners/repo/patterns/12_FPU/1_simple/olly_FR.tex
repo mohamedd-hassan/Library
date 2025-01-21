@@ -1,0 +1,107 @@
+﻿\clearpage
+\myparagraph{MSVC + \olly}
+\myindex{\olly}
+
+2 paires de mots 32-bit sont marquées en rouge sur la pile.
+Chaque paire est un double au format IEEE 754 et est passée depuis \main.
+
+Nous voyons comment le premier \FLD charge une valeur ($1.2$) depuis la pile et la
+stocke dans \ST{0}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly1.png}
+\caption{\olly: le premier \FLD a été exécuté}
+\label{fig:FPU_simple_olly_1}
+\end{figure}
+
+À cause des inévitables erreurs de conversion depuis un nombre flottant 64-bit au
+format IEEE 754 vers 80-bit (utilisé en interne par le FPU), ici nous voyons 1.199\ldots,
+qui est proche de 1.2.
+
+\EIP pointe maintenant sur l'instruction suivante (\FDIV), qui charge un double
+(une constante) depuis la mémoire.
+Par commodité, \olly affiche sa valeur: 3.14
+
+\clearpage
+Continuons l'exécution pas à pas.
+\FDIV a été exécuté, maintenant \ST{0} contient 0.382\ldots
+(\gls{quotient}):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly2.png}
+\caption{\olly: \FDIV a été exécuté}
+\label{fig:FPU_simple_olly_2}
+\end{figure}
+
+\clearpage
+Troisième étape: le \FLD suivant a été exécuté, chargeant 3.4 dans \ST{0} (ici nous
+voyons la valeur approximative 3.39999\ldots):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly3.png}
+\caption{\olly: le second \FLD a été exécuté}
+\label{fig:FPU_simple_olly_3}
+\end{figure}
+
+En même temps, le \gls{quotient} \emph{est poussé} dans \ST{1}.
+Exactement maintenant, \EIP pointe sur la prochaine instruction: \FMUL.
+Ceci charge la constante 4.1 depuis la mémoire, ce que montre \olly.
+
+\clearpage
+Suivante: \FMUL a été exécutée, donc maintenant le \glslink{product}{produit} est dans \ST{0}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly4.png}
+\caption{\olly: \FMUL a été exécuté}
+\label{fig:FPU_simple_olly_4}
+\end{figure}
+
+\clearpage
+Suivante: \FADDP a été exécutée, maintenant le résultat de l'addition est dans \ST{0},
+et \ST{1} est vidé.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly5.png}
+\caption{\olly: \FADDP a été exécuté}
+\label{fig:FPU_simple_olly_5}
+\end{figure}
+
+Le résultat est laissé dans \ST{0}, car la fonction renvoie son résultat dans \ST{0}.
+
+\main prend cette valeur depuis le registre plus loin.
+
+Nous voyons quelque chose d'inhabituel: la valeur 13.93\ldots se trouve maintenant
+dans \ST{7}.
+Pourquoi?
+
+\label{FPU_is_rather_circular_buffer}
+
+Comme nous l'avons lu il y a quelque temps dans ce livre, les registres \ac{FPU} sont
+une pile: \myref{FPU_is_stack}.
+Mais ceci est une simplification.
+
+Imaginez si cela était implémenté \emph{en hardware} comme cela est décrit, alors
+tout le contenu des 7 registres devrait être déplacé (ou copié) dans les registres
+adjacents lors d'un push ou d'un pop, et ceci nécessite beaucoup de travail.
+
+En réalité, le \ac{FPU} a seulement 8 registres et un pointeur (appelé \GTT{TOP})
+qui contient un numéro de registre, qui est le \q{haut de la pile} courant.
+
+Lorsqu'une valeur est poussée sur la pile, \GTT{TOP} est déplacé sur le registre
+disponible suivant, et une valeur est écrite dans ce registre.
+
+La procédure est inversée si la valeur est lue, toutefois, le registre qui a été
+libéré n'est pas vidé (il serait possible de le vider, mais ceci nécessite plus de
+travail qui peut dégrader les performances).
+Donc, c'est ce que nous voyons ici.
+
+On peut dire que \FADDP sauve la somme sur la pile, et y supprime un élément.
+
+Mais en fait, cette instruction sauve la somme et ensuite décale \GTT{TOP}.
+
+Plus précisément, les registres du  \ac{FPU} sont un tampon circulaire.

@@ -1,0 +1,76 @@
+﻿\subsubsection{ARM + \OptimizingXcodeIV (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ARMMode),label=ARM_leaf_example4,style=customasmARM]{patterns/14_bitfields/4_popcnt/ARM_Xcode_O3_JA.lst}
+
+\myindex{ARM!\Instructions!TST}
+\TST はx86では \TEST と同じです。
+
+\myindex{ARM!Optional operators!LSL}
+\myindex{ARM!Optional operators!LSR}
+\myindex{ARM!Optional operators!ASR}
+\myindex{ARM!Optional operators!ROR}
+\myindex{ARM!Optional operators!RRX}
+\myindex{ARM!\Instructions!MOV}
+\myindex{ARM!\Instructions!TST}
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!SUB}
+\myindex{ARM!\Instructions!RSB}
+前述のように(\myref{shifts_in_ARM_mode})、
+ARMモードでは個別のシフト命令はありません。
+ただし、 \MOV 、 \TST 、 \CMP 、 \ADD 、 \SUB 、 \RSB などの命令には、
+LSL（\emph{Logical Shift Left}）、
+LSR（\emph{Logical Shift Right}）、
+ASR（\emph{Arithmetic Shift Right}）、
+ROR（\emph{Rotate Right}）、
+RRX（\emph{Rotate Right with Extend}） 
+があります。
+
+これらの変更子は、第2オペランドのシフト方法とビット数を定義します。
+
+\myindex{ARM!\Instructions!TST}
+\myindex{ARM!Optional operators!LSL}
+したがって、 \TT{\q{TST R1, R2,LSL R3}}命令はここでは $R1 \land (R2 \ll R3)$ として機能します。
+
+\subsubsection{ARM + \OptimizingXcodeIV (\ThumbTwoMode)}
+
+\myindex{ARM!\Instructions!LSL.W}
+\myindex{ARM!\Instructions!LSL}
+ほぼ同じですが、Thumbモードでは \LSL 修飾子を直接 \TST に定義することはできないため、
+1つの \TST の代わりに2つの \INS{LSL.W}/\TST 命令が使用されます。
+
+\begin{lstlisting}[label=ARM_leaf_example5,style=customasmARM]
+                MOV             R1, R0
+                MOVS            R0, #0
+                MOV.W           R9, #1
+                MOVS            R3, #0
+loc_2F7A
+                LSL.W           R2, R9, R3
+                TST             R2, R1
+                ADD.W           R3, R3, #1
+                IT NE
+                ADDNE           R0, #1
+                CMP             R3, #32
+                BNE             loc_2F7A
+                BX              LR
+\end{lstlisting}
+
+\subsubsection{ARM64 + \Optimizing GCC 4.9}
+
+すでに使用した64ビットの例を見てみましょう：\myref{popcnt_x64_example}
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.8,style=customasmARM]{patterns/14_bitfields/4_popcnt/ARM64_GCC_O3_JA.s}
+
+結果は、GCCがx64に対して生成するものと非常によく似ています：\myref{shifts64_GCC_O3}
+
+\myindex{ARM!\Instructions!CSEL}
+\CSEL 命令は\q{Conditional SELect}です。 
+\TST で設定されたフラグに応じて1つの変数が2つだけ選択され、値が \q{rt}変数を保持する\RegW{2}にコピーされます。
+
+\subsubsection{ARM64 + \NonOptimizing GCC 4.9}
+
+もう一度、すでに使用した64ビットの例について作業します：\myref{popcnt_x64_example}
+例によって、コードはより冗長です。
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.8,style=customasmARM]{patterns/14_bitfields/4_popcnt/ARM64_GCC_O0_JA.s}
+

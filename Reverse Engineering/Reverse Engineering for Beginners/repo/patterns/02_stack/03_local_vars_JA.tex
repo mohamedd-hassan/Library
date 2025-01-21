@@ -1,0 +1,15 @@
+\subsubsection{ローカル変数記憶域}
+
+関数は、スタックの底に向かって\gls{stack pointer}を減らすだけで、
+ローカル変数のためにスタックに領域を割り当てることができます。
+
+% I think here, "stack bottom" means the lowest address in the stack space,
+% but the reader might also think it means towards the top of the stack space,
+% like in a pop, so you might change "towards the stack bottom" to
+% "towards the lowest address of the stack", or just take it out,
+% since "decreasing" also suggests that.
+
+したがって、どれだけ多くのローカル変数が定義されていても、非常に高速です。 
+スタックにローカル変数を格納する必要もありません。 
+あなたは好きな場所にローカル変数を格納することができますが、
+伝統的にはこれがどのように行われています。

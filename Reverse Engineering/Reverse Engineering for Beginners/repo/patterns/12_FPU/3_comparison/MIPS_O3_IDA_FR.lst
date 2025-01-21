@@ -1,0 +1,16 @@
+d_max:
+; mettre le bit de condition du FPU si \$f14<\$f12 (b<a):
+                c.lt.d  $f14, $f12
+                or      $at, $zero ; NOP
+; sauter en locret\_14 si le bit de condition est mis
+                bc1t    locret_14
+; cette instruction est toujours exécutée (mettre la valeur de retour à  "a"):
+                mov.d   $f0, $f12  ; slot de délai de branchement
+; cette instruction est exécutée seulement si la branche n'a pas été prise 
+; (i.e., si b>=a)
+; mettre la valeur de retour à "b":
+                mov.d   $f0, $f14
+
+locret_14:
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement, NOP

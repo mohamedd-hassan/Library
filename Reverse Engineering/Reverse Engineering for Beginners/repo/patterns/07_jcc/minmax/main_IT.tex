@@ -1,0 +1,72 @@
+\subsection{Ottenere i valori massimo e minimo}
+
+\subsubsection{32-bit}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/minmax/minmax.c}
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2013,style=customasmx86]{patterns/07_jcc/minmax/minmax_MSVC_2013_IT.asm}
+
+\myindex{x86!\Instructions!Jcc}
+
+Queste due funzioni differiscono solo per l'istruzione di salto condizionale: 
+\INS{JGE} (\q{Jump if Greater or Equal}) è usata nella prima
+e \INS{JLE} (\q{Jump if Less or Equal}) nella seconda.
+
+\myindex{\CompilerAnomaly}
+\label{MSVC_double_JMP_anomaly}
+
+In ciascuna funzione c'è un'istruzione \JMP non necessaria, che MSVC ha probabilmente lasciato per sbaglio.
+
+\myparagraph{Branchless}
+
+ARM in modalità Thumb ci ricorda molto codice x86:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/minmax/minmax_Keil_Thumb_O3_IT.s}
+
+\myindex{ARM!\Instructions!Bcc}
+
+Le funzioni differiscono per le istruzioni di branching: \INS{BGT} e \INS{BLT}.
+Essendo possibile usare suffissi condizionali in modalità ARM, il codice è più conciso.
+
+\myindex{ARM!\Instructions!MOVcc}
+\INS{MOVcc} viene eseguita se la condizione è soddisfatta:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/minmax/minmax_Keil_ARM_O3_IT.s}
+
+\myindex{x86!\Instructions!CMOVcc}
+\Optimizing, GCC 4.8.1 e MSVC 2013 possono usare l'istruzione \INS{CMOVcc}, che è analoga a \INS{MOVcc} in ARM:
+
+\lstinputlisting[caption=\Optimizing MSVC 2013,style=customasmx86]{patterns/07_jcc/minmax/minmax_GCC481_O3_IT.s}
+
+\subsubsection{64-bit}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/minmax/minmax64.c}
+
+C'è un po' di spostamento di valori non necessario, ma il codice è comprensibile:
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,style=customasmARM]{patterns/07_jcc/minmax/minmax64_GCC_49_ARM64_O0.s}
+
+\myparagraph{Branchless}
+
+Non è necessario caricare gli argomenti della funzione dallo stack poiché sono già nei registri:
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 x64,style=customasmx86]{patterns/07_jcc/minmax/minmax64_GCC_49_x64_O3_IT.s}
+
+MSVC 2013 fa pressoché lo stesso.
+
+\myindex{ARM!\Instructions!CSEL}
+
+ARM64 ha l'istruzione \INS{CSEL}, che funziona esattamente come \INS{MOVcc} in ARM o \INS{CMOVcc} in x86, cambia soltanto il nome:
+\q{Conditional SELect}.
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 ARM64,style=customasmARM]{patterns/07_jcc/minmax/minmax64_GCC_49_ARM64_O3_IT.s}
+
+\subsubsection{MIPS}
+
+Sfortunatamente GCC 4.4.5 per MIPS non è altrettanto bravo:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/minmax/minmax_MIPS_O3_IDA_IT.lst}
+
+Non ci dimentichiamo dei \emph{branch delay slot}: la prima \INS{MOVE} è eseguita \emph{prima} di \INS{BEQZ}, 
+la seconda \INS{MOVE} viene eseguita solo se il branch non è stato seguito.
+

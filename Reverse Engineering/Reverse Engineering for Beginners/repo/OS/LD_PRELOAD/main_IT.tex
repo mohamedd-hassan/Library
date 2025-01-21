@@ -1,0 +1,111 @@
+\subsection{\emph{LD\_PRELOAD} hack in Linux}
+
+\myindex{LD\_PRELOAD}
+\label{ld_preload}
+
+Questo ci permette di caricare le nostre librerie dinamiche prima delle altre, anche quelle del sistema, come libc.so.6.
+
+Questo a sua volta ci permette di \q{sostituire} la funzione che abbiamo scritto con quella nelle librerie del sistema.
+Ad esempio, è facile intercettare tutte le chiamate da  
+time(), read(), write(), etc. \\
+\\
+\myindex{uptime}
+Proviamo ad ingannare l'utility \emph{uptime}.
+Come sappiamo, essa ci dice da quanto tempo il computer sta lavorando.
+\myindex{strace}
+Con l'aiuto di strace(\myref{strace}), è possibile osservare che l'utility prende questa informazione dal file \TT{/proc/uptime}:
+
+\begin{lstlisting}
+$ strace uptime 
+...
+open("/proc/uptime", O_RDONLY)          = 3
+lseek(3, 0, SEEK_SET)                   = 0
+read(3, "416166.86 414629.38\n", 2047)  = 20
+...
+\end{lstlisting}
+
+Questo non è un file presente su disco ma uno virtuale, il suo contenuto è generato al volo nel Linux kernel.
+Contiene due numeri:
+
+\begin{lstlisting}
+$ cat /proc/uptime
+416690.91 415152.03
+\end{lstlisting}
+
+Da Wikipedia possiamo imparare che
+\footnote{\url{https://en.wikipedia.org/wiki/Uptime}}:
+
+\begin{framed}
+\begin{quotation}
+Il primo numero è il numero totale di secondi che il sistema è acceso.
+Il secondo numero è la quantità di tempo che la macchina è rimasta in attesa (idle), in secondi.
+\end{quotation}
+\end{framed}
+
+\myindex{\CStandardLibrary!open()}
+\myindex{\CStandardLibrary!read()}
+\myindex{\CStandardLibrary!close()}
+
+Proviamo a scrivere la nostra libreria dinamica con le funzioni open(), read(), e close().
+
+Come prima cosa, la funzione open() confronterà il nome del file da aprire con con quello che ci serve,
+se l'esito è positivo, scriverà il descrittore del file aperto.
+
+In secondo luogo, la funzione read(), se chiamata per tale descrittore del file, sostituirà l'output, altrimenti chiamerà 
+la funzione read() originale dalla libreria libc.so.6.
+E quindi la funzione close(), chiuderà il file che abbiamo utilizzato.
+
+\myindex{dlopen()}
+\myindex{dlsym()}
+
+Useremo le funzioni dlopen() e dlsym() per determinare l'indirizzo della funzione originale in libc.so.6.
+Dobbiamo usare queste funzioni per passare il controllo alla \q{vera} funzione.
+
+\myindex{\CStandardLibrary!strcmp()}
+
+D'altra parte, se intercettiamo la chiamata a strcmp() e monitoriamo ogni confronto tra stringhe
+nel programma, dovremmo implementare una nostra versione di strcmp(), senza usare la funzione originale.
+\footnote{Ad esempio, in questo articolo trovi quanto facilmente strcmp() riesce ad intercettare le chiamate
+\footnote{\href{https://yurichev.com/mirrors/LD_PRELOAD/Yong%20Huang%20LD_PRELOAD.txt}{yurichev.com}}
+written by Yong Huang}
+
+\lstinputlisting[style=customc]{OS/LD_PRELOAD/fool_uptime.c}
+( \href{\RepoURL/OS/LD_PRELOAD/fool_uptime.c}{Source code} )
+
+Compiliamolo con librerie dinamiche comuni:
+
+\begin{lstlisting}
+gcc -fpic -shared -Wall -o fool_uptime.so fool_uptime.c -ldl
+\end{lstlisting}
+
+Avviamo \emph{uptime} caricando prima le nostre librerie:
+
+\begin{lstlisting}
+LD_PRELOAD=`pwd`/fool_uptime.so uptime
+\end{lstlisting}
+
+Osserviamo che:
+
+\begin{lstlisting}
+ 01:23:02 up 24855 days,  3:14,  3 users,  load average: 0.00, 0.01, 0.05
+\end{lstlisting}
+
+Se la variabile d'ambiente \emph{LD\_PRELOAD} punta sempre al nome del file ed al percorso della nostra libreria, 
+deve essere per forza avviato per tutti i programmi che andremo ad avviare. \\
+\\
+Altri esempi:
+
+\begin{itemize}
+
+\item
+Semplice intercettazione della funzione strcmp() (Yong Huang) 
+\url{https://yurichev.com/mirrors/LD_PRELOAD/Yong%20Huang%20LD_PRELOAD.txt}
+
+\item
+Kevin Pulo---Fun with LD\_PRELOAD. Molti esempio ed idee.
+\href{http://yurichev.com/mirrors/LD_PRELOAD/lca2009.pdf}{yurichev.com}
+
+\item
+Funzioni che intercettano file, per la compressione/decompressione di file al volo (zlibc). \url{ftp://metalab.unc.edu/pub/Linux/libs/compression}
+
+\end{itemize}

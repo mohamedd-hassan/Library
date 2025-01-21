@@ -1,0 +1,29 @@
+﻿\myparagraph{ARM64}
+
+\mysubparagraph{\Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O3_IT.lst}
+
+L' algoritmo è lo stesso di \myref{strlen_MSVC_Ox}: 
+trova un byte zero, 
+calcola la differenza tra i puntatori e decrementa il risultato di 1.
+Molti commenti sono stati aggiunti dall' autore di questo libro.
+
+L' unica cosa degna di nota è che il nostro esempio è in qualche modo sbagliato: \\
+\TT{my\_strlen()} ritorna  un \Tint a 32 bit, mentre dovrebbe ritornare \TT{size\_t} o un altro tipo a  64 bit.
+
+La ragione è che, teoricamente, \TT{strlen()} potrebbe essere chiamata per un grosso blocco in memoria che eccede
+4GB, quindi deve essere in grado di ritornare un valore a 64 bit su piattaforme a 64 bit.
+
+Per via del mio errore, l' ultima istruzione \SUB opera su una parte a 32-bit del registro, mentre la penultima istruzione
+\SUB lavora sull' intero registro a 64 bit (calcola la differenza tra i puntatori).
+
+E' un mio errore, è meglio lasciarlo com'è, come esempio di come il codice potrebbe apparire in questi casi.
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/10_strings/1_strlen/ARM/ARM64_GCC_O0_IT.lst}
+
+E' più verboso.
+Le variabili vengono spesso lanciate qui da e verso la memoria (stack locale).
+Qui c'è lo stesso errore: l'operazione di decremento avviene su una parte del registro a 32 bit.

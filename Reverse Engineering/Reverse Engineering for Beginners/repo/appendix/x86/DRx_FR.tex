@@ -1,0 +1,119 @@
+\subsection{Registres de débogage}
+
+Ils sont utilisés pour le contrôle des points d'arrêt matériel (\textit{hardware breakpoints}).
+
+\begin{itemize}
+	\item DR0 --- adresse du point d'arrêt \#1
+	\item DR1 --- adresse du point d'arrêt \#2
+	\item DR2 --- adresse du point d'arrêt \#3
+	\item DR3 --- adresse du point d'arrêt \#4
+	\item DR6 --- la cause de l'arrêt est indiquée ici
+	\item DR7 --- les types de point d'arrêt sont mis ici
+\end{itemize}
+
+\subsubsection{DR6}
+\myindex{x86!\Registers!DR6}
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\headercolor\ Bit (masque) &
+\headercolor\ Description \\
+\hline
+0 (1)       &  B0 --- le point d'arrêt \#1 a été déclenché \\
+\hline
+1 (2)       &  B1 --- le point d'arrêt \#2 a été déclenché \\
+\hline
+2 (4)       &  B2 --- le point d'arrêt \#3 a été déclenché \\
+\hline
+3 (8)       &  B3 --- le point d'arrêt \#4 a été déclenché \\
+\hline
+13 (0x2000) &  BD --- tentative de modification d'un des registres DRx.\\
+            &  peut être déclenché si GD est activé \\
+\hline
+14 (0x4000) &  BS --- point d'arrêt simple (le flag TF a été mis dans EFLAGS). \\
+	    &  La plus haute priorité. D'autres bits peuvent être mis aussi. \\
+\hline
+% TODO: describe BT
+15 (0x8000) &  BT (task switch flag) \\
+\hline
+\end{tabular}
+\end{center}
+
+N.B.  Un point d'arrêt simple est un point d'arrêt qui se produit après chaque instruction.
+Il peut être enclenché en mettant le flag TF dans EFLAGS (\myref{EFLAGS}).
+
+\subsubsection{DR7}
+\myindex{x86!\Registers!DR7}
+
+Les types de point d'arrêt sont mis ici.
+
+\small
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\headercolor\ Bit (masque) &
+\headercolor\ Description \\
+\hline
+0 (1)       &  L0 --- activer le point d'arrêt \#1 pour la tâche courante \\
+\hline
+1 (2)       &  G0 --- activer le point d'arrêt \#1 pour toutes les tâches \\
+\hline
+2 (4)       &  L1 --- activer le point d'arrêt \#2 pour la tâche courante \\
+\hline
+3 (8)       &  G1 --- activer le point d'arrêt \#2 pour toutes les tâches \\
+\hline
+4 (0x10)    &  L2 --- activer le point d'arrêt \#3 pour la tâche courante \\
+\hline
+5 (0x20)    &  G2 --- activer le point d'arrêt \#3 pour toutes les tâches \\
+\hline
+6 (0x40)    &  L3 --- activer le point d'arrêt \#4 pour la tâche courante \\
+\hline
+7 (0x80)    &  G3 --- activer le point d'arrêt \#4 pour toutes les tâches \\
+\hline
+8 (0x100)   &  LE --- non supporté depuis P6 \\
+\hline
+9 (0x200)   &  GE --- non supporté depuis P6 \\
+\hline
+13 (0x2000) &  GD --- exception déclenchée si une instruction MOV \\
+            &  essaye de modifier un des registres DRx \\
+\hline
+16,17 (0x30000)    &  point d'arrêt \#1: R/W --- type \\
+\hline
+18,19 (0xC0000)    &  point d'arrêt \#1: LEN --- longueur \\
+\hline
+20,21 (0x300000)   &  point d'arrêt \#2: R/W --- type \\
+\hline
+22,23 (0xC00000)   &  point d'arrêt \#2: LEN --- longueur \\
+\hline
+24,25 (0x3000000)  &  point d'arrêt \#3: R/W --- type \\
+\hline
+26,27 (0xC000000)  &  point d'arrêt \#3: LEN --- longueur \\
+\hline
+28,29 (0x30000000) &  point d'arrêt \#4: R/W --- type \\
+\hline
+30,31 (0xC0000000) &  point d'arrêt \#4: LEN --- longueur \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+
+Le type de point d'arrêt doit être mis comme suit (R/W):
+
+\begin{itemize}
+\item 00 --- exécution de l'instruction
+\item 01 --- écriture de données
+\item 10 --- lecture ou écriture I/O (non disponible en mode user)
+\item 11 --- à la lecture ou l'écriture de données
+\end{itemize}
+
+N.B.: le type de point d'arrêt est absent pour la lecture de données, en effet. \\
+\\
+La longueur du point d'arrêt est mise comme suit (LEN):
+
+\begin{itemize}
+\item 00 --- un octet
+\item 01 --- deux octets
+\item 10 --- non défini pour le mode 32-bit, huit octets en mode 64-bit
+\item 11 --- quatre octets
+\end{itemize}

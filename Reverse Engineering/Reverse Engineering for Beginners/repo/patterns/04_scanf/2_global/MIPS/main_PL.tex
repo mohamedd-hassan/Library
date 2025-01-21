@@ -1,0 +1,68 @@
+\subsubsection{MIPS}
+
+\myparagraph{Niezainicjalizowane zmienne globalne}
+
+$x$ jest teraz zmienną globalną.
+Skompilujmy program do pliku wykonywalnego, zamiast obiektowego, i otwórzmy w programie \IDA.
+IDA wyświetla zmienną $x$ w sekcji \TT{.sbss} pliku ELF (pamiętasz \q{Global Pointer}? \myref{MIPS_GP}),
+gdyż zmienna nie jest zainicjalizowana na starcie.
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_IDA_PL.lst}
+
+IDA nie wyświetliła wszystkich informacji, więc spójrzmy na listing wygenerowany za pomocą objdump oraz komentarze:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (objdump),numbers=left,style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_objdump_PL.txt}
+
+Teraz widać, że adres zmiennej $x$ jest wczytywany z 64KiB bufora danych za pomocą GP i ujemnego przesunięcia (linia 18).
+Co więcej, adresy trzech kolejnych zewnętrznych funkcji (\puts, \scanf, \printf) również wczytywane są z tego globalnego bufora, za pomocą GP (linia 9, 16 i 26).
+GP wskazuje na środek bufora, a takie przesunięcie świadczy o tym, że adresy trzech funkcji oraz zmiennej $x$ są przechowywane gdzieś na jego początku.
+Ma to sens, ponieważ nasz przykład jest bardzo prosty.
+
+\myindex{MIPS!\Pseudoinstructions!MOVE}
+\myindex{MIPS!\Pseudoinstructions!NOP}
+
+Warto zauważyć, że funkcja kończy się dwiema instrukcjami \ac{NOP} (\TT{MOVE \$AT,\$AT} --- puste instrukcje), by wyrównać początek kolejnej funkcji do granicy 16 bajtów.
+
+\myparagraph{Zainicjalizowane zmienne globalne}
+
+Zmieńmy nasz przykład, nadając zmiennej $x$ wartość:
+
+\lstinputlisting[style=customc]{patterns/04_scanf/2_global/default_value_PL.c}
+
+Teraz IDA pokazuje, że zmienna $x$ jest wczytywana z sekcji .data:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_IDA_init_PL.lst}
+
+Dlaczego nie z .sdata? Być może wpływają na to pewne opcje GCC?
+
+W każdym razie, $x$ jest w .data, a jest to pamięć współdzielona. Możemy zobaczyć jak taka pamięć jest wykorzystywana.
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{MIPS!\Instructions!ADDIU}
+
+Adres zmiennej jest konstruowany za pomocą pary instrukcji.
+
+W naszym przykładzie są to \INS{LUI} (\q{Load Upper Immediate}) i \INS{ADDIU} (\q{Add Immediate Unsigned Word}).
+
+Poniżej listing wygenerowany za pomocą objdump, do bardziej szczegółowej analizy:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (objdump),style=customasmMIPS]{patterns/04_scanf/2_global/MIPS/O3_objdump_init_PL.txt}
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{MIPS!\Instructions!ADDIU}
+\myindex{MIPS!\Instructions!LW}
+
+Widać, że po zbudowaniu adresu za pomocą \INS{LUI} i \INS{ADDIU} starsze bity wciąż znajdują się w
+rejestrze \$S0. Można teraz zakodować przesunięcie w instrukcji \INS{LW} (\q{Load Word}),
+by za pomocą tylko tej jednej instukcji załadować zmienną z pamięci i przekazać do funkcji \printf.
+
+Wiemy już, że rejestry przechowujące tymczasowe dane mają prefiks T-. W przykładzie widzimy również takie, które rozpoczynają się od S- ~---
+są to rejestry, których zawartość musi zostać zachowana, jeśli funkcja planuje ich użyć (np. muszą być gdzieś zapisana, a później przywrócone).
+Dzięki temu, gdy wywołujemy daną funkcję, to po jej zakończeniu i powrocie sterowania dane w tych rejestrach będą takie same, jak przed jej wywołaniem.
+% FIXME:
+% This needs to be clarified a bit, e.g. "the registers need to be preserved if a function is called and it wants to use them
+
+Dlatego wartość \$S0 została ustawiona w adresie 0x4006cc, a następnie ponownie użyta pod adresem 0x4006e8, po wywołaniu funkcji \scanf.
+Funkcja \scanf nie zmieniła tej wartości.
+
+% TODO non-optimized example?

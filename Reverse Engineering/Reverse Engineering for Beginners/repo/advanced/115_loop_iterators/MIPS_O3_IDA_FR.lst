@@ -1,0 +1,28 @@
+; \$a0=a1
+; \$a1=a2
+; \$a2=cnt
+f:
+; sauter au code de vérification de la boucle:
+                beqz    $a2, locret_24
+; initialiser le compteur (i) à 0:
+                move    $v0, $zero ; slot de délai de branchement, NOP
+
+loc_8:
+; charger le mot 32-bit en \$a1
+                lw      $a3, 0($a1)
+; incrémenter le compteur (i):
+                addiu   $v0, 1
+; vérifier si terminé (comparer "i" dans \$v0 et "cnt" dans \$a2):
+                sltu    $v1, $v0, $a2
+; stocker le mot 32-bit en \$a0:
+                sw      $a3, 0($a0)
+; ajouter 0x1C (28) à \$a1 à chaque itération:
+                addiu   $a1, 0x1C
+; sauter au corps de la boulce si i<cnt:
+                bnez    $v1, loc_8
+; ajouter 0xC (12) à \$a0 à chaque itération:
+                addiu   $a0, 0xC ; slot de délai de branchement
+
+locret_24:
+                jr      $ra
+                or      $at, $zero ; slot de délai de branchement, NOP

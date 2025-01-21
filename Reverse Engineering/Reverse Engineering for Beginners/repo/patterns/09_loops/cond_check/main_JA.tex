@@ -1,0 +1,22 @@
+﻿\subsection{条件チェック}
+
+\emph{for()}コンストラクトでは、ループボディの実行前に、条件が最後ではなく、最初からチェックされることに注意してください。 
+しかし、多くの場合、コンパイラはボディの後ろでそれを確認する方が便利です。 
+場合によっては、最初に追加チェックを付け足すこともできます。
+
+例：
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/1.c}
+
+最適化されたGCC 5.4.0 x64では：
+
+\lstinputlisting[style=customasmx86]{patterns/09_loops/cond_check/1.s}
+
+checkを2つ見てきました。
+
+\myindex{Hex-Rays}
+Hex-Rays (バージョン2.2.0より後)では次のようにデコンパイルします：
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/hexrays.c}
+
+この場合、\emph{do/while()}は\emph{for()}で置き換えられ、間違いなく最初のチェックを取り除くことができます。

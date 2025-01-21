@@ -1,0 +1,66 @@
+\subsection{Passer des valeurs en tant que pointeurs; tagged unions}
+
+Voici un exemple montrant comment passer des valeurs dans des pointeurs:
+
+\begin{lstlisting}[label=unsigned_multiply_C,style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+uint64_t multiply1 (uint64_t a, uint64_t b)
+{
+	return a*b;
+};
+
+uint64_t* multiply2 (uint64_t *a, uint64_t *b)
+{
+	return (uint64_t*)((uint64_t)a*(uint64_t)b);
+};
+
+int main()
+{
+	printf ("%d\n", multiply1(123, 456));
+	printf ("%d\n", (uint64_t)multiply2((uint64_t*)123, (uint64_t*)456));
+};
+\end{lstlisting}
+
+Il fonctionne sans problème et GCC 4.8.4 compile les fonctions multiply1() et multiply2()
+de manière identique!
+
+\begin{lstlisting}[label=unsigned_multiply_lst,style=customasmx86]
+multiply1:
+	mov	rax, rdi
+	imul	rax, rsi
+	ret
+
+multiply2:
+	mov	rax, rdi
+	imul	rax, rsi
+	ret
+\end{lstlisting}
+
+Tant que vous ne déréférencez pas le pointeur (autrement dit, que vous ne lisez aucune
+donnée depuis l'adresse stockée dans le pointeur), tout se passera bien.
+Un pointeur est une variable qui peut stocker n'importe quoi, comme une variable
+usuelle.
+
+\myindex{x86!\Instructions!MUL}
+\myindex{x86!\Instructions!IMUL}
+L'instruction de multiplication signée (\IMUL) est utilisée ici au lieu de la non-signée
+(\MUL), lisez-en plus à ce sujet ici:
+\myref{IMUL_over_MUL}.
+
+\myindex{Tagged pointers}
+À propos, il y a une astuce très connue pour abuser des pointeurs appelée \emph{tagged pointers}.
+En gros, si tous vos pointeurs pointent sur des blocs de mémoire de taille, disons,
+16 octets (ou qu'ils sont toujours alignés sur une limite de 16-octet), les 4 bits
+les plus bas du pointeur sont toujours zéro et cet espace peut être utilisé d'une
+certaine façon.
+\myindex{LISP}
+C'est très répandu dans les compilateurs et interpréteurs LISP.
+Ils stockent le type de cell/objet dans ces bits inutilisés, ceci peut économiser
+un peu de mémoire.
+Encore mieux, vous pouvez évaluer le type de cell/objet en utilisant seulement le pointeur,
+sans accès supplémentaire à la mémoire.
+En lire plus à ce sujet: \InSqBrackets{\CNotes\ 1.3}.
+
+% TODO Example of tagged ptrs here

@@ -1,0 +1,48 @@
+% TODO proof-reading
+\subsubsection{Le seul argument de la fonction \main est aussi un tableau}
+
+Nous allons utiliser le seul argument de la fonction \main, qui est un tableau de
+chaînes:
+
+\begin{lstlisting}[style=customjava]
+public class UseArgument
+{
+	public static void main(String[] args)
+	{
+		System.out.print("Hi, ");
+		System.out.print(args[1]);
+		System.out.println(". How are you?");
+	}
+}
+\end{lstlisting}
+
+L'argument d'indice zéro est le nom du programme (comme en \CCpp, etc.), donc le
+1er argument fourni par l'utilisateur est à l'indice 1.
+
+\begin{lstlisting}
+  public static void main(java.lang.String[]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=3, locals=1, args_size=1
+         0: getstatic     #2      // Field java/lang/System.out:Ljava/io/PrintStream;
+         3: ldc           #3      // String Hi, 
+         5: invokevirtual #4      // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+         8: getstatic     #2      // Field java/lang/System.out:Ljava/io/PrintStream;
+        11: aload_0       
+        12: iconst_1      
+        13: aaload        
+        14: invokevirtual #4      // Method java/io/PrintStream.print:(Ljava/lang/String;)V
+        17: getstatic     #2      // Field java/lang/System.out:Ljava/io/PrintStream;
+        20: ldc           #5      // String . How are you?
+        22: invokevirtual #6      // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        25: return        
+\end{lstlisting}
+
+\TT{aload\_0} en 11 charge une \emph{référence} sur le slot zéro du \ac{LVA}
+(1er et unique argument de \main).
+
+\TT{iconst\_1} et \TT{aaload} en 12 et 13 prend une \emph{référence} sur l'élément
+1 du tableau (en comptant depuis 0).
+
+La \emph{référence} sur l'objet chaîne est sur le \ac{TOS} à l'offset 14, et elle
+est prise d'ici par la méthode \TT{println}.

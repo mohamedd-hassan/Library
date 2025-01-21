@@ -1,0 +1,172 @@
+\subsubsection{std::string}
+\myindex{\Cpp!STL!std::string}
+\label{std_string}
+
+\myparagraph{Internals} % "Entrailles?"
+
+De nombreuses bibliothèques de chaînes \InSqBrackets{\CNotes 2.2} implémentent une
+structure qui contient un pointeur sur un buffer de chaîne, une variable qui contient
+toujours la longueur actuelle de la chaîne (ce qui est très pratique pour de nombreuses
+fonctions: \InSqBrackets{\CNotes 2.2.1}) et une variable qui contient la taille actuelle
+du buffer.
+
+La chaîne  dans le buffer est en général terminée par un zéro, afin de pouvoir passer
+un pointeur sur le buffer aux fonctions qui prennent une chaîne C \ac{ASCIIZ} standard.
+
+Il n'est pas précisé dans le standard \Cpp comment std::string doit être implémentée,
+toutefois, elle l'est en général comme expliqué ci-dessus.
+
+La chaîne \Cpp n'est pas une classse (comme QString dansQt, par exemple) mais un
+template (basic\_string), ceci est fait afin de supporter différents types de caractères:
+au moins \Tchar et \emph{wchar\_t}.
+
+Donc, std::string est une classe avec \Tchar comme type de base.
+
+Et std::wstring est une classe avec \emph{wchar\_t} comme type de base.
+
+\mysubparagraph{MSVC}
+
+L'implémentation de MSVC peut stocker le buffer en place au lieu d'utiliser un pointeur
+sur un buffer (si la chaîne est plus courte que 16 symboles).
+
+
+Ceci implique qu'une chaîne courte occupe au moins $16 + 4 + 4 = 24$
+octets en environnement 32-bit et au moins $16 + 8 + 8 = 32$
+octets dans un 64-bit, et si la chaîne est plus longue que 16 caractères, nous devons
+ajouter la longueur de la chaîne elle-même.
+
+\lstinputlisting[caption=exemple pour MSVC,style=customc]{\CURPATH/STL/string/MSVC_FR.cpp}
+
+Presque tout est clair dans le code source.
+
+Quelques notes:
+
+Si la chaîne est plus petite que 16 symboles, il n'y a pas de buffer alloué sur le
+\gls{heap}.
+
+Ceci est pratique car en pratique, beaucoup de chaînes sont courtes.
+
+Il semble que les développeurs de Microsoft aient choisi 16 caractères comme un bon
+compromis.
+
+On voit une chose très importante à la fin de main(): nous n'utilisons pas la méthode
+c\_str(), néanmoins, si nous compilons et exécutons ce code, les deux chaînes apparaîtrons
+dans la console!
+
+C'est pourquoi ceci fonctionne.
+
+Dans le premier cas, la chaîne fait moins de 16 caractères et le buffer avec la chaîne
+se trouve au début de l'objet std::string (il peut-être traité comme une structure).
+printf() traite le pointeur comme un pointeur sur un tableau de caractères terminé
+par un \\0, donc ça fonctionne.
+
+L'affichage de la seconde chaîne (de plus de 16 caractères) est encore plus dangereux:
+c'est une erreur typique de programmeur (ou une typo) d'oublier d'écrire c\_str().
+
+Ceci fonctionne car pour le moment un pointeur sur le buffer est situé au début de
+la structure.
+
+Ceci peut passer inaperçu pendant un long moment, jusqu'à ce qu'une chaîne plus longue
+apparaisse à un moment, alors le processus plantera.
+
+\mysubparagraph{GCC}
+
+L'implémentation de GCC de cette structure a une variable de plus---le compteur de
+références.
+
+Une chose intéressante est que dans GCC un pointeur sur une instance de std::string
+ne pointe pas au début de la structure, mais sur le pointeur du buffer.
+Dans \emph{libstdc++-v3\textbackslash{}include\textbackslash{}bits\textbackslash{}basic\_string.h}
+nous pouvons lire que ça a été fait ainsi afin de faciliter le débogage:
+
+\begin{lstlisting}
+   *  The reason you want _M_data pointing to the character %array and
+   *  not the _Rep is so that the debugger can see the string
+   *  contents. (Probably we should add a non-inline member to get
+   *  the _Rep for the debugger to use, so users can check the actual
+   *  string length.)
+\end{lstlisting}
+
+\href{http://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.4/a01068.html}{code source de basic\_string.h}
+
+Considérons ceci dans notre exemple:
+
+\lstinputlisting[caption=exemple pour GCC,style=customc]{\CURPATH/STL/string/GCC_FR.cpp}
+
+Il faut utiliser une astuce pour imiter l'erreur que nous avons vue avant car GCC
+a une vérification de type plus forte, cependant, printf() fonctionne ici également
+sans c\_str().
+
+\myparagraph{Un exemple plus avancé}
+
+\lstinputlisting[style=customc]{\CURPATH/STL/string/3.cpp}
+
+\lstinputlisting[caption=MSVC 2012,style=customasmx86]{\CURPATH/STL/string/3_MSVC_FR.asm}
+
+Le compilateur ne construit pas les chaînes statiquement: il ne serait de toutes
+façons pas possible si le buffer devait être situer dans le \gls{heap}.
+
+au lieu de ça, les chaînes \ac{ASCIIZ} sont stockées dans le segment de données,
+et plus tard, au lancement, avec l'aide de la méthode \q{assign}, les chaînes s1
+et s2 sont construites.
+
+Veuillez noter qu'il n'y a pas d'appel à la méthode c\_str(), car le code est assez
+petit pour que le compilateur le mette en ligne ici: si la chaîne est plus courte
+que 16 caractères, un pointeur sur le buffer est laissé dans \EAX, autrement l'adresse
+du buffer de la chaîne située dans le \gls{heap} est récupérée.
+
+Ensuite, nous voyons les appels aux 3 destructeurs, is sont appelés si la chaîne
+fait plus de 16 caractères: le buffer dans le \gls{heap} doit être libéré.
+Autrement, puisque les trois objets std::string sont stockés dans la pile, ils sont
+automatiquement libérés lorsque la fonction se termine.
+
+En conséquence, traiter des chaînes courtes est plus rapide, car il y a moins d'accès
+au \gls{heap}.
+
+Le code de GCC est encore plus simple (car la manière de GCC, comme nous l'avons
+vu ci-dessus, est de ne pas stocker les chaînes courtes directement dans la structure):
+
+% TODO1 comment each function meaning
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{\CURPATH/STL/string/3_GCC_FR.s}
+
+On voit que ce n'est pas un pointeur sur l'objet qui est passé aux destructeurs,
+mais plutôt une adresse 12 octets (ou 3 mots) avant, i.e., un pointeur sur le début
+réel de la structure.
+
+\myparagraph{std::string comme une variable globale}
+\label{sec:std_string_as_global_variable}
+
+Les programmeurs \Cpp expérimentés savent que les des variables globales des types
+\ac{STL} peuvent être définis sans problème.
+
+Oui, en effet:
+
+\lstinputlisting[style=customc]{\CURPATH/STL/string/5.cpp}
+
+Mais comment et où le constructeur de \TT{std::string} sera appelé?
+
+En fait, cette variable sera initialisée avant le démarrage de \main.
+
+\lstinputlisting[caption=MSVC 2012: voici comment une variable globale est construite et aussi comment sont destructeur est déclaré,style=customasmx86]{\CURPATH/STL/string/5_MSVC_p2.asm}
+
+\lstinputlisting[caption=MSVC 2012: ici une variable globale est utilisée dans \main,style=customasmx86]{\CURPATH/STL/string/5_MSVC_p1.asm}
+
+\lstinputlisting[caption=MSVC 2012: cette fonction destructeur est appelée avant exit,style=customasmx86]{\CURPATH/STL/string/5_MSVC_p3.asm}
+
+\myindex{\CStandardLibrary!atexit()}
+
+En fait, une fonction spéciale avec tous les constructeurs des variables globales
+est appelée depuis \ac{CRT}, avant main().
+
+Mieux que ça: avec l'aide de atexit() une autre fonction est enregistrée, qui contient
+des appels aux destructeurs de telles variables globales.
+
+GCC fonctionne comme ceci:
+
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{\CURPATH/STL/string/5_GCC.s}
+
+Mais il ne crée pas une fonction séparée pour cela, chaque destructeur est passé
+à atexit(), un par un.
+
+% TODO а если глобальная STL-переменная в другом модуле? надо проверить.
+

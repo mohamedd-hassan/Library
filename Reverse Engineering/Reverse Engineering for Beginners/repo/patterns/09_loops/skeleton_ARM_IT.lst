@@ -1,0 +1,10 @@
+﻿    MOV R4, 2 ; inizializzazione
+    B check
+body:
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; utilizza il contatore in R4, ma non modificarlo!
+    ADD R4,R4, #1 ; incrementa
+check:
+    CMP R4, #10
+    BLT body

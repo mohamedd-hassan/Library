@@ -1,0 +1,38 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/05_passing_arguments/ARM/tmp1.asm}
+
+The \main function simply calls two other functions, with three values passed to the 
+first one~---(\ttf).
+
+As was noted before, in ARM the first 4 values are usually passed in the first 4 registers (\Reg{0}-\Reg{3}).
+
+The \ttf function, as it seems, uses the first 3 registers (\Reg{0}-\Reg{2}) as arguments.
+
+\myindex{ARM!\Instructions!MLA}
+The \TT{MLA} (\emph{Multiply Accumulate}) 
+instruction multiplies its first two operands (\Reg{3} and \Reg{1}), adds the third operand (\Reg{2}) to the product and stores
+the result into the zeroth register (\Reg{0}), via which, by standard, functions return values.
+
+\myindex{Fused multiply–add}
+Multiplication and addition at once (\emph{Fused multiply–add}) 
+is a very useful operation. By the way, there was no such instruction in x86 
+before FMA-instructions appeared in SIMD
+\footnote{\href{https://en.wikipedia.org/wiki/FMA_instruction_set}{wikipedia}}.
+
+The very first \TT{MOV R3, R0}, 
+instruction is, apparently, redundant (a single \TT{MLA} instruction could be used here instead). 
+The compiler has not optimized it, since this is non-optimizing compilation.
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+The \TT{BX} instruction returns the control to the address stored in the \ac{LR} register and, if necessary, 
+switches the processor mode from Thumb to ARM or vice versa.
+This can be necessary since, as we can see, function \ttf is not aware from what kind of code it may be
+called, ARM or Thumb.
+Thus, if it gets called from Thumb code, 
+\TT{BX} is not only returns control to the calling function,
+but also switches the processor mode to Thumb.
+Or not switch, if the function has been called from ARM code \InSqBrackets{\ARMSevenRef A2.3.2}.
+% look for "BXWritePC()" in manual

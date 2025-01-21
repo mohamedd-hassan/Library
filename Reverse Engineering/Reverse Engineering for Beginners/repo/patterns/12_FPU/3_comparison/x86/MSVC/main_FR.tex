@@ -1,0 +1,109 @@
+\myparagraph{MSVC \NonOptimizing}
+
+MSVC 2010 génère ce qui suit:
+
+\lstinputlisting[caption=MSVC 2010 \NonOptimizing,style=customasmx86]{patterns/12_FPU/3_comparison/x86/MSVC/MSVC_FR.asm}
+
+\myindex{x86!\Instructions!FLD}
+
+Ainsi, \FLD charge \GTT{\_b} dans \ST{0}.
+
+\label{Czero_etc}
+\newcommand{\Czero}{\GTT{C0}\xspace}
+\newcommand{\Ctwo}{\GTT{C2}\xspace}
+\newcommand{\Cthree}{\GTT{C3}\xspace}
+\newcommand{\CThreeBits}{\Cthree/\Ctwo/\Czero}
+
+\myindex{x86!\Instructions!FCOMP}
+
+\FCOMP compare la valeur dans \ST{0} avec ce qui est dans \GTT{\_a} et met les bits
+\CThreeBits du mot registre d'état du FPU, suivant le résultat.
+Ceci est un registre 16-bit qui reflète l'état courant du FPU.
+
+Après que les bits ont été mis, l'instruction \FCOMP dépile une variable depuis la
+pile.
+C'est ce qui la différencie de \FCOM, qui compare juste les valeurs, laissant la
+pile dans le même état.
+
+Malheureusement, les CPUs avant les Intel P6\footnote{Intel P6 comprend les Pentium
+Pro, Pentium II, etc.} ne possèdent aucune instruction de saut conditionnel qui teste
+les bits \CThreeBits.
+Peut-être est-ce une raison historique (rappel: le FPU était une puce séparée dans
+le passé). Les CPU modernes, à partir des Intel P6 possèdent les instructions \\
+\FCOMI/\FCOMIP/\FUCOMI/\FUCOMIP~---qui
+font la même chose, mais modifient les flags \ZF/\PF/\CF du CPU.
+
+\myindex{x86!\Instructions!FNSTSW}
+
+L'instruction \FNSTSW copie le le mot du registre d'état du FPU dans \AX.
+Les bits \CThreeBits sont placés aux positions 14/10/8, ils sont à la même position
+dans le registre \AX et tous sont placés dans la partie haute de \AX{}~---\AH{}.
+
+\begin{itemize}
+\item Si $b>a$ dans notre exemple, alors les bits \CThreeBits sont mis comme ceci: 0, 0, 0.
+\item Si $a>b$, alors les bits sont: 0, 0, 1.
+\item Si $a=b$, alors les bits sont: 1, 0, 0.
+
+Si le résultat n'est pas ordonné (en cas d'erreur), alors les bits sont: 1, 1, 1.
+\end{itemize}
+% TODO: table here?
+
+Voici comment les bits \CThreeBits sont situés dans le registre \AX:
+
+\input{C3_in_AX}
+
+Voici comment les bits \CThreeBits sont situés dans le registre \AH:
+
+\input{C3_in_AH}
+
+Après l'exécution de \INS{test ah, 5}\footnote{5=101b}, seul les bits \Czero et \Ctwo
+(en position 0 et 2) sont considérés, tous les autres bits sont simplement ignorés.
+
+\label{parity_flag}
+\myindex{x86!\Registers!\Flags!Parity flag}
+
+Parlons maintenant du \emph{parity flag} (flag de parité), un autre rudiment historique
+remarquable.
+
+Ce flag est mis à 1 si le nombre de un dans le résultat du dernier calcul est pair,
+et à 0 s'il est impair.
+
+Regardons sur Wikipédia\footnote{\WikipediaParityFlag}:
+
+\begin{framed}
+\begin{quotation}
+Une raison commune de tester le bit de parité n'a rien à voir avec la parité. Le FPU
+possède quatre flags de condition (C0 à C3), mais ils ne peuvent pas être testés
+directement, et doivent d'abord être copiés dans le registre d'états.
+Lorsque ça se produit, C0 est mis dans le flag de retenue, C2 dans le flag
+de parité et C3 dans le flag de zéro.
+Le flag C2 est mis lorsque e.g. des valeurs en virgule flottantes incomparable
+(NaN ou format non supporté) sont comparées avec l'instruction \FUCOM.
+\end{quotation}
+\end{framed}
+
+Comme indiqué dans Wikipédia, le flag de parité est parfois utilisé dans du code
+FPU, voyons comment.
+
+\myindex{x86!\Instructions!JP}
+
+Le flag \PF est mis à 1 si à la fois \Czero et \Ctwo sont mis à 0 ou si les deux
+sont à 1, auquel cas le \JP (\emph{jump if PF==1}) subséquent est déclenché.
+Si l'on se rappelle les valeurs de \CThreeBits pour différents cas, nous pouvons
+voir que le saut conditionnel \JP est déclenché dans deux cas: si $b>a$ ou $a=b$
+(le bit \Cthree n'est pris en considération ici, puisqu'il a été mis à 0 par l'instruction
+\INS{test ah, 5}).
+
+C'est très simple ensuite.
+Si le saut conditionnel a été déclenché, \FLD charge la valeur de \GTT{\_b} dans
+\ST{0}, et sinon, la valeur de \GTT{\_a} est chargée ici.
+
+\mysubparagraph{Et à propos du test de \Ctwo?}
+
+Le flag \Ctwo est mis en cas d'erreur (\gls{NaN}, etc.), mais notre code ne le teste
+pas.
+
+Si le programmeur veut prendre en compte les erreurs FPU, il doit ajouter des tests
+supplémentaires.
+
+\input{patterns/12_FPU/3_comparison/x86/MSVC/olly_FR.tex}

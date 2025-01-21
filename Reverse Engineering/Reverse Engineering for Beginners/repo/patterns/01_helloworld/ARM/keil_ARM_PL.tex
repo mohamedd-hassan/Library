@@ -1,0 +1,104 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+Na początek skompilujmy nasz przykład za pomocą Keil:
+
+\begin{lstlisting}
+armcc.exe --arm --c90 -O0 1.c 
+\end{lstlisting}
+
+\myindex{\IntelSyntax}
+Kompilator \emph{armcc} generuje listing w asemblerze w składni Intela.
+Listing zawiera niektóre wysokopoziomowe makra, związane z ARM
+\footnote{Na przykład listing zawiera instrukcję \PUSH/\POP, których nie ma w trybie ARM}.
+Nas interesują prawdziwe instrukcje, dlatego zobaczmy jak wygląda skompilowany kod w programie \IDA.
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode) \IDA,style=customasmARM]
+.text:00000000             main
+.text:00000000 10 40 2D E9    STMFD   SP!, {R4,LR}
+.text:00000004 1E 0E 8F E2    ADR     R0, aHelloWorld ; "hello, world"
+.text:00000008 15 19 00 EB    BL      __2printf
+.text:0000000C 00 00 A0 E3    MOV     R0, #0
+.text:00000010 10 80 BD E8    LDMFD   SP!, {R4,PC}
+
+.text:000001EC 68 65 6C 6C+aHelloWorld  DCB "hello, world",0    ; DATA XREF: main+4
+\end{lstlisting}
+
+Widać, że każda instrukcja ma rozmiar 4 bajtów ~--- zgodnie z oczekiwaniami, ponieważ kompilowaliśmy nasz kod dla trybu ARM, a nie Thumb.
+
+\myindex{ARM!\Instructions!STMFD}
+\myindex{ARM!\Instructions!POP}
+Pierwsza instrukcja, \INS{STMFD SP!, \{R4,LR\}}\footnote{\ac{STMFD}},
+działa podobnie jak instrukcja \PUSH w x86: odkłada wartości dwóch rejestrów (\Reg{4} i \ac{LR}) na stos.
+
+W rzeczy samej, kompilator \emph{armcc}, generując listing, wstawił tam dla uproszczenia instrukcję \INS{PUSH \{r4,lr\}}.
+Nie jest to do końca precyzyjne, ponieważ instrukcja \PUSH dostępna jest w trybie Thumb.
+By uniknąć dezorientacji, wygenerowany kod maszynowy podglądamy w programie \IDA.
+
+Instrukcja najpierw zmniejsza \ac{SP}, by wskazywał na miejsce na stosie dostępne do zapisu nowych wartości, następnie zapisuje wartości rejestrów \Reg{4} i \ac{LR}
+pod adres w pamięci, na który wskazuje zmodyfikowany rejestr \ac{SP}.
+
+Podobnie jak \PUSH w trybie Thumb, ta instrukcja pozwala na odkładanie na stos wartości kilku rejestrów na raz, co może być bardzo wygodne.
+
+Przy okazji, takie zachowanie nie ma swojego odpowiednika w x86.
+
+Można zauważyć, że \TT{STMFD} jest generalizacją instrukcji \PUSH (czyli rozszerza jej możliwości), dlatego że może operować na różnych rejestrach, a nie tylko na \ac{SP}.
+Inaczej mówiąc, z \TT{STMFD} można korzystać przy zapisie wartości kilku rejestrów we wskazane miejsce w pamięci.
+
+\myindex{\PICcode}
+\myindex{ARM!\Instructions!ADR}
+Instrukcja \INS{ADR R0, aHelloWorld} dodaje/odejmuje wartość w rejestrze \ac{PC} (R0) do/od przesunięcia, w którym jest przechowywany łańcuch znaków
+\TT{hello, world}.
+Dlaczego użyto tutaj rejestru \ac{PC}? Jest to tzw. \q{\PICcode}
+\footnote{Jest to szerzej omówione w kolejnym rozdziale ~(\myref{sec:PIC})}.
+
+Taki kod można uruchomić z dowolnego miejsca w pamięci.
+Inaczej mówiąc, jest to adresowanie względne, względem rejestru \ac{PC}.
+W kodzie operacji (opcode) instrukcji \TT{ADR} jest zapisane przesunięcie (offset) między adresem tej instrukcji a adresem łańcucha znaków.
+Przesunięcie zawsze jest stałe, niezależnie od tego, w które miejsce \ac{OS} załadował nasz kod.
+Dlatego wszystko czego potrzebujemy~--- to dodanie adresu bieżącej instrukcji (z \ac{PC}), żeby otrzymać adres bezwględny łańcucha znaków.
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!BL}
+Instrukcja \INS{BL \_\_2printf}\footnote{Branch with Link} wywołuje funkcję \printf.
+Działanie tej instrukcji przebiega w 2 krokach:
+
+\begin{itemize}
+\item zapisz adres występujący po instrukcji \INS{BL} (\TT{0xC}) do rejestru \ac{LR},
+\item przekaż sterowanie do funkcji \printf, zapisując jej adres do rejestru \ac{PC}.
+\end{itemize}
+
+Kiedy funkcja \printf zakończy działanie, musi wiedzieć gdzie zwrócić sterowanie. Dlatego każda funkcja, kończąc pracę, zwraca sterowanie pod adres zapisany w rejestrze \ac{LR}.
+
+Na tym polega główna różnica między \q{czystymi} procesorami \ac{RISC}, jak ARM, a procesorami \ac{CISC} w rodzaju x86,
+gdzie adres powrotu zwykle jest odkładany na stos. Przeczytasz o tym więcej w kolejnym rozdziale ~(\myref{sec:stack}).
+
+Dodatkowo nie jest możliwe zakodowanie 32-bitowego adresu bezwzględnego (lub przesunięcia) w 32-bitowej instrukcji \INS{BL}, ponieważ ma ona miejsce tylko dla 24 bitów.
+Jak zapewne pamiętasz, wszystkie instrukcje w trybie ARM mają długość 4 bajtów (32 bitów) i mogą się znajdować tylko pod adresem wyrównanym do krotności 4 bajtów.
+Oznacza to, że ostatnich 2 bitów (które są zawsze zerowe) można nie kodować.
+Ostatecznie zostaje nam 26 bitów na zakodowanie przesunięcia. Odpowiada to zakresowi $current\_PC \pm{} \approx{}32M$.
+
+\myindex{ARM!\Instructions!MOV}
+Następna instrukcja \INS{MOV R0, \#0}\footnote{Oznacza MOV}
+po prostu zapisuje 0 do rejestru \Reg{0}.
+To dlatego, że nasza funkcja zwraca 0, a wartości zwracane z funkcji zapisywane są do \Reg{0}.
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!LDMFD}
+\myindex{ARM!\Instructions!POP}
+Ostatnia instrukcja to \INS{LDMFD SP!, {R4,PC}}\footnote{\ac{LDMFD} jest instrukcją odwrotną do \ac{STMFD}}.
+Pobiera ona wartość ze stosu (lub z pamięci), zapisuje do \Reg{4} i \ac{PC} oraz zwiększa \glslink{stack pointer}{wskaźnik stosu} \ac{SP}. Działa podobnie jak instrukcja \POP.\\
+Notabene, pierwsza instrukcja \TT{STMFD} odłożyła na stos wartości z rejestrów \Reg{4} i \ac{LR}, ale teraz zostały one przywrócone do \Reg{4} i \ac{PC}, dzięki instrukcji \TT{LDMFD}.
+
+Jak już wiemy, rejestr \ac{LR} zawiera adres w pamięci, pod który funkcja zwróci sterowanie po zakończeniu swojej pracy.
+Pierwsza instrukcja odkłada tę wartość na stos, ponieważ ten sam rejestr zostanie wykorzystany przez naszą funkcję \main, gdy wywoła ona funkcję \printf.
+
+Na końcu funkcji ta wartość zapisywana jest do rejestru \ac{PC}, w ten sposób przekazując sterowanie tam, skąd została wywołana.
+
+Z reguły funkcja \main jest funkcją główną w \CCpp, więc zarządzanie zostanie zwrócone do loadera w \ac{OS}, lub gdzieś do \ac{CRT}, lub w jeszcze inne, podobne, miejsce.
+
+Wszystko to pozwala pozbyć się ręcznego wywoływania \INS{BX LR} (skok pod adres z rejestru \ac{LR}) na samym końcu funcji.
+
+\myindex{ARM!DCB}
+\TT{DCB}~--- dyrektywa asemblera, opisująca tablicę bajtów bądź ciąg znaków ASCII, podobna do dyrektywy DB w x86
+
+

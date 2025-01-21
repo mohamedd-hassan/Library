@@ -1,0 +1,176 @@
+\subsubsection{ARM: 8 argomenti}
+% to be sync: \subsubsection{ARM: 8 integer arguments}
+
+Usiamo nuovamente l'esempio con 9 argomenti della sezione precedente: \myref{example_printf8_x64}.
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{\OptimizingKeilVI: \ARMMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp1.asm}
+
+Il codice può essere diviso in più parti
+
+\myindex{Function prologue}
+\begin{itemize}
+\item Preambolo della funzione:
+
+\myindex{ARM!\Instructions!STR}
+La prima istruzione \INS{STR LR, [SP,\#var\_4]!} salva \ac{LR} sullo stack, poichè questo registro sarà usato per la chiamata a \printf.
+Il punto esclamativo all fine indica il \emph{pre-index}.
+
+Questo implica che \ac{SP} deve essere prima decrementato di 4, e successivamente \ac{LR} sarà salvato all'indirizzo memorizzato in \ac{SP}.
+Tutto ciò è simile a \PUSH in x86.
+Maggiori informazioni qui: \myref{ARM_postindex_vs_preindex}.
+
+\myindex{ARM!\Instructions!SUB}
+La seconda istruzione \INS{SUB SP, SP, \#0x14} decrementa \ac{SP} (lo \gls{stack pointer}) per allocare \GTT{0x14} (20) byte sullo stack.
+Infatti dobbiamo passare 5 valori a 32-bit tramite lo stack per la funzione \printf, e ciascuno di essi occupa 4 byte, che è esattamente $5*4=20$.
+Gli altri 4 valori a 32-bit saranno passati tramite registri.
+
+\item Passaggio di 5, 6, 7 e 8 tramite lo stack: sono memorizzati nei registri \Reg{0}, \Reg{1}, \Reg{2} e \Reg{3}, rispettivamente.\\
+Successivamente l'istruzione \INS{ADD R12, SP, \#0x18+var\_14} scrive l'indirizzo dello stack, dove queste 4 variabili saranno memorizzate,
+nel registro \Reg{12}.
+\myindex{IDA!var\_?}
+\emph{var\_14} è una macro assembly, uguale a -0x14, creata da \IDA per visualizzare in maniera conveniente il codice che accede allo stack.
+Le macro \emph{var\_?} generate da \IDA riflettono le variabili locali nello stack.
+
+Quindi, \GTT{SP+4} sarà memorizzato nel registro \Reg{12}.
+\myindex{ARM!\Instructions!STMIA}
+L'istruzione successiva \INS{STMIA R12, {R0-R3}} scrive il contenuto dei registri \Reg{0}-\Reg{3} alla memoria puntata da \Reg{12}.
+\INS{STMIA} è abbreviazione per \emph{Store Multiple Increment After}. 
+\emph{Increment After} (incrementa dopo) implica che \Reg{12} deve essere incrementato di 4 dopo ciascuna scrittura di un valore nei registri.
+
+\item Passaggio di 4 tramite lo stack: 4 è memorizzato in \Reg{0} e questo valore, con l'aiuto dell'istruzione \INS{STR R0, [SP,\#0x18+var\_18]}, viene salvato sullo stack.
+\emph{var\_18} è -0x18, quindi l'offset deve essere 0, da cui il valore dal registro \Reg{0} (4) sara' scritto all'indirizzo memorizzato in \ac{SP}.
+
+\item Passaggio di 1, 2 e 3 tramite registri:
+I valori dei primi 3 numeri (a, b, c) (1, 2, 3 rispettivamente) sono passatti attraverso i registri
+\Reg{1}, \Reg{2} e \Reg{3}
+poco prima della chiamata a \printf call.
+
+\item chiamata a \printf.
+
+\myindex{Function epilogue}
+\item epilogo della funzione:
+
+% TODO to be synced with EN version:
+L'istruzione \INS{ADD SP, SP, \#0x14} ripristina il puntatore \ac{SP} al suo valore precedente, pulendo quindi lo stack.
+Ovviamente quello che era stato memorizzato nello stack rimarra lì, e sarà probabilmente riscritto interamente durante l'esecuzione delle funzioni seguenti.
+
+\myindex{ARM!\Instructions!LDR}
+L'istruzione \INS{LDR PC, [SP+4+var\_4],\#4} carica il valore di \ac{LR} salvato dallo stack nel nel registro \ac{PC}, causando quindi
+l'uscita dalla funzione.
+Non c'è il punto esclamativo ---infatti \ac{PC} è caricato prima dall'indirizzo memorizzato in \ac{SP} ($4+var\_4=4+(-4)=0$), questa istruzione è quindi analoga a \INS{LDR PC, [SP],\#4}), e successivamente \ac{SP} è incrementato di 4.
+Questo è detto \emph{post-index}\footnote{Maggiori dettagli: \myref{ARM_postindex_vs_preindex}.}.
+Perchè \IDA mostra l'istruzione in quel modo?
+Perchè vuole illustrare il layout dello stack ed il fatto che \GTT{var\_4} è allocata per salvare il valore di \ac{LR} nello stack locale.
+Questa istruzione è più o meno simile a \INS{POP PC} in x86\footnote{E' impossibile settare il valore di \GTT{IP/EIP/RIP} usando \POP in x86, ma in ogni caso hai capito l'analogia.}.
+
+\end{itemize}
+
+\myparagraph{\OptimizingKeilVI: \ThumbMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp2.asm}
+
+L'output è quasi identico al precedente esempio. Tuttavia questo è codice Thumb e i valori sono disposti nello stack in modo differente:
+8 per primo, quindi 5, 6, 7, e infine 4.
+
+\myparagraph{\OptimizingXcodeIV: \ARMMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:0000290C             _printf_main2
+__text:0000290C
+__text:0000290C             var_1C = -0x1C
+__text:0000290C             var_C  = -0xC
+__text:0000290C
+__text:0000290C 80 40 2D E9   STMFD  SP!, {R7,LR}
+__text:00002910 0D 70 A0 E1   MOV    R7, SP
+__text:00002914 14 D0 4D E2   SUB    SP, SP, #0x14
+__text:00002918 70 05 01 E3   MOV    R0, #0x1570
+__text:0000291C 07 C0 A0 E3   MOV    R12, #7
+__text:00002920 00 00 40 E3   MOVT   R0, #0
+__text:00002924 04 20 A0 E3   MOV    R2, #4
+__text:00002928 00 00 8F E0   ADD    R0, PC, R0
+__text:0000292C 06 30 A0 E3   MOV    R3, #6
+__text:00002930 05 10 A0 E3   MOV    R1, #5
+__text:00002934 00 20 8D E5   STR    R2, [SP,#0x1C+var_1C]
+__text:00002938 0A 10 8D E9   STMFA  SP, {R1,R3,R12}
+__text:0000293C 08 90 A0 E3   MOV    R9, #8
+__text:00002940 01 10 A0 E3   MOV    R1, #1
+__text:00002944 02 20 A0 E3   MOV    R2, #2
+__text:00002948 03 30 A0 E3   MOV    R3, #3
+__text:0000294C 10 90 8D E5   STR    R9, [SP,#0x1C+var_C]
+__text:00002950 A4 05 00 EB   BL     _printf
+__text:00002954 07 D0 A0 E1   MOV    SP, R7
+__text:00002958 80 80 BD E8   LDMFD  SP!, {R7,PC}
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!STMFA}
+\myindex{ARM!\Instructions!STMIB}
+Quasi lo stesso codice visto prima, ad eccezione dell'istruzione \INS{STMFA} (Store Multiple Full Ascending),
+che è sinonimo di \INS{STMIB} (Store Multiple Increment Before). 
+Questa istruzione incrementa il valore nel registro \ac{SP} e solo successivamente scrive il prossimo valore del registro in memoria, invece che operare le due azioni in ordine inverso.
+
+Un'altra cosa che salta all'occhio è che le istruzioni sono disponste in maniera apparentemente casuale.
+Ad esempio, il valore nel registro \Reg{0} è manipolato in tre posti diversi
+agli indirizzi \GTT{0x2918}, \GTT{0x2920} e \GTT{0x2928}, quando invece sarebbe stato possibile farlo in un punto solo.
+
+Ad ogni modo, il compilatore ottimizzante avrà avuto le sue ragioni per ordinare le istruzioni in questa maniera ed ottenere una maggiore efficacia durante l'esecuzione del codice.
+
+Solitamente il processero prova ad eseguire simultaneamentele istruzioni vicine.
+Ad esempio, istruzioni come \INS{MOVT R0, \#0} e
+\INS{ADD R0, PC, R0} non possono essere eseguite simultaneamente poichè entrambe modificano il registro \Reg{0}. 
+D'altra parte, \INS{MOVT R0, \#0} e \INS{MOV R2, \#4} 
+possono invece essere eseguite simultaneamente poichè l'effetto della loro esecuzione non genera conflitti tra loro.
+Presumibilmente, il compilatore prova a generare codice in questo modo (quando possibile).
+ 
+\myparagraph{\OptimizingXcodeIV: \ThumbTwoMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:00002BA0               _printf_main2
+__text:00002BA0
+__text:00002BA0               var_1C = -0x1C
+__text:00002BA0               var_18 = -0x18
+__text:00002BA0               var_C  = -0xC
+__text:00002BA0
+__text:00002BA0 80 B5          PUSH     {R7,LR}
+__text:00002BA2 6F 46          MOV      R7, SP
+__text:00002BA4 85 B0          SUB      SP, SP, #0x14
+__text:00002BA6 41 F2 D8 20    MOVW     R0, #0x12D8
+__text:00002BAA 4F F0 07 0C    MOV.W    R12, #7
+__text:00002BAE C0 F2 00 00    MOVT.W   R0, #0
+__text:00002BB2 04 22          MOVS     R2, #4
+__text:00002BB4 78 44          ADD      R0, PC  ; char *
+__text:00002BB6 06 23          MOVS     R3, #6
+__text:00002BB8 05 21          MOVS     R1, #5
+__text:00002BBA 0D F1 04 0E    ADD.W    LR, SP, #0x1C+var_18
+__text:00002BBE 00 92          STR      R2, [SP,#0x1C+var_1C]
+__text:00002BC0 4F F0 08 09    MOV.W    R9, #8
+__text:00002BC4 8E E8 0A 10    STMIA.W  LR, {R1,R3,R12}
+__text:00002BC8 01 21          MOVS     R1, #1
+__text:00002BCA 02 22          MOVS     R2, #2
+__text:00002BCC 03 23          MOVS     R3, #3
+__text:00002BCE CD F8 10 90    STR.W    R9, [SP,#0x1C+var_C]
+__text:00002BD2 01 F0 0A EA    BLX      _printf
+__text:00002BD6 05 B0          ADD      SP, SP, #0x14
+__text:00002BD8 80 BD          POP      {R7,PC}
+\end{lstlisting}
+
+L'output è quasi lo stesso dell'esempio precedente, ad eccezione dell'uso di istruzioni Thumb/Thumb-2. 
+% FIXME: also STMIA is used instead of STMIB,
+% which is why it uses LR, which is 4 bytes ahead of SP
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM8_O0_IT.lst}
+
+I primi 8 argomenti sono passati nei registri X- o W-: \ARMPCS.
+Un puntatore ad una string richiede un registro a 64-bit, quindi è passato in \RegX{0}.
+Tutti gli altri valori hanno tipo \Tint a 32-bit, quindi sono memorizzati nella parte a 32-bit dei registri (W-).
+Il nono argomento (8) è passato tramite lo stack.
+Infatti non è possibile passare un grande numero di argomenti tramite registri, in quanto il loro numero è limitato.
+
+\Optimizing GCC (Linaro) 4.9 genera lo stesso codice.

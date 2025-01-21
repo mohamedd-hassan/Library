@@ -1,0 +1,27 @@
+\subsubsection{Getting dimensions of multidimensional array}
+\myindex{Hex-Rays}
+
+Any string processing function, if an array of characters passed to it, can't deduce a size of the input array.
+Likewise, if a function processes 2D array, only one dimension can be deduced.
+
+For example:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2.c}
+
+... if compiled (by any compiler) and then decompiled by Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions2_hexrays.c}
+
+There is no way to find a size of the first dimension.
+If $x$ value passed is too big, buffer overflow would occur, an element from some random place of memory would be read.
+
+And 3D array:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3.c}
+
+Hex-Rays:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/dimensions3_hexrays.c}
+
+Again, sizes of only two of 3 dimensions can be deduced.
+

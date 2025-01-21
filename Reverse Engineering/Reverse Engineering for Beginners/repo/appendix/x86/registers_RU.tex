@@ -1,0 +1,411 @@
+\subsection{Регистры общего пользования}
+
+Ко многим регистрам можно обращаться как к частям размером в байт или 16-битное слово.
+
+Это всё --- наследие от более старых процессоров Intel (вплоть до 8-битного 8080),
+все еще поддерживаемое для обратной совместимости.
+
+Старые 8-битные процессоры 8080 имели 16-битные регистры, разделенные на две части.
+
+Программы, написанные для 8080 имели доступ к младшему байту 16-битного регистра, к старшему
+байту или к целому 16-битному регистру.
+
+Вероятно, эта возможность была оставлена в 8086 для более простого портирования.
+В \ac{RISC} процессорах, такой возможности, как правило, нет.
+
+\myindex{x86-64}
+Регистры, имеющие префикс \TT{R-} появились только в x86-64, а префикс \TT{E-} ---в 80386.
+
+Таким образом, R-регистры 64-битные, а E-регистры --- 32-битные.
+
+В x86-64 добавили еще 8 \ac{GPR}: R8-R15.
+
+N.B.: В документации от Intel, для обращения к самому младшему байту к имени регистра
+нужно добавлять суффикс \emph{L}: \emph{R8L}, но \ac{IDA} называет эти регистры добавляя суффикс \emph{B}: \emph{R8B}.
+
+\subsubsection{RAX/EAX/AX/AL}
+\RegTableOne{RAX}{EAX}{AX}{AH}{AL}
+
+\ac{AKA} аккумулятор.
+Результат функции обычно возвращается через этот регистр.
+
+\subsubsection{RBX/EBX/BX/BL}
+\RegTableOne{RBX}{EBX}{BX}{BH}{BL}
+
+\subsubsection{RCX/ECX/CX/CL}
+\RegTableOne{RCX}{ECX}{CX}{CH}{CL}
+
+\ac{AKA} счетчик:
+используется в этой роли в инструкциях с префиксом REP и в инструкциях сдвига
+(SHL/SHR/RxL/RxR).
+
+\subsubsection{RDX/EDX/DX/DL}
+\RegTableOne{RDX}{EDX}{DX}{DH}{DL}
+
+\subsubsection{RSI/ESI/SI/SIL}
+\RegTableTwo{RSI}{ESI}{SI}{SIL}
+
+\ac{AKA} \q{source index}. Используется как источник в инструкциях
+REP MOVSx, REP CMPSx.
+
+\subsubsection{RDI/EDI/DI/DIL}
+\RegTableTwo{RDI}{EDI}{DI}{DIL}
+
+\ac{AKA} \q{destination index}. Используется как указатель на место назначения в инструкции
+REP MOVSx, REP STOSx.
+
+% TODO навести тут порядок
+\subsubsection{R8/R8D/R8W/R8L}
+\RegTableFour{R8}{R8D}{R8W}{R8L}
+
+\subsubsection{R9/R9D/R9W/R9L}
+\RegTableFour{R9}{R9D}{R9W}{R9L}
+
+\subsubsection{R10/R10D/R10W/R10L}
+\RegTableFour{R10}{R10D}{R10W}{R10L}
+
+\subsubsection{R11/R11D/R11W/R11L}
+\RegTableFour{R11}{R11D}{R11W}{R11L}
+
+\subsubsection{R12/R12D/R12W/R12L}
+\RegTableFour{R12}{R12D}{R12W}{R12L}
+
+\subsubsection{R13/R13D/R13W/R13L}
+\RegTableFour{R13}{R13D}{R13W}{R13L}
+
+\subsubsection{R14/R14D/R14W/R14L}
+\RegTableFour{R14}{R14D}{R14W}{R14L}
+
+\subsubsection{R15/R15D/R15W/R15L}
+\RegTableFour{R15}{R15D}{R15W}{R15L}
+
+\subsubsection{RSP/ESP/SP/SPL}
+\RegTableFour{RSP}{ESP}{SP}{SPL}
+
+\ac{AKA} \gls{stack pointer}. Обычно всегда указывает на текущий стек, кроме тех случаев,
+когда он не инициализирован.
+
+\subsubsection{RBP/EBP/BP/BPL}
+\RegTableFour{RBP}{EBP}{BP}{BPL}
+
+\ac{AKA} frame pointer. Обычно используется для доступа к локальным переменным функции и аргументам,
+Больше о нем: (\myref{stack_frame}).
+
+\subsubsection{RIP/EIP/IP}
+
+\begin{center}
+\begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+\hline
+\RegHeaderTop \\
+\hline
+\RegHeader \\
+\hline
+\multicolumn{8}{ | c | }{RIP\textsuperscript{x64}} \\
+\hline
+\multicolumn{4}{ | c | }{} & \multicolumn{4}{ c | }{EIP} \\
+\hline
+\multicolumn{6}{ | c | }{} & \multicolumn{2}{ c | }{IP} \\
+\hline
+\end{tabular}
+\end{center}
+
+\ac{AKA} \q{instruction pointer}
+\footnote{Иногда называется также \q{program counter}}.
+Обычно всегда указывает на инструкцию, которая сейчас будет исполняться
+Напрямую модифицировать регистр нельзя, хотя можно делать так (что равноценно):
+
+\begin{lstlisting}
+MOV EAX, ...
+JMP EAX
+\end{lstlisting}
+
+\RU{Либо}\EN{Or}:
+
+\begin{lstlisting}
+PUSH value
+RET
+\end{lstlisting}
+
+\subsubsection{CS/DS/ES/SS/FS/GS}
+
+16-битные регистры, содержащие селектор кода (CS), 
+данных (DS), стека (SS).\\
+\\
+\myindex{TLS}
+\myindex{Windows!TIB}
+FS в win32 указывает на \ac{TLS}, а в Linux на эту роль был выбран GS.
+Это сделано для более быстрого доступа к \ac{TLS} и прочим структурам там вроде \ac{TIB}.
+\\
+В прошлом эти регистры использовались как сегментные регистры
+(\myref{8086_memory_model}).
+
+\subsubsection{Регистр флагов}
+\myindex{x86!\Registers!\Flags}
+\label{EFLAGS}
+\ac{AKA} EFLAGS.
+
+\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} Бит (маска) &
+\headercolor{} Аббревиатура (значение) &
+\headercolor{} Описание \\
+\hline
+0 (1) & CF (Carry) & Флаг переноса. \\
+      &            & Инструкции CLC/STC/CMC используются \\
+      &            & для установки/сброса/инвертирования этого флага \\
+\hline
+2 (4) & PF (Parity) & Флаг четности (\myref{parity_flag}). \\
+\hline
+4 (0x10) & AF (Adjust) & Существует только для работы с \ac{BCD}-числами \\
+\hline
+6 (0x40) & ZF (Zero) & Выставляется в 0 \\
+         &           & если результат последней операции был равен 0. \\
+\hline
+7 (0x80) & SF (Sign) & Флаг знака. \\
+\hline
+8 (0x100) & TF (Trap) & Применяется при отладке. \\
+&         &             Если включен, то после исполнения \\
+&         &             каждой инструкции \\
+&         &             будет сгенерировано исключение. \\
+\hline
+9 (0x200) & IF (Interrupt enable) & Разрешены ли прерывания. \\
+          &                       & Инструкции CLI/STI используются \\
+	  &                       & для установки/сброса этого флага \\
+\hline
+10 (0x400) & DF (Direction) & Задается направление для инструкций \\
+           &                & REP MOVSx/CMPSx/LODSx/SCASx.\\
+           &                & Инструкции CLD/STD используются \\
+	   &                & для установки/сброса этого флага \\
+	   &                & См.также: \myref{memmove_and_DF}. \\
+\hline
+11 (0x800) & OF (Overflow) & Переполнение. \\
+\hline
+12, 13 (0x3000) & IOPL (I/O privilege level)\textsuperscript{i286} & \\
+\hline
+14 (0x4000) & NT (Nested task)\textsuperscript{i286} & \\
+\hline
+16 (0x10000) & RF (Resume)\textsuperscript{i386} & Применяется при отладке. \\
+             &                  & Если включить, \\
+	     &                  & CPU проигнорирует хардварную \\
+             &                  & точку останова в DRx. \\
+\hline
+17 (0x20000) & VM (Virtual 8086 mode)\textsuperscript{i386} & \\
+\hline
+18 (0x40000) & AC (Alignment check)\textsuperscript{i486} & \\
+\hline
+19 (0x80000) & VIF (Virtual interrupt)\textsuperscript{i586} & \\
+\hline
+20 (0x100000) & VIP (Virtual interrupt pending)\textsuperscript{i586} & \\
+\hline
+21 (0x200000) & ID (Identification)\textsuperscript{i586} & \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+
+Остальные флаги зарезервированы.
+
+\subsection{Регистры FPU}
+
+\myindex{x86!FPU}
+8 80-битных регистров работающих как стек: ST(0)-ST(7).
+N.B.: \ac{IDA} называет ST(0) просто ST.
+Числа хранятся в формате IEEE 754.
+
+Формат значения \emph{long double}:
+
+\bigskip
+% a hack used here! http://tex.stackexchange.com/questions/73524/bytefield-package
+\begin{center}
+\begingroup
+\makeatletter
+\let\saved@bf@bitformatting\bf@bitformatting
+\renewcommand*{\bf@bitformatting}{%
+	\ifnum\value{header@val}=21 %
+	\value{header@val}=62 %
+	\else\ifnum\value{header@val}=22 %
+	\value{header@val}=63 %
+	\else\ifnum\value{header@val}=23 %
+	\value{header@val}=64 %
+	\else\ifnum\value{header@val}=30 %
+	\value{header@val}=78 %
+	\else\ifnum\value{header@val}=31 %
+	\value{header@val}=79 %
+	\fi\fi\fi\fi\fi
+	\saved@bf@bitformatting
+}%
+\begin{bytefield}[bitwidth=0.03\linewidth]{32}
+	\bitheader[endianness=big]{0,21,22,23,30,31} \\
+	\bitbox{1}{S} &
+	\bitbox{8}{экспонента} &
+	\bitbox{1}{I} &
+	\bitbox{22}{мантисса}
+\end{bytefield}
+\endgroup
+\end{center}
+
+\begin{center}
+( S --- знак, I --- целочисленная часть )
+\end{center}
+
+\label{FPU_control_word}
+\subsubsection{Регистр управления}
+
+Регистр, при помощи которого можно задавать поведение \ac{FPU}.
+
+%\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+Бит &
+Аббревиатура (значение) &
+Описание \\
+\hline
+0   & IM (Invalid operation Mask) & \\
+\hline
+1   & DM (Denormalized operand Mask) & \\
+\hline
+2   & ZM (Zero divide Mask) & \\
+\hline
+3   & OM (Overflow Mask) & \\
+\hline
+4   & UM (Underflow Mask) & \\
+\hline
+5   & PM (Precision Mask) & \\
+\hline
+7   & IEM (Interrupt Enable Mask) & Разрешение исключений, \\
+    &                             & по умолчанию 1 (запрещено) \\
+\hline
+8, 9 & PC (Precision Control) & Управление точностью \\
+     &                        & 00 ~--- 24 бита (REAL4) \\
+     &                        & 10 ~--- 53 бита (REAL8) \\
+     &                        & 11 ~--- 64 бита (REAL10) \\
+\hline
+10, 11 & RC (Rounding Control) & Управление округлением \\
+       &                       & 00 ~--- (по умолчанию) округлять к ближайшему \\
+       &                       & 01 ~--- округлять к $-\infty$ \\
+       &                       & 10 ~--- округлять к $+\infty$ \\
+       &                       & 11 ~--- округлять к 0 \\
+\hline
+12 & IC (Infinity Control) & 0 ~--- (по умолчанию) \\
+   &                       & считать $+\infty$ и $-\infty$ за беззнаковое \\
+   &                       & 1 ~--- учитывать и $+\infty$ и $-\infty$ \\
+\hline
+\end{tabular}
+\end{center}
+%\normalsize
+
+Флагами PM, UM, OM, ZM, DM, IM 
+задается, генерировать ли исключения в случае соответствующих ошибок.
+
+\subsubsection{Регистр статуса}
+
+\label{FPU_status_word}
+Регистр только для чтения.
+
+\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+Бит &
+Аббревиатура (значение) &
+Описание \\
+\hline
+15   & B (Busy) & Работает ли сейчас FPU (1) \\
+     &          & или закончил и результаты готовы (0) \\
+\hline
+14   & C3 & \\
+\hline
+13, 12, 11 & TOP & указывает, какой сейчас регистр является нулевым \\
+\hline
+10 & C2 & \\
+\hline
+9  & C1 & \\
+\hline
+8  & C0 & \\
+\hline
+7  & IR (Interrupt Request) & \\
+\hline
+6  & SF (Stack Fault) & \\
+\hline
+5  & P (Precision) & \\
+\hline
+4  & U (Underflow) & \\
+\hline
+3  & O (Overflow) & \\
+\hline
+2  & Z (Zero) & \\
+\hline
+1  & D (Denormalized) & \\
+\hline
+0  & I (Invalid operation) & \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+
+Биты SF, P, U, O, Z, D, I сигнализируют об исключениях.
+
+О C3, C2, C1, C0 читайте больше тут: (\myref{Czero_etc}).
+
+N.B.:когда используется регистр ST(x), FPU прибавляет $x$ к TOP по модулю 8 и получается номер
+внутреннего регистра.
+
+\subsubsection{Слово ``тэг''}
+
+Этот регистр отражает текущее содержимое регистров чисел.
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+Бит & Аббревиатура (значение) \\
+\hline
+15, 14 & Tag(7) \\
+\hline
+13, 12 & Tag(6) \\
+\hline
+11, 10 & Tag(5) \\
+\hline
+9, 8 & Tag(4) \\
+\hline
+7, 6 & Tag(3) \\
+\hline
+5, 4 & Tag(2) \\
+\hline
+3, 2 & Tag(1) \\
+\hline
+1, 0 & Tag(0) \\
+\hline
+\end{tabular}
+\end{center}
+
+Каждый тэг содержит информацию о физическом регистре FPU (R(x)), но не логическом (ST(x)).
+
+Для каждого тэга:
+
+\begin{itemize}
+\item 00 ~--- Регистр содержит ненулевое значение
+\item 01 ~--- Регистр содержит 0
+\item 10 ~--- Регистр содержит специальное число (\ac{NAN}, $\infty$, или денормализованное число)
+\item 11 ~--- Регистр пуст
+\end{itemize}
+
+\subsection{Регистры SIMD}
+
+\subsubsection{Регистры MMX}
+
+8 64-битных регистров: MM0..MM7.
+
+\subsubsection{Регистры SSE и AVX}
+
+\myindex{x86-64}
+SSE: 8 128-битных регистров: XMM0..XMM7.
+В x86-64 добавлено еще 8 регистров: XMM8..XMM15.
+
+AVX это расширение всех регистры до 256 бит.
+
+\input{appendix/x86/DRx_RU}
+
+% TODO: control registers

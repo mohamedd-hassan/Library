@@ -1,0 +1,165 @@
+\mysection{Division signée en utilisant des décalages}
+
+La division non signée par des nombres $2^n$ est facile, il sufft d'utiliser le
+décalage de $n$ bit à droite.
+La division signée par $2^n$ est aussi facile, mais des corrections doivent être
+faites avant ou après l'opération de décalage.
+
+\myindex{x86!\Instructions!SHR}
+\myindex{x86!\Instructions!SAR}
+D'abord, la plupart des architectures CPU supportent deux opérations de décalage
+à droite: logique et arithmétique.
+Lors d'un décalage logique à droite, le bit libre est mis à zéro.
+C'est \INS{SHR} en x86.
+Lors d'un décalage arithmétique à droite, le bit à gauche est mis avec celui qui
+était à cette position avant le décalage.
+Ainsi, le signe est conservé lors du décalage.
+C'est \INS{SAR} en x86.
+
+\myindex{x86!\Instructions!SAL}
+\myindex{x86!\Instructions!SHL}
+Il est intéressant de noter qu'il n'y a pas d'instruction spéciale pour le décalage
+arithmétique à gauche, car il fonctionne tout simplement comme le décalage logique.
+Donc, les instructions \INS{SAL} et \INS{SHL} en x86 sont mappées sur le même opcode.
+De nombreux désassembleurs ne connaissent même pas l'instruction \INS{SAL} et la
+décode comme \INS{SHL}.
+
+De ce fait, le décalages arithmétique à droite est utilisé pour les nombres signés.
+Par exemple, si vous décalez -4 (11111100b) d'1 bit à droite, l'opération de décalage
+logique produira 01111110b, qui est 126.
+Le décalage arithmétique à droite produira 11111110b, qui est -2.
+Jusqu'ici, tout va bien.
+
+Et si nous devons diviser -5 par 2? Ça vaut 2,5 ou juste -2 en arithmétique entière.
+-5 est 11111011b, en décalant cette valeur de 1 bit à droite, nous obtenons 11111101b,
+qui est -3.
+Ceci est légèrement incorrect.
+
+Un autre exemple: $-\frac{1}{2}=-0.5$ ou 0 en arithmétique entière.
+Mais -1 est 11111111b, et 11111111b >> 1 = 11111111b, qui est encore -1.
+Ceci est aussi incorrect.
+
+Une solution est d'ajouter 1 à la valeur en entrée si elle est négative.
+
+C'est pourquoi, si nous compilons l'expression \TT{x/2}, où x est un \textit{signed int},
+GCC 4.8 produira quelque chose comme cela:
+
+\begin{lstlisting}[style=customasmx86]
+	mov	eax, edi
+	shr	eax, 31  ; isoler le bit le plus à gauche, qui est 1 si la valeur est négative et 0 si elle est positive
+	add	eax, edi ; ajouter 1 à la valeur en entrée si elle est négative, ne rien faire autrement
+	sar	eax      ; décalage arithmétique à droite de un bit
+	ret
+\end{lstlisting}
+
+Si vous divisez par 4, il faut ajouter 3 à la valeur en entrée si elle est négative.
+Donc ceci est ce que GCC 4.8 génère pour \TT{x/4}:
+
+\begin{lstlisting}[style=customasmx86]
+	lea	eax, [rdi+3] ; préparer la valeur x+3 en avance
+	test	edi, edi
+	
+	; si le signe n'est pas négatif (i.e., positif), déplacer la valeur en entrée dans EAX
+	; si le signe est négatif, la valeur x+3 est laissée telle quelle dans EAX
+	cmovns	eax, edi
+	; effectuer un décalage arithmétique à droite de 2 bits
+	sar	eax, 2
+	ret
+\end{lstlisting}
+
+Si vous divisez par 8, il faut ajouter 7 à la valeur en entrée, etc.
+
+MSVC 2013 est légèrement différent. Ceci est la division par 2:
+
+\begin{lstlisting}[style=customasmx86]
+	mov	eax, DWORD PTR _a$[esp-4]
+	; étendre la valeur d'entrée à 64-bit dans EDX:EAX
+	; concrètement, cela signifie que EDX sera mis à 0FFFFFFFFh si la valeur en entrée est négative
+	; ... ou à 0 si elle est positive
+	cdq
+	; soustraire -1 de la valeur en entrée si elle est négative
+	; ceci est la même chose qu'ajouter 1
+	sub	eax, edx 
+	; effectuer le décalage arithmétique à droite
+	sar	eax, 1
+	ret	0
+\end{lstlisting}
+
+La division par 4 dans MSVC 2013 est encore plus complexe:
+
+\begin{lstlisting}[style=customasmx86]
+	mov	eax, DWORD PTR _a$[esp-4]
+	cdq
+	; maintenant EDX contient 0FFFFFFFFh si la valeur en entrée est négative
+	; EDX contient 0 si elle est positive
+	and	edx, 3
+	; maintenant EDX contient 3 si la valeur en entrée est négative et 0 autrement
+	; ajouter 3 à la valeur en entrée si elle est négative ou ne rien faire autrement:
+	add	eax, edx
+	; effectuer le décalage arithmétique à droite
+	sar	eax, 2
+	ret	0
+\end{lstlisting}
+
+La division par 8 dans MSVC 2013 est similaire, mais 3 bits de \EDX sont pris au
+lieu de 2, produisant une correction de 7 au lieu de 3.
+
+\myindex{Hex-Rays}
+Parfois, Hex-Rays 6.8 ne gère pas correctement un tel code, et il peut produire
+quelque chose comme ceci:
+
+\begin{lstlisting}
+int v0;
+...
+__int64 v14
+...
+          
+v14 = ...;
+v0 = ((signed int)v14 - HIDWORD(v14)) >> 1;
+\end{lstlisting}
+
+\dots ce qui peut sans risque être récrit en \TT{v0=v14/2}.
+
+Hex-Rays 6.8 peut aussi gérer les divisions signées par 4 comme cela:
+
+\begin{lstlisting}
+result = ((BYTE4(v25) & 3) + (signed int)v25) >> 2;
+\end{lstlisting}
+
+\dots peut être récrit en \TT{v25 / 4}.
+
+\myhrule{}
+
+En outre, une telle correction est souvent utilisé lorsque la division est remplacée
+par la multiplication par des \textit{nombres magiques}:
+lire \MathForProg à propos de la multiplication inverse.
+Et parfois, un décalage additionnel est utilisé après la multiplication.
+Par exemple, lorsque GCC optimise $\frac{x}{10}$, il ne peut pas trouver la multiplication
+inverse pour 10, car l'équation diophantienne n'a pas de solution.
+Donc il génère du code pour $\frac{x}{5}$ et puis ajoute une opération de décalage
+arithmétique à droite de 1 bit, pour diviser le résultat par 2.
+Bien sûr, ceci est seulement vrai pour les entiers signés.
+
+Donc, voici la division par 10 de GCC 4.8:
+
+\begin{lstlisting}[style=customasmx86]
+	mov	eax, edi
+	mov	edx, 1717986919 ; nombre magique
+	sar	edi, 31         ; isoler le bit le plus à gauche (qui reflète le signe)
+	imul	edx         ; multiplication par le nombre magique (calculer x/5)
+	sar	edx, 2          ; mainenant calculer (x/5)/2
+
+    ; soustraire -1 (ou ajouter 1) si la valeur en entrée est négative
+	; ne rien faire autrement
+	sub	edx, edi        
+	mov	eax, edx
+	ret
+\end{lstlisting}
+
+Résumé: $2^n-1$ doit être ajouté à la valeur en entrée avant un décalage arithmétique,
+ou il faut ajouter 1 au résultat final après le décalage.
+Les deux opérations sont équivalentes l'une à l'autre, donc les développeurs du
+compilateur doivent choisir ce qui est la plus adapté pour eux.
+Du point de vue du rétro-ingénieur, cette correction est une preuve manifeste que
+la valeur a un type signé.
+

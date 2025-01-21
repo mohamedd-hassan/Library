@@ -1,0 +1,91 @@
+\mysection{Le cas du return oublié}
+\label{ForgottenReturn}
+
+Revoyons la partie ``tentative d'utiliser le résultat d'une fonction renvoyant \Tvoid'': \myref{UseResultOfVoidFunc}.
+
+Ceci est un bug que j'ai rencontré une fois.
+
+Et c'est encore une autre démonstration de la façon dont \CCpp{} met les valeurs de
+retour dans le registre \EAX/\RAX.
+
+Dans ce bout de code, j'ai oublié d'ajouter \TT{return}:
+
+\lstinputlisting[style=customc]{\CURPATH/1_EN.c}
+
+GCC 5.4 sans optimisation le compile silencieusement, sans avertissement.
+Et le code fonctionne!
+Voyons pourquoi:
+
+\lstinputlisting[style=customasmx86,caption=GCC 5.4 sans optimisation]{\CURPATH/O0_no_return_works_EN.lst}
+
+Si j'ajoute \TT{return rt;}, seule une instruction est ajoutée à la fin, qui est redondante:
+
+\lstinputlisting[style=customasmx86,caption=GCC 5.4 sans optimisation]{\CURPATH/O0_return_works_EN.lst}
+
+Des bogues de ce type sont très dangereux, parfois ils apparaissent, parfois ils
+restent invisibles.
+
+Maintenant, j'essaye GCC avec l'optimisation:
+
+\lstinputlisting[style=customasmx86,caption=GCC 5.4 avec optimisation]{\CURPATH/O3_no_return_crash_EN.lst}
+
+Le compilateur en déduit que rien n'est renvoyé de la fonction, donc il optimise
+en enlevant complètement la fonction.
+Et il suppose que 0 est renvoyé par défaut. Le zéro est utilisé comme une adresse
+sur une structure dans main()..
+Bien sûr, ce code plante.
+
+GCC en mode C++ est aussi silencieux à propos de cela.
+
+Essayons MSVC 2015 x86 sans optimisation.
+Il averti à propos de ce problème:
+
+\begin{lstlisting}
+c:\tmp\3.c(19) : warning C4716: 'create_color': must return a value
+\end{lstlisting}
+
+Et il génère du code qui plante:
+
+\lstinputlisting[style=customasmx86,caption=MSVC 2015 x86 sans optimisation]{\CURPATH/MSVC_x86_crash_EN.lst}
+
+Maintenant MSVC 2015 x86 avec optimisation, qui génère du code qui plante aussi mais
+pour une raison différente.
+
+\lstinputlisting[style=customasmx86,caption=MSVC 2015 x86 avec optimisation]{\CURPATH/MSVC_Ox_x86_crash_EN.lst}
+
+Toutefois, MSVC 2015 x64 sans optimisation génère du code qui fonctionne:
+
+\lstinputlisting[style=customasmx86,caption=MSVC 2015 x64 sans optimisation]{\CURPATH/MSVC_x64_works_EN.lst}
+
+MSVC 2015 x64 avec optimisation met le fonction en ligne, comme dans le cas du x86,
+et le code résultant plante.
+
+\myhrule{}
+
+% FIXME URL to octothorpe
+Ceci est un morceau de code réel de ma bibliothèque \emph{octothorpe},
+qui fonctionnait et dont tous les tests réussissaient.
+C'était ainsi, sans \verb|return| pendant un certain temps..
+
+\begin{lstlisting}
+uint32_t LPHM_u32_hash(void *key)
+{
+        jenkins_one_at_a_time_hash_u32((uint32_t)key);
+}
+\end{lstlisting}
+
+\myhrule{}
+
+La morale de l'histoire: les warnings sont très importants, utilisez \TT{-Wall}, etc, etc...
+Lorsque la déclaration \TT{return} est absente, le compilateur peut simplement silencieusement
+ne rien faire à ce point.
+
+Un tel bug passé inaperçu peut gâcher une journée.
+
+Aussi, \emph{le débogage shotgun}
+est mauvais, car encore une fois, un tel bogue peut passer inaperçu (``tout fonctionne
+maintenant, qu'il en soit ainsi, laissons tout ça comme c'est'').
+
+Voir aussi: la discussion sur Hacker News\footnote{\url{https://news.ycombinator.com/item?id=18671609}}
+et l'article de blog archivée\footnote{\url{https://web.archive.org/web/20190317231721/https://yurichev.com/blog/no_return/}}.
+

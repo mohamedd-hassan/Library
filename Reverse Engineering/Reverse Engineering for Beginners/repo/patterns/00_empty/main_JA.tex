@@ -1,0 +1,69 @@
+\mysection{空関数}
+\label{empty_func}
+
+可能な限り単純な関数は、何もしない関数です。
+
+\lstinputlisting[label=lst:empty_func,caption=\JAph{},style=customc]{patterns/00_empty/1.c}
+
+コンパイルしましょう！
+
+\subsection{x86}
+
+x86プラットフォーム上でGCCコンパイラとMSVCコンパイラの両方の生成物は次のとおりです。
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/00_empty/1.s}
+
+\myindex{x86!\Instructions!RET}
+\RET 命令のみです。 \gls{caller}に戻る命令です。
+
+\subsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode) \assemblyOutput,style=customasmARM]{patterns/00_empty/1_Keil_ARM_O3.s}
+
+リターンアドレスはARM \ac{ISA}のローカルスタックには保存されず、リンクレジスタに保存されるため、
+\INS{BX LR}命令は実行をそのアドレスにジャンプさせるため、\gls{caller}への実行が効果的に戻ります。
+
+\subsection{MIPS}
+
+レジスタの命名には、数値（$ 0〜$ 31）または擬似名（$ V0、$ A0など）の2つの命名規則がMIPSの世界で使用されています。
+
+以下のGCCアセンブリ出力は、レジスタを番号順にリストしています。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/00_empty/MIPS.s}
+
+\dots \IDA は疑似名を使います
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/00_empty/MIPS_IDA.lst}
+
+\myindex{MIPS!\Instructions!J}
+最初の命令は、実行フローを\gls{caller}に返すジャンプ命令（JまたはJR）で、\$31（または\$RA）レジスタのアドレスにジャンプします。
+
+これはARMの\ac{LR}に類似したレジスタです。
+
+2番目の命令は\ac{NOP}で、何もしません。 私たちは今それを無視することができます。
+
+\subsubsection{MIPS命令とレジスタ名についての注意}
+
+MIPSの世界では、レジスタと命令の名前は、伝統的に小文字で書かれています。
+しかし、一貫性を保つために、この本は大文字の使用で通します。
+
+\subsection{実際の空関数}
+
+空の関数は役に立たないように見えますが、低レベルのコードでは頻繁に使用されます。
+
+まず第一に、次のようなデバッグ機能でとてもポピュラーです。
+
+\lstinputlisting[caption=\CCpp Code,style=customc]{patterns/00_empty/dbg_print_EN.c}
+
+非デバッグビルドでは（greleasehのように）、\TT{\_DEBUG}は定義されていないので、
+\TT{dbg\_print()}関数は実行中に呼び出されているにもかかわらず、空になります。
+
+同様に、ソフトウェア保護の一般的な方法は、合法な顧客向けに1つのビルドを作成し、
+他にはデモビルドを作成することです。 デモビルドには、この例のようにいくつかの重要な機能が欠けています。
+
+\lstinputlisting[caption=\CCpp Code,style=customc]{patterns/00_empty/demo_EN.c}
+
+\TT{save\_file()}関数は、ユーザーがメニューの\TT{File->Save}をクリックすると呼び出すことができます。 
+デモ版は、このメニュー項目を無効にしてお届けできますが、ソフトウェアクラッカーが有効にしても、役に立つコードのない空の関数だけが呼び出されます。
+
+IDAは、\TT{nullsub\_00}、\TT{nullsub\_01}などの名前でこのような機能をマークします。

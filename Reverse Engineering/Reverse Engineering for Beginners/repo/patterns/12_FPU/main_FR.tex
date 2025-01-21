@@ -1,0 +1,140 @@
+﻿\mysection{\FPUChapterName}
+\label{sec:FPU}
+
+Le \ac{FPU} est un dispositif à l'intérieur du \ac{CPU}, spécialement conçu pour
+traiter les nombres à virgules flottantes.
+
+Il était appelé \q{coprocesseur} dans le passé et il était en dehors du \ac{CPU}.
+
+\subsection{IEEE 754}
+
+Un nombre au format IEEE 754 consiste en un \emph{signe}, un \emph{significande} (aussi
+appelé \emph{fraction}) et un \emph{exposant}.
+
+\subsection{x86}
+
+Ça vaut la peine de jeter un \oe{}il sur les machines à base de piles ou
+d'apprendre les bases du langage Forth, avant d'étudier le \ac{FPU} en
+x86.
+
+\myindex{Intel!80486}
+\myindex{Intel!FPU}
+Il est intéressant de savoir que dans le passé (avant le CPU 80486) le coprocesseur
+était une puce séparée et n'était pas toujours préinstallé sur la carte mère. Il
+était possible de l'acheter séparément et de l'installer\footnote{Par exemple, John
+Carmack a utilisé des valeurs arithmétiques à virgule fixe
+dans son jeu vidéo Doom, stockées dans des registres 32-bit \ac{GPR} (16 bit pour
+la partie entière et 16 bit pour la partie fractionnaire), donc Doom pouvait fonctionner
+sur des ordinateurs 32-bit sans FPU, i.e., 80386 et 80486 SX.}.
+
+A partir du CPU 80486 DX, le \ac{FPU} est intégré dans le \ac{CPU}.
+
+\myindex{x86!\Instructions!FWAIT}
+L'instruction \INS{FWAIT} nous rappelle le fait qu'elle passe le \ac{CPU} dans un
+état d'attente, jusqu'à ce que le \ac{FPU} ait fini son traitement.
+
+Un autre rudiment est le fait que les opcodes d'instruction \ac{FPU} commencent
+avec ce qui est appelé l'opcode-\q{d'échappement} (\GTT{D8..DF}), i.e., opcodes
+passés à un coprocesseur séparé.
+
+\myindex{IEEE 754}
+\label{FPU_is_stack}
+
+Le FPU a une pile capable de contenir 8 registres de 80-bit, et chaque registre peut
+contenir un nombre au format IEEE 754.
+
+Ce sont \ST{0}..\ST{7}. Par concision, \IDA et \olly montrent \ST{0} comme \GTT{ST},
+qui est représenté dans certains livres et manuels comme \q{Stack Top}.
+
+\subsection{ARM, MIPS, x86/x64 SIMD}
+
+En ARM et MIPS le FPU n'a pas de pile, mais un ensemble de registres, qui peuvent
+être accédés aléatoirement, comme \ac{GPR}.
+
+La même idéologie est utilisée dans l'extension SIMD des CPUs x86/x64.
+
+\subsection{\CCpp}
+
+\myindex{float}
+\myindex{double}
+
+Le standard des langages \CCpp offre au moins deux types de nombres à virgule flottante,
+\Tfloat (\emph{simple-précision}, 32 bits) \footnote{le format des nombres
+à virgule flottante simple précision est aussi abordé dans la section \emph{\WorkingWithFloatAsWithStructSubSubSectionName}~(\myref{sec:floatasstruct})}
+et \Tdouble (\emph{double-précision}, 64 bits).
+
+Dans \InSqBrackets{\TAOCPvolII 246} nous pouvons trouver que \emph{simple-précision}
+signifie que la valeur flottante peut être stockée dans un simple mot machine [32-bit],
+\emph{double-précision} signifie qu'elle peut être stockée dans deux mots (64 bits).
+
+\myindex{long double}
+
+GCC supporte également le type \emph{long double} (\emph{précision étendue},
+80 bit), que MSVC ne supporte pas.
+
+Le type \Tfloat nécessite le même nombre de bits que le type \Tint dans les environnements
+32-bit, mais la représentation du nombre est complètement différente.
+
+\input{patterns/12_FPU/1_simple/main}
+\input{patterns/12_FPU/2_passing_floats/main}
+\input{patterns/12_FPU/3_comparison/main}
+
+\subsection{Quelques constantes}
+
+Il est facile de trouver la représentation de certaines constantes pour des nombres
+encodés au format IEEE 754 sur Wikipédia.
+Il est intéressant de savoir que 0,0 en IEEE 754 est représenté par 32 bits à zéro
+(pour la simple précision) ou 64 bits à zéro (pour la double).
+Donc pour mettre une variable flottante à 0,0 dans un registre ou en mémoire, on
+peut utiliser l'instruction \MOV ou \TT{XOR reg, reg}.
+\myindex{\CStandardLibrary!memset()}
+Ceci est utilisable pour les structures où des variables de types variés sont présentes.
+Avec la fonction usuelle memset() il est possible de mettre toutes les variables
+entières à 0, toutes les variables booléennes à \emph{false}, tous les pointeurs à
+NULL, et toutes les variables flottantes (de n'importe quelle précision) à 0,0.
+
+\subsection{Copie}
+
+On peut tout d'abord penser qu'il faut utiliser les instructions \INS{FLD}/\INS{FST}
+pour charger et stocker (et donc, copier) des valeurs IEEE 754.
+Néanmoins, la même chose peut-être effectuée plus facilement avec l'instruction usuelle
+\INS{MOV}, qui, bien sûr, copie les valeurs au niveau binaire.
+
+\subsection{Pile, calculateurs et notation polonaise inverse}
+
+\myindex{Notation polonaise inverse}
+
+Maintenant nous comprenons pourquoi certains anciens calculateurs utilisent la notation
+Polonaise inverse.
+
+Par exemple, pour additionner 12 et 34, on doit entrer 12, puis 34, et presser le
+signe \q{plus}.
+
+C'est parce que les anciens calculateurs programmable étaient simplement des implémentations
+de machine à pile, et c'était bien plus simple que de manipuler des expressions
+complexes avec parenthèses.
+
+Un tel calculateur est encore présent dans de nombreuses distributions Unix: \emph{dc}.
+
+\subsection{80 bits?}
+
+\myindex{Punched card}
+
+Représentation interne des nombres dans le FPU --- 80-bit.
+Nombre étrange, car il n'est pas de la forme $2^n$.
+Il y a une hypothèse que c'est probablement dû à des raisons historiques---le standard
+IBM de carte perforée peut encoder 12 lignes de 80 bits.
+La résolution en mode texte de $80\cdot 25$ était aussi très populaire dans le passé.
+
+Il y a une autre explication sur Wikipédia: \url{https://en.wikipedia.org/wiki/Extended_precision}.
+
+Si vous en savez plus, s'il vous plaît, envoyez-moi un email: \EMAILS{}.
+
+\subsection{x64}
+
+Sur la manière dont sont traités les nombres à virgules flottante en x86-64, lire
+ici: \myref{floating_SIMD}.
+
+% sections
+\input{patterns/12_FPU/exercises}
+

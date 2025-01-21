@@ -1,0 +1,75 @@
+\subsubsection{Exemple de tableau à trois dimensions}
+
+C'est la même chose pour des tableaux multidimensionnels.
+
+Nous allons travailler avec des tableaux de type \Tint: chaque élément nécessite
+4 octets en mémoire.
+
+Voyons ceci:
+
+\lstinputlisting[caption=simple exemple,style=customc]{patterns/13_arrays/5_multidimensional/multi.c}
+
+\myparagraph{x86}
+
+Nous obtenons (MSVC 2010):
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/13_arrays/5_multidimensional/multi_msvc_FR.asm}
+
+Rien de particulier. Pour le calcul de l'index, trois arguments en entrée sont utilisés
+dans la formule $address=600 \cdot 4 \cdot x + 30 \cdot 4 \cdot y + 4z$, pour représenter
+le tableau comme multidimensionnel.
+N'oubliez pas que le type \Tint est 32-bit (4 octets), donc tous les coefficients
+doivent être multipliés par 4.
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/13_arrays/5_multidimensional/multi_gcc_FR.asm}
+
+Le compilateur GCC fait cela différemment.
+
+Pour une des opérations du calcul ($30y$), GCC produit un code sans instruction de
+multiplication. Voici comment il fait:
+$(y+y) \ll 4 - (y+y) = (2y) \ll 4 - 2y = 2 \cdot 16 \cdot y - 2y = 32y - 2y = 30y$. 
+Ainsi, pour le calcul de $30y$, seulement une addition, un décalage de bit et une
+soustraction sont utilisés.
+Ceci fonctionne plus vite.
+
+\myparagraph{ARM + \NonOptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\NonOptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/13_arrays/5_multidimensional/multi_Xcode_thumb_O0_FR.asm}
+
+LLVM \NonOptimizing sauve toutes les variables dans la pile locale, ce qui est redondant.
+
+L'adresse de l'élément du tableau est calculée par la formule vue précédemment.
+
+\myparagraph{ARM + \OptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/13_arrays/5_multidimensional/multi_Xcode_thumb_O3_FR.asm}
+
+L'astuce de remplacer la multiplication par des décalage, addition et soustraction
+que nous avons déjà vue est aussi utilisée ici.
+
+\myindex{ARM!\Instructions!RSB}
+\myindex{ARM!\Instructions!SUB}
+Ici, nous voyons aussi une nouvelle instruction: \RSB (\emph{Reverse Subtract}).
+
+Elle fonctionne comme \SUB, mais échange ses opérandes l'un avec l'autre avant l'exécution.
+Pourquoi?
+\myindex{ARM!Optional operators!LSL}
+\SUB et \RSB sont des instructions auxquelles un coefficient de décalage peut être
+appliqué au second opérande: (\INS{LSL\#4}).
+
+Mais ce coefficient ne peut être appliqué qu'au second opérande.
+
+C'est bien pour des opérations commutatives comme l'addition ou la multiplication
+(les opérandes peuvent être échangés sans changer le résultat).
+
+Mais la soustraction est une opération non commutative, donc \RSB existe pour ces
+cas.
+
+\myparagraph{MIPS}
+
+\myindex{MIPS!Global Pointer}
+Mon exemple est minuscule, donc le compilateur GCC a décidé de mettre le tableau
+$a$ dans la zone de 64KiB adressable par le Global Pointer.
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/13_arrays/5_multidimensional/multi_MIPS_O3_IDA_FR.lst}
+

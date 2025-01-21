@@ -1,0 +1,151 @@
+﻿\mysection{Fichier de sauvegarde du jeu Millenium}
+\label{Millenium_DOS_game}
+\myindex{MS-DOS}
+
+\q{Millenium Return to Earth} est un ancien jeu DOS (1991), qui vous permet d'extraire
+des ressources, de construire des vaisseaux, de les équiper et de les envoyer sur d'autres
+planêtes, et ainsi de suite\footnote{Il peut être téléchargé librement \href{http://thehouseofgames.org/index.php?t=10&id=110}{ici}}.
+
+Comme beaucoup d'autres jeux, il vous permet de sauvegarder l'état du jeu dans un fichier.
+
+Regardons si l'on peut y trouver quelque chose.
+
+\clearpage
+Donc, il y a des mines dans le jeu.
+Sur certaines planêtes, les mines rapportent plus vite, sur d'autres, moins vite. 
+L'ensemble des ressources est aussi différent.
+
+Ici, nous pouvons voir quelles ressources sont actuellement extraites.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/1.png}
+\caption{Mine: état 1}
+\label{fig:mill_1}
+\end{figure}
+
+Sauvegardons l'état du jeu.
+C'est un fichier de 9538 octets.
+
+Attendons quelques \q{jours} dans le jeu, et maintenant, nous avons plus de ressources
+extraites des mines.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/2.png}
+\caption{Mine: état 2}
+\label{fig:mill_2}
+\end{figure}
+
+Sauvegardons à nouveau l'état du jeu.
+
+Maintenant, essayons juste de comparer au niveau binaire les fichiers de sauvegarde
+en utilisant le simple utilitaire DOS/Windows FC:
+
+\lstinputlisting{ff/millenium/fc_result.txt}
+
+La sortie est incomplète ici, il y a plus de différences, mais j'ai tronqué le résultat
+pour montrer ce qu'il y a de plus intéressant.
+
+Dans le premier état, nous avons 14 \q{unités} d'hydrogène et 102 \q{unités} d'oxygène.
+
+Nous avons respectivement 22 et 155 \q{unités} dans le second état.
+Si ces valeurs sont sauvées dans le fichier de sauvegarde, nous devrions les voir
+dans la différence.
+Et en effet, nous les voyons.
+Il y a 0x0E (14) à la position 0xBDA et cette valeur est à 0x16 (22) dans la nouvelle
+version du fichier.
+Ceci est probablement l'hydrogène.
+Il y a 0x66 (102) à la position 0xBDC dans la vieille version et x9B (155) dans la
+nouvelle version du fichier.
+Il semble que ça soit l'oxygène.
+
+Les deux fichiers sont disponibles sur le site web pour ceux qui veulent les inspecter
+(ou expérimenter) plus:
+\href{http://beginners.re/examples/millenium_DOS_game/}{beginners.re}.
+
+\clearpage
+Voici la nouvelle version du fichier ouverte dans Hiew, j'ai marqué les valeurs relatives
+aux ressources extraites dans le jeu:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/hiew3.png}
+\caption{Hiew: état 1}
+\label{fig:mill_hiew3}
+\end{figure}
+
+Vérifions chacune d'elles.
+
+Ce sont clairement des valeurs 16-bits: ce n'est pas étonnant pour un logiciel DOS
+16-bit où le type \Tint fait 16-bit.
+
+\clearpage
+Vérifions nos hypothèses.
+Nous allons écrire la valeur 1234 (0x4D2) à la première position (ceci doit être
+l'hydrogène):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/hiew4.png}
+\caption{Hiew: écrivons 1234 (0x4D2) ici}
+\label{fig:mill_hiew4}
+\end{figure}
+
+Puis nous chargeons le fichier modifié dans le jeu et jettons un coup d'\oe{}il aux
+statistiques des mines:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/5.png}
+\caption{Vérifions la valeur pour l'hydrogène}
+\label{fig:mill_5}
+\end{figure}
+
+Donc oui, c'est bien ça.
+
+\clearpage
+Maintenant essayons de finir le jeu le plus vite possible, mettons les valeurs maximales
+partout:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/hiew7.png}
+\caption{Hiew: mettons les valeurs maximales}
+\label{fig:mill_hiew7}
+\end{figure}
+
+0xFFFF représente 65535, donc oui, nous avons maintenant beaucoup de ressources:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/6.png}
+\caption{Toutes les ressources sont en effet à 65535 (0xFFFF)}
+\label{fig:mill_6}
+\end{figure}
+
+\clearpage
+Laissons passer quelques \q{jours} dans le jeu et oups!
+Nous avons un niveau plus bas pour quelques ressources:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/millenium/8.png}
+\caption{Dépassement des variables de ressource}
+\label{fig:mill_8}
+\end{figure}
+
+C'est juste un dépassement.
+
+Le développeur du jeu n'a probablement pas pensé à un niveau aussi élevé de ressources,
+donc il n'a pas dû mettre des tests de dépassement, mais les mines \q{travaillent}
+dans le jeu, des ressources sont extraites, c'est pourquoi il y a des dépassements.
+Apparemment, c'est une mauvaise idée d'être aussi avide.
+
+Il y a sans doute beaucoup plus de valeurs sauvées dans ce fichier.
+
+Ceci est donc une méthode très simple de tricher dans les jeux.
+Les fichiers des meilleurs scores peuvent souvent être modifiés comme ceci.
+
+Plus d'informations sur la comparaison des fichiers et des snapshots de mémoire:
+\myref{snapshots_comparing}.

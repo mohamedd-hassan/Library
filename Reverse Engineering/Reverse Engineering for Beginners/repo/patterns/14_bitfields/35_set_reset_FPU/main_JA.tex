@@ -1,0 +1,126 @@
+﻿\subsection{特定ビットのセットやクリア: \ac{FPU} の例}
+
+\myindex{IEEE 754}
+
+IEEE 754形式で \Tfloat 型がどのように配置されるのか見てみます。
+
+\input{float_IEEE754.tex}
+
+数字の符号情報は\ac{MSB}にあります。
+FPU命令なしで浮動小数点数の符号を変更することは可能でしょうか？
+
+\lstinputlisting[style=customc]{patterns/14_bitfields/35_set_reset_FPU/abs.c}
+
+実際の変換をせずに \Tfloat 値との間でコピーを行うには、 \CCpp でこのトリックが必要です。 
+したがって、3つの関数があります。 my\_abs() は\ac{MSB}をリセットします。 \TT{set\_sign()}は\ac{MSB}を設定します。 negate()はそれを反転させます。
+
+\XOR を使ってビットを反転することができます。
+
+\subsubsection{x86}
+
+コードはかなり簡単です。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/14_bitfields/35_set_reset_FPU/abs_MSVC2012_Ox.asm}
+
+\Tfloat 型の入力値はスタックから取得されますが、整数値として扱われます。
+
+\AND と \OR は望むビットをリセットそしてセットします。
+\XOR は反転します。
+
+最後に、変更された値が\TT{ST0}にロードされます。浮動小数点数はこのレジスタにリターンされるからです。
+
+さて、x64向けの最適化MSVC 2012で試してみましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/14_bitfields/35_set_reset_FPU/abs_MSVC2012_x64_Ox.asm}
+
+\myindex{x86!\Instructions!BTR}
+\myindex{x86!\Instructions!BTS}
+\myindex{x86!\Instructions!BTC}
+
+入力値は\TT{XMM0}に渡され、そしてローカルスタックにコピーされて、
+新しい命令がいくつか見られます。\BTR 、 \BTS 、 \BTC です。
+
+各命令は特定のビットをリセット(\BTR)、セット(\BTS)そして反転(または補数: \BTC)するのに用いられます。
+0から数えて31番目のビットは\ac{MSB}です。
+
+最後に、結果は\TT{XMM0}にコピーされます。浮動小数点数の値はWin64の環境では\TT{XMM0}を通してリターンされる
+からです。
+
+\subsubsection{MIPS}
+
+GCC 4.4.5でMIPS向けのコードはほとんど同じです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/14_bitfields/35_set_reset_FPU/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!LUI}
+
+単一の \LUI 命令が使用され、レジスタに0x80000000がロードされます。
+\LUI は低位16ビットをクリアし、ゼロにするので、 後続に \ORI がなくても \LUI で十分です。
+
+\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/14_bitfields/35_set_reset_FPU/abs_Keil_ARM_O3_JA.s}
+
+ここまでは順調です。
+\myindex{ARM!\Instructions!BIC}
+\myindex{ARM!\Instructions!EOR}
+
+ARMは \BIC 命令があり、特定のビットを明示的にクリアします。
+\EOR はARM命令で \XOR のことです
+(\q{Exclusive OR})。
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmx86]{patterns/14_bitfields/35_set_reset_FPU/abs_Keil_thumb_O3.s}
+
+ARMのThumbモードは16ビット命令を提供します。そんなに多くのデータをエンコードはできないので、
+\INS{MOVS}/\INS{LSLS} 命令ペアが定数0x80000000を形づくるのに使用されます。
+このように動作します：$1<<31 = 0x80000000$
+
+\myindex{ARM!\Instructions!LSLS}
+\myindex{ARM!\Instructions!LSRS}
+
+\TT{my\_abs}のコードは奇妙で、この式のように効果的に機能します：$(i<<1)>>1$
+この文は無意味に見えます。 しかし、 $input<<1$ が実行されると、\ac{MSB}（符号ビット）がドロップされるだけです。
+後続の $result>>1$ 文が実行されると、すべてのビットが現在自分の場所にありますが、
+シフト演算から出現するすべての\q{新しい}ビットは常にゼロであるため、\ac{MSB}はゼロになります。 
+これが \LSLS/\LSRS 命令ペアが\ac{MSB}をクリアする方法です。
+
+\myparagraph{\Optimizing GCC 4.6.3 (Raspberry Pi, \ARMMode)}
+
+\lstinputlisting[caption=\Optimizing GCC 4.6.3 for Raspberry Pi (\ARMMode),style=customasmARM]{patterns/14_bitfields/35_set_reset_FPU/raspberry_GCC_O3_ARM_mode_JA.lst}
+
+QEMUでRaspberry Pi Linuxを動かしてARM FPUをエミュレートしてみましょう。Rレジスタの代わりにSレジスタが浮動小数点数に
+使用されます。
+
+\myindex{ARM!\Instructions!FMRS}
+
+\FMRS 命令は\ac{GPR}からFPUそして逆にもデータをコピーします。
+
+\TT{my\_abs()} と \TT{set\_sign()} は期待通りに見えますが、negate()はどうでしょうか？
+\XOR の代わりに \ADD があるのはどうしてでしょうか？
+
+\myindex{ARM!\Instructions!XOR}
+\myindex{ARM!\Instructions!ADD}
+信じがたいかもしれませんが、命令
+\INS{ADD register, 0x80000000}は
+\INS{XOR register, 0x80000000}のように動作します。
+まず、ゴールは何でしょうか？
+ゴールは\ac{MSB}を反転させることなので、 \XOR 演算は忘れましょう。
+学校レベルの数学からは他の値に1000を加算することは最後の3桁には影響しないと
+思うかもしれません。
+例えば：$1234567 + 10000 = 1244567$ （最後の4桁は影響を受けない）
+
+しかし、ここではバイナリベースで操作すると、
+0x80000000 は 0b100000000000000000000000000000000で、すなわち最高位のビットのみセットされます。
+
+任意の値に0x80000000を加算すると低位の31ビットに影響しませんが、\ac{MSB}だけ影響します。
+0に1を加算すると結果は1です。
+
+1に1を加算すると結果は バイナリ形式で0b10になりますが、（0から数えて）32番目のビットはドロップします。
+レジスタは32ビット幅なので、結果は0になります。
+\XOR が \ADD で置き換え可能なのはそのためです。
+
+GCCがなぜこうすると決定したかはわかりませんが、正しく動作します。

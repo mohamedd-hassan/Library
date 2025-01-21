@@ -1,0 +1,12 @@
+.text:01003940 ; \verb|__stdcall Rnd(x)|
+.text:01003940 _Rnd@4          proc near               ; CODE XREF: StartGame()+53
+.text:01003940                                         ; StartGame()+61
+.text:01003940
+.text:01003940 arg_0           = dword ptr  4
+.text:01003940
+.text:01003940                 call    ds:__imp__rand
+.text:01003946                 cdq
+.text:01003947                 idiv    [esp+arg_0]
+.text:0100394B                 mov     eax, edx
+.text:0100394D                 retn    4
+.text:0100394D _Rnd@4          endp

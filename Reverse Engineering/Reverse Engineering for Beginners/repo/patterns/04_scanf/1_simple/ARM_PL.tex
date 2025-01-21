@@ -1,0 +1,40 @@
+\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/04_scanf/1_simple/ARM_IDA.lst}
+
+\myindex{\CLanguageElements!\Pointers}
+
+Funkcja \scanf potrzebuje argumentu--- wskaźnika na \Tint, by mogła zapisać wycztaną wartość.
+\Tint jest 32-bitowy i zmieści się idealnie do 32-bitowego rejestru.
+\myindex{IDA!var\_?}
+Miejsce na zmienną lokalną \GTT{x} jest zaalokowane na stosie, \IDA
+oznaczyła przesunięcie względem \ac{SP} makrem \emph{var\_8}. Można by się bez niego obyć, gdyż \ac{SP} (\glslink{stack pointer}{wskaźnik stosu}) już pokazuje na to miejsce i mógły być użyty bezpośrednio.
+
+Wartość z \ac{SP} jest kopiowany do rejestru \Reg{1} i razem z łańcuchem znaków formatu przekazywana jako argumenty do funkcji \scanf.
+
+Instrukcja \INS{PUSH/POP} zachowuje się inaczej niż na x86 (odwrotnie).
+Są synonimami instrukcji \\ \INS{STM/STMDB/LDM/LDMIA}.
+\INS{PUSH} najpierw zapisuje wartość na stosie, \emph{a następnie} zmniejsza \ac{SP} o 4.
+\INS{POP} najpierw dodaje 4 do \ac{SP}, \emph{a następnie} wczytuje wartość ze stosu.
+Stąd po wykonaniu \INS{PUSH}, \ac{SP} pokazuje na nieużywane miejsce na stosie.
+Zostanie ono wykorzystane przez \scanf, a następnie \printf do zapisania i wczytania zmiennej lokalnej.
+
+\INS{LDMIA} oznacza \emph{Load Multiple Registers Increment address After each transfer}.
+\INS{STMDB} oznacza \emph{Store Multiple Registers Decrement address Before each transfer}.
+
+\myindex{ARM!\Instructions!LDR}
+Później, za pomocą instrukcji \INS{LDR}, wartość zmiennej lokalnej jest wczytywana ze stosu do rejestru \Reg{1}, by następnie zostać przekazana do funkcji \printf.
+
+\myparagraph{ARM64}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,numbers=left,style=customasmARM]{patterns/04_scanf/1_simple/ARM64_GCC491_O0_PL.s}
+
+Na ramkę stosu zaalokowano 32 bajty, a więc więcej niż to konieczne. Być może jest to efekty wyrównywania pamięci?
+Najciekawszym fragmetem jest szukanie położenia zmiennej $x$ w obrębie ramki stosu (linia 22).
+Dlaczego 28? Z jakiegoś powodu kompilator zdecydował umieścić zmienną na końcu ramki stosu, a nie na początku.
+Adres jest przekazywany do funkcji \scanf, która umieszcza pod tym adresem wartość wpisaną przez użytkownika.
+Jest to 32-bitowa wartość typu \Tint.
+Wartość jest pobierana w linii 27 a następnie przekazywana do funkcji \printf.
+

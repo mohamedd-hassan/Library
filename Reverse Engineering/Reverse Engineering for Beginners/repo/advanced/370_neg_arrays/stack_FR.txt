@@ -1,0 +1,10 @@
+Pile du CPU
+Address   Value
+001DFBCC  /001DFBD3 ; pointeur fakearray
+001DFBD0  |11223344 ; random_value
+001DFBD4  |03020100 ; 4 octets de array[]
+001DFBD8  |07060504 ; 4 octets de array[]
+001DFBDC  |00CB0908 ; reste §aléatoire§ + 2 dernier octets de array[]
+001DFBE0  |0000000A ; §dernière valeur de i après la fin de la boucle§
+001DFBE4  |001DFC2C ; valeur de EBP §sauvée§
+001DFBE8  \00CB129D ; Adresse de Retour

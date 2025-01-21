@@ -1,0 +1,55 @@
+\subsubsection{ARM}
+
+\myparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/1_simple/simple_Keil_ARM_O0_FR.asm}
+
+Le type \Tint nécessite 32 bits pour le stockage (ou 4 octets).
+
+donc pour stocker 20 variables, \Tint 80 (\TT{0x50}) octets sont nécessaires.
+
+C'est pourquoi l'instruction \INS{SUB SP, SP, \#0x50} dans le prologue de la fonction
+alloue exactement cet espace sur la pile.
+
+Dans la première et la seconde boucle, la variable de boucle \var{i} se trouve dans
+le registre \Reg{4}.
+
+\myindex{ARM!Optional operators!LSL}
+
+Le nombre qui doit être écrit dans le tableau est calculé comme $i*2$, ce qui est
+effectivement équivalent à décaler d'un bit vers la gauche,
+ce que fait l'instruction \INS{MOV R0, R4,LSL\#1}.
+
+\myindex{ARM!\Instructions!STR}
+\INS{STR R0, [SP,R4,LSL\#2]} écrit le contenu de \Reg{0} dans le tableau.
+
+Voici comment le pointeur sur un élément du tableau est calculé: \ac{SP} pointe sur
+le début du tableau, \Reg{4} est $i$.
+
+Donc décaler $i$ de 2 bits vers la gauche est effectivement équivalent à la multiplication
+par 4 (puisque chaque élément du tableau a une taille de 4 octets) et ensuite on
+l'ajoute à l'adresse du début du tableau.
+
+\myindex{ARM!\Instructions!LDR}
+
+La seconde boucle a l'instruction inverse \INS{LDR R2, [SP,R4,LSL\#2]}. Elle charge
+la valeur du tableau dont nous avons besoin, et le pointeur est calculé de même.
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/1_simple/simple_Keil_thumb_O3_FR.asm}
+
+Le code Thumb est très similaire.
+\myindex{ARM!\Instructions!LSLS}
+
+Le mode Thumb a des instructions spéciales pour le décalage (comme \TT{LSLS}), qui
+calculent la valeur à écrire dans le tableau et l'adresse de chaque élément dans le
+tableau.
+
+Le compilateur alloue légèrement plus d'espace sur la pile locale, cependant, les
+4 derniers octets ne sont pas utilisés.
+
+\myparagraph{GCC 4.9.1 \NonOptimizing (ARM64)}
+
+\lstinputlisting[caption=GCC 4.9.1 \NonOptimizing (ARM64),style=customasmARM]{patterns/13_arrays/1_simple/ARM64_GCC491_O0_FR.s}
+

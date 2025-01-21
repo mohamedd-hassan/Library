@@ -1,0 +1,21 @@
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/08_switch/2_lot/MIPS_O3_IDA_IT.lst}
+
+\myindex{MIPS!\Instructions!SLTIU}
+
+La nuova istruzione che incontriamo è \INS{SLTIU} (\q{Set on Less Than Immediate Unsigned}).
+\myindex{MIPS!\Instructions!SLTU}
+
+E' uguale a \INS{SLTU} (\q{Set on Less Than Unsigned}), e la \q{I} sta per \q{immediate}, 
+e prevede cioè che un valore sia specificato nell'istruzione stessa.
+
+\myindex{MIPS!\Instructions!BNEZ}
+\INS{BNEZ} is \q{Branch if Not Equal to Zero}.
+
+Il codice è molto simile a quello di altre \ac{ISA}.
+\myindex{MIPS!\Instructions!SLL}
+\INS{SLL} (\q{Shift Word Left Logical}) moltiplica per 4.
+
+MIPS è una CPU a 32-bit, e tutti gli indirizzi contenuti nella \emph{jumptable} sono quindi a 32-bit.
+

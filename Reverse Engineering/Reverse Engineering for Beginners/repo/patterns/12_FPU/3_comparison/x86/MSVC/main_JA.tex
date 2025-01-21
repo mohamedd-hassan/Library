@@ -1,0 +1,98 @@
+﻿\myparagraph{\NonOptimizing MSVC}
+
+MSVC 2010は以下のコードを生成します。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2010,style=customasmx86]{patterns/12_FPU/3_comparison/x86/MSVC/MSVC_JA.asm}
+
+\myindex{x86!\Instructions!FLD}
+
+\FLD は\GTT{\_b}を\ST{0}にロードします。
+
+\label{Czero_etc}
+\newcommand{\Czero}{\GTT{C0}\xspace}
+\newcommand{\Ctwo}{\GTT{C2}\xspace}
+\newcommand{\Cthree}{\GTT{C3}\xspace}
+\newcommand{\CThreeBits}{\Cthree/\Ctwo/\Czero}
+
+\myindex{x86!\Instructions!FCOMP}
+
+\FCOMP は\ST{0}の値と\GTT{\_a}の値を比較し、
+それに応じてFPUステータスワードレジスタの \CThreeBits ビットを設定します。
+これは、FPUの現在の状態を反映する16ビットのレジスタです。
+
+ビットがセットされると、 \FCOMP 命令はスタックから1つの変数もポップします。
+これは、値を比較してスタックを同じ状態にしておく \FCOM とは区別されます。
+
+残念ながら、インテルP6 
+\footnote{インテルP6はPentium Pro、Pentium IIなどです。}
+より前のCPUには、 \CThreeBits ビットをチェックする条件付きジャンプ命令はありません。
+おそらく、それは歴史の問題です。（思い起こしてみてください：FPUは過去に別のチップでした）
+
+インテルP6で始まる最新のCPUは、\FCOMI/\FCOMIP/\FUCOMI/\FUCOMIP 命令を持っていて、
+同じことをしますが、 \ZF/\PF/\CF CPUフラグを変更します。
+
+\myindex{x86!\Instructions!FNSTSW}
+
+\FNSTSW 命令は状態レジスタであるFPUを \AX にコピーします。 
+\CThreeBits ビットは14/10/8の位置に配置され、
+\AX レジスタの同じ位置にあり、 \AX{}~---\AH{} の上位部分に配置されます。
+
+\begin{itemize}
+\item この例では $b>a$ の場合、 \CThreeBits ビットは0,0,0と設定します。
+\item $a>b$ の場合、ビットは0,0,1です。
+\item $a=b$ の場合、ビットは1,0,0です。
+\item 結果が順序付けられていない場合（エラーの場合）、セットされたビットは1,1,1,1です。
+\end{itemize}
+% TODO: table here?
+
+これは、 \CThreeBits ビットが \AX レジスタにどのように配置されるかを示しています。
+
+\input{C3_in_AX}
+
+これは、 \CThreeBits ビットが \AH レジスタにどのように配置されるかを示しています。
+
+\input{C3_in_AH}
+
+\INS{test ah, 5}\footnote{5=101b}の実行後、
+\Czero と \Ctwo ビット（0と2の位置）のみが考慮され、他のビットはすべて無視されます。
+
+\label{parity_flag}
+\myindex{x86!\Registers!\Flags!Parity flag}
+
+さて、\emph{パリティーフラグ}と注目すべきもう1つの歴史的基礎についてお話しましょう。
+
+このフラグは、最後の計算結果の1の数が偶数の場合は1に設定され、奇数の場合は0に設定されます。
+
+Wikipedia\footnote{\WikipediaParityFlag}を見てみましょう：
+
+\begin{framed}
+\begin{quotation}
+パリティフラグをテストする一般的な理由の1つに、無関係なFPUフラグをチェックすることがあります。 FPUには4つの条件フラグ
+（C0～C3）がありますが、直接テストすることはできず、最初にフラグレジスタにコピーする必要があります。 
+これが起こると、C0はキャリーフラグに、C2はパリティフラグに、C3はゼロフラグに置かれます。 
+C2フラグは、例えば比較できない浮動小数点値（NaNまたはサポートされていない形式）がFUCOM命令と比較されます。
+\end{quotation}
+\end{framed}
+
+Wikipediaで述べられているように、パリティフラグはFPUコードで使用されることがあります。
+
+\myindex{x86!\Instructions!JP}
+
+\Czero と \Ctwo の両方が0に設定されている場合、 \PF フラグは1に設定されます。その場合、
+後続の \JP （\emph{jump if PF==1}）が実行されます。 
+いろいろな場合の \CThreeBits の値を思い出すと、
+条件ジャンプ \JP は、 $b>a$ または $a=b$ の場合に実行されます。
+（\INS{test ah, 5}命令によってクリアされているので、 \Cthree ビットはここでは考慮されていません）
+
+それ以降はすべて簡単です。 
+条件付きジャンプが実行された場合、
+\FLD は\ST{0}の\GTT{\_b}の値をロードし、
+実行されていなければ\GTT{\_a}の値をロードします。
+
+\mysubparagraph{\Ctwo? のチェックは？}
+
+\Ctwo フラグはエラー（\gls{NaN}など）の場合に設定されますが、コードではチェックされません。
+
+プログラマがFPUエラーを気にする場合は、チェックを追加する必要があります。
+
+\input{patterns/12_FPU/3_comparison/x86/MSVC/olly_JA.tex}

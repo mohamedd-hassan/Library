@@ -1,0 +1,26 @@
+\myindex{\CStandardLibrary!memcmp()}
+\myindex{x86!\Instructions!CMPSB}
+\myindex{x86!\Instructions!CMPSW}
+\myindex{x86!\Instructions!CMPSD}
+\myindex{x86!\Instructions!CMPSQ}
+\item[CMPSB/CMPSW/CMPSD/CMPSQ] (M) compare un octet/
+mot de 16-bit/
+mot de 32-bit/
+mot de 64-bit
+à partir de l'adresse qui se trouve dans SI/ESI/RSI avec la variable à l'adresse
+stockée dans DI/EDI/RDI.
+
+\label{REPE_CMPSx}
+Avec le préfixe REP, elle est répétée en boucle, le compteur est stocké dans le registre
+CX/ECX/RCX, le processus se répétera jusqu'à ce que le flag ZF soit zéro (i.e., jusqu'à
+ce que les valeurs soient égales l'une à l'autre, d'où le \q{E} dans REPE).
+
+Ca fonctionne comme memcmp() en C.
+
+Exemple tiré du noyau de Windows NT (\ac{WRK} v1.2):
+
+\lstinputlisting[caption=base\textbackslash{}ntos\textbackslash{}rtl\textbackslash{}i386\textbackslash{}movemem.asm,style=customasmx86]{appendix/x86/instructions/RtlCompareMemory_WRK12.asm}
+
+N.B.: cette fonction utilise une comparaison 32-bit (CMPSD) si la taille du bloc
+est un multiple de 4, ou sinon une comparaison par octet (CMPSB).
+

@@ -1,0 +1,23 @@
+\subsection{Controllo condizione}
+
+E' importante tenere a mente che nel costrutto \emph{for()}, la condizione non è controllata alla fine, ma all' inizio, prima che il corpo del ciclo venga eseguito.
+Ma spesso, è più conveniente per il compilatore controllarla alla fine, dopo il corpo.
+A volte, può essere aggiunto un controllo aggiuntivo all'inizio.
+
+Per esempio:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/1.c}
+
+GCC 5.4.0 x64 ottimizzato:
+
+\lstinputlisting[style=customasmx86]{patterns/09_loops/cond_check/1.s}
+
+Notiamo due controlli.
+
+\myindex{Hex-Rays}
+Hex-Rays (alla versione 2.2.0) lo decompila così:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/hexrays.c}
+
+In questo caso, \emph{do/while()} può essere senza alcun dubbio rimpiazzato con \emph{for()}, e il primo controllo può essere rimosso.
+

@@ -1,0 +1,413 @@
+\mysection{Un méchant bogue dans MSVCRT.DLL}
+\myindex{MinGW}
+\myindex{MSVCRT.DLL}
+
+Ceci est un bogue qui m'a coûté plusieurs heures de débogage.
+
+En 2013, j'utilisais MinGW, mon projet C semblait très instable et je voyais le
+message d'erreur ``Invalid parameter passed to C runtime function.'' dans le débogueur.
+
+Le message d'erreur était aussi visible en utilisant DebugView de Sysinternals.
+Et mon projet n'avait pas un tel message d'erreur, ni de chaîne.
+Donc, j'ai commencé à chercher dans l'ensemble de Windows et l'ai trouvé dans le
+fichier MSVCRT.DLL (inutile de dire que j'utilisais Windows 7).
+
+Donc le voici, le message d'erreur dans le fichier MSVCRT.DLL fourni avec Windows 7:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6FFB69D0 OutputString    db 'Invalid parameter passed to C runtime function.',0Ah,0
+.text:6FFB69D0                                         ; DATA XREF: \verb|sub_6FFB6930+83|
+\end{lstlisting}
+
+Où est-il référencé?
+
+\begin{lstlisting}[style=customasmx86,label=msvcrt_output]
+.text:6FFB6930 sub_6FFB6930    proc near               ; \verb|CODE XREF: _wfindfirst64+203FC|
+.text:6FFB6930                                         ; \verb|sub_6FF62563+319AD|
+.text:6FFB6930
+.text:6FFB6930 var_2D0         = dword ptr -2D0h
+.text:6FFB6930 var_244         = word ptr -244h
+.text:6FFB6930 var_240         = word ptr -240h
+.text:6FFB6930 var_23C         = word ptr -23Ch
+.text:6FFB6930 var_238         = word ptr -238h
+.text:6FFB6930 var_234         = dword ptr -234h
+.text:6FFB6930 var_230         = dword ptr -230h
+.text:6FFB6930 var_22C         = dword ptr -22Ch
+.text:6FFB6930 var_228         = dword ptr -228h
+.text:6FFB6930 var_224         = dword ptr -224h
+.text:6FFB6930 var_220         = dword ptr -220h
+.text:6FFB6930 var_21C         = dword ptr -21Ch
+.text:6FFB6930 var_218         = dword ptr -218h
+.text:6FFB6930 var_214         = word ptr -214h
+.text:6FFB6930 var_210         = dword ptr -210h
+.text:6FFB6930 var_20C         = dword ptr -20Ch
+.text:6FFB6930 var_208         = word ptr -208h
+.text:6FFB6930 var_4           = dword ptr -4
+.text:6FFB6930
+.text:6FFB6930                 mov     edi, edi
+.text:6FFB6932                 push    ebp
+.text:6FFB6933                 mov     ebp, esp
+.text:6FFB6935                 sub     esp, 2D0h
+.text:6FFB693B                 mov     eax, ___security_cookie
+.text:6FFB6940                 xor     eax, ebp
+.text:6FFB6942                 mov     [ebp+var_4], eax
+.text:6FFB6945                 mov     [ebp+var_220], eax
+.text:6FFB694B                 mov     [ebp+var_224], ecx
+.text:6FFB6951                 mov     [ebp+var_228], edx
+.text:6FFB6957                 mov     [ebp+var_22C], ebx
+.text:6FFB695D                 mov     [ebp+var_230], esi
+.text:6FFB6963                 mov     [ebp+var_234], edi
+.text:6FFB6969                 mov     [ebp+var_208], ss
+.text:6FFB696F                 mov     [ebp+var_214], cs
+.text:6FFB6975                 mov     [ebp+var_238], ds
+.text:6FFB697B                 mov     [ebp+var_23C], es
+.text:6FFB6981                 mov     [ebp+var_240], fs
+.text:6FFB6987                 mov     [ebp+var_244], gs
+.text:6FFB698D                 pushf
+.text:6FFB698E                 pop     [ebp+var_210]
+.text:6FFB6994                 mov     eax, [ebp+4]
+.text:6FFB6997                 mov     [ebp+var_218], eax
+.text:6FFB699D                 lea     eax, [ebp+4]
+.text:6FFB69A0                 mov     [ebp+var_2D0], 10001h
+.text:6FFB69AA                 mov     [ebp+var_20C], eax
+.text:6FFB69B0                 mov     eax, [eax-4]
+.text:6FFB69B3                 push    offset OutputString ; "Invalid parameter passed to C runtime f"...
+.text:6FFB69B8                 mov     [ebp+var_21C], eax
+.text:6FFB69BE                 call    ds:OutputDebugStringA
+.text:6FFB69C4                 mov     ecx, [ebp+var_4]
+.text:6FFB69C7                 xor     ecx, ebp
+.text:6FFB69C9                 call    @__security_check_cookie@4 ; \verb|__security_check_cookie(x)|
+.text:6FFB69CE                 leave
+.text:6FFB69CF                 retn
+.text:6FFB69CF sub_6FFB6930    endp
+\end{lstlisting}
+
+La chaîne est affichée dans le débogueur ou l'utilitaire DebugView en utilisant
+la fonction standard\\
+\verb|OutputDebugStringA()|.
+Comment la fonction \verb|sub_6FFB6930| peut-elle être appelée?
+\IDA montre au moins 290 références.
+En utilisant mon \tracer, j'ai mis un point d'arrêt en \verb|sub_6FFB6930| pour
+voir quand elle est appelée dans mon cas.
+
+\begin{lstlisting}
+tracer.exe -l:1.exe bpf=msvcrt.dll!0x6FFB6930 -s
+
+...
+
+PID=3560|New process 1.exe
+(0) msvcrt.dll!0x6ffb6930() (called from msvcrt.dll!_ftol2_sse_excpt+0x1b467 (0x759ed222))
+Call stack:
+return address=0x401010 (1.exe!.text+0x10), arguments in stack: 0x12ff14, 0x401010, 0x403010("asd"), 0x0, 0x12ff88, 0x4010f8
+return address=0x4010f8 (1.exe!OEP+0xe3), arguments in stack: 0x12ff88, 0x4010f8, 0x1, 0x2e0ea8, 0x2e1640, 0x403000
+return address=0x75b6ef3c (KERNEL32.dll!BaseThreadInitThunk+0x12), arguments in stack: 0x12ff94, 0x75b6ef3c, 0x7ffdf000, 0x12ffd4, 0x77523688, 0x7ffdf000
+return address=0x77523688 (ntdll.dll!RtlInitializeExceptionChain+0xef), arguments in stack: 0x12ffd4, 0x77523688, 0x7ffdf000, 0x74117ec7, 0x0, 0x0
+return address=0x7752365b (ntdll.dll!RtlInitializeExceptionChain+0xc2), arguments in stack: 0x12ffec, 0x7752365b, 0x401015, 0x7ffdf000, 0x0, 0x0
+(0) msvcrt.dll!0x6ffb6930() -> 0x12f94c
+PID=3560|Process 1.exe exited. ExitCode=2147483647 (0x7fffffff)
+\end{lstlisting}
+
+J'ai trouvé que mon code appelait la fonction stricmp() avec un argument à NULL.
+En fait, j'ai créé cet exemple en écrivant ceci:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+#include <string.h>
+
+int main()
+{
+	stricmp ("asd", NULL);
+};
+\end{lstlisting}
+
+Si ce morceau de code est compilé en utilisant un vieux MinGW ou un vieux MSVC 6.0,
+il est lié avec le fichier MSVCRT.DLL.
+Qui, à partir de Windows 7, envoie silencieusement le message d'erreur ``Invalid
+parameter passed to C runtime function.'' au débogueur et puis ne fait rien!
+
+Voyons comment stricmp() est implémentée dans MSVCRT.DLL:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6FF5DB38 ; Exported entry 855. \_strcmpi
+.text:6FF5DB38 ; Exported entry 863. \_stricmp
+.text:6FF5DB38
+.text:6FF5DB38 ; =============== S U B R O U T I N E =======================================
+.text:6FF5DB38
+.text:6FF5DB38 ; Attributes: bp-based frame
+.text:6FF5DB38
+.text:6FF5DB38 ; int \_\_cdecl strcmpi(const char *, const char *)
+.text:6FF5DB38                 public _strcmpi
+.text:6FF5DB38 _strcmpi        proc near               ; CODE XREF: LocaleEnumProc-2B
+.text:6FF5DB38                                         ; LocaleEnumProc+5E
+.text:6FF5DB38
+.text:6FF5DB38 arg_0           = dword ptr  8
+.text:6FF5DB38 arg_4           = dword ptr  0Ch
+.text:6FF5DB38
+.text:6FF5DB38 ; FUNCTION CHUNK AT .text:6FF68CFD SIZE 00000012 BYTES
+.text:6FF5DB38 ; FUNCTION CHUNK AT .text:6FF9D20D SIZE 00000022 BYTES
+.text:6FF5DB38
+.text:6FF5DB38                 mov     edi, edi        ; \_strcmpi
+.text:6FF5DB3A                 push    ebp
+.text:6FF5DB3B                 mov     ebp, esp
+.text:6FF5DB3D                 push    esi
+.text:6FF5DB3E                 xor     esi, esi
+.text:6FF5DB40                 cmp     dword_6FFF0000, esi
+.text:6FF5DB46                 jnz     loc_6FF68CFD
+.text:6FF5DB4C                 cmp     [ebp+arg_0], esi  ; is arg\_0==NULL?
+.text:6FF5DB4F                 jz      loc_6FF9D20D
+.text:6FF5DB55                 cmp     [ebp+arg_4], esi  ; is arg\_0==NULL?
+.text:6FF5DB58                 jz      loc_6FF9D20D
+.text:6FF5DB5E                 pop     esi
+.text:6FF5DB5F                 pop     ebp
+.text:6FF5DB5F _strcmpi        endp ; sp-analysis failed
+\end{lstlisting}
+
+La comparaison effective des chaînes est ici:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6FF5DB60 sub_6FF5DB60    proc near               ; CODE XREF: \verb|_stricmp_l+16C7F|
+.text:6FF5DB60                                         ; \verb|sub_6FFD19CD+229|
+.text:6FF5DB60
+.text:6FF5DB60 arg_0           = dword ptr  8
+.text:6FF5DB60 arg_4           = dword ptr  0Ch
+.text:6FF5DB60
+.text:6FF5DB60                 push    ebp
+.text:6FF5DB61                 mov     ebp, esp
+.text:6FF5DB63                 push    edi
+.text:6FF5DB64                 push    esi
+.text:6FF5DB65                 push    ebx
+.text:6FF5DB66                 mov     esi, [ebp+arg_4]
+.text:6FF5DB69                 mov     edi, [ebp+arg_0]
+.text:6FF5DB6C                 mov     al, 0FFh
+.text:6FF5DB6E                 mov     edi, edi
+.text:6FF5DB70
+.text:6FF5DB70 loc_6FF5DB70:                           ; CODE XREF: \verb|sub_6FF5DB60+20|
+.text:6FF5DB70                                         ; \verb|sub_6FF5DB60+40|
+.text:6FF5DB70                 or      al, al
+.text:6FF5DB72                 jz      short loc_6FF5DBA6
+.text:6FF5DB74                 mov     al, [esi]
+.text:6FF5DB76                 add     esi, 1
+.text:6FF5DB79                 mov     ah, [edi]
+.text:6FF5DB7B                 add     edi, 1
+.text:6FF5DB7E                 cmp     ah, al
+.text:6FF5DB80                 jz      short loc_6FF5DB70
+.text:6FF5DB82                 sub     al, 41h
+.text:6FF5DB84                 cmp     al, 1Ah
+.text:6FF5DB86                 sbb     cl, cl
+.text:6FF5DB88                 and     cl, 20h
+.text:6FF5DB8B                 add     al, cl
+.text:6FF5DB8D                 add     al, 41h
+.text:6FF5DB8F                 xchg    ah, al
+.text:6FF5DB91                 sub     al, 41h
+.text:6FF5DB93                 cmp     al, 1Ah
+.text:6FF5DB95                 sbb     cl, cl
+.text:6FF5DB97                 and     cl, 20h
+.text:6FF5DB9A                 add     al, cl
+.text:6FF5DB9C                 add     al, 41h
+.text:6FF5DB9E                 cmp     al, ah
+.text:6FF5DBA0                 jz      short loc_6FF5DB70
+.text:6FF5DBA2                 sbb     al, al
+.text:6FF5DBA4                 sbb     al, 0FFh
+.text:6FF5DBA6
+.text:6FF5DBA6 loc_6FF5DBA6:                           ; CODE XREF: \verb|sub_6FF5DB60+12|
+.text:6FF5DBA6                 movsx   eax, al
+.text:6FF5DBA9                 pop     ebx
+.text:6FF5DBAA                 pop     esi
+.text:6FF5DBAB                 pop     edi
+.text:6FF5DBAC                 leave
+.text:6FF5DBAD                 retn
+.text:6FF5DBAD sub_6FF5DB60    endp
+
+.text:6FF68D0C loc_6FF68D0C:                           ; CODE XREF: \verb|_strcmpi+3F6F2|
+.text:6FF68D0C                 pop     esi
+.text:6FF68D0D                 pop     ebp
+.text:6FF68D0E                 retn
+
+.text:6FF9D20D loc_6FF9D20D:                           ; CODE XREF: \verb|_strcmpi+17|
+.text:6FF9D20D                                         ; \verb|_strcmpi+20|
+.text:6FF9D20D                 call    near ptr _errno
+.text:6FF9D212                 push    esi
+.text:6FF9D213                 push    esi
+.text:6FF9D214                 push    esi
+.text:6FF9D215                 push    esi
+.text:6FF9D216                 push    esi
+.text:6FF9D217                 mov     dword ptr [eax], 16h
+.text:6FF9D21D                 call    _invalid_parameter
+.text:6FF9D222                 add     esp, 14h
+.text:6FF9D225                 mov     eax, 7FFFFFFFh
+.text:6FF9D22A                 jmp     loc_6FF68D0C
+\end{lstlisting}
+
+Maintenant la fonction \verb|invalid_parameter()|:
+
+\begin{lstlisting}[style=customasmx86]
+.text:6FFB6A06                 public _invalid_parameter
+.text:6FFB6A06 _invalid_parameter proc near            ; CODE XREF: \verb|sub_6FF5B494:loc_6FF5B618|
+.text:6FFB6A06                                         ; \verb|sub_6FF5CCFD:loc_6FF5C8A2|
+.text:6FFB6A06                 mov     edi, edi
+.text:6FFB6A08                 push    ebp
+.text:6FFB6A09                 mov     ebp, esp
+.text:6FFB6A0B                 pop     ebp
+.text:6FFB6A0C                 jmp     sub_6FFB6930
+.text:6FFB6A0C _invalid_parameter endp
+\end{lstlisting}
+
+La fonction \verb|invalid_parameter()| appelle finalement la fonction avec \verb|OutputDebugStringA()|:
+\myref{msvcrt_output}.
+
+Voyez-vous, le code de stricmp() est comme:
+
+\begin{lstlisting}[style=customc]
+int stricmp(const char *s1, const char *s2, size_t len)
+{
+	if (s1==NULL || s2==NULL)
+	{
+		// print error message AND exit:
+		return 0x7FFFFFFFh;
+	};
+	// do comparison
+};
+\end{lstlisting}
+
+Comment se fait-il que cette erreur soit rare? Car les nouvelles versions de MSVC
+lient avec le fichier MSVCR120.DLL, etc. (où 120 est le numéro de version).
+
+Jetons un coup d'\oe{}il à l'intérieur du nouveau MSVCR120.DLL de Windows 7:
+
+\begin{lstlisting}[style=customasmx86]
+.text:1002A0D4                 public _stricmp_l
+.text:1002A0D4 _stricmp_l      proc near               ; CODE XREF: \verb|_stricmp+18|
+.text:1002A0D4                                         ; \verb|_mbsicmp_l+47|
+.text:1002A0D4                                         ; DATA XREF: ...
+.text:1002A0D4
+.text:1002A0D4 var_10          = dword ptr -10h
+.text:1002A0D4 var_8           = dword ptr -8
+.text:1002A0D4 var_4           = byte ptr -4
+.text:1002A0D4 arg_0           = dword ptr  8
+.text:1002A0D4 arg_4           = dword ptr  0Ch
+.text:1002A0D4 arg_8           = dword ptr  10h
+.text:1002A0D4
+.text:1002A0D4 ; FUNCTION CHUNK AT .text:1005AA7B SIZE 0000002A BYTES
+.text:1002A0D4
+.text:1002A0D4                 push    ebp
+.text:1002A0D5                 mov     ebp, esp
+.text:1002A0D7                 sub     esp, 10h
+.text:1002A0DA                 lea     ecx, [ebp+var_10]
+.text:1002A0DD                 push    ebx
+.text:1002A0DE                 push    esi
+.text:1002A0DF                 push    edi
+.text:1002A0E0                 push    [ebp+arg_8]
+.text:1002A0E3                 call    sub_1000F764
+.text:1002A0E8                 mov     edi, [ebp+arg_0] ; arg==NULL?
+.text:1002A0EB                 test    edi, edi
+.text:1002A0ED                 jz      loc_1005AA7B
+.text:1002A0F3                 mov     ebx, [ebp+arg_4] ; arg==NULL?
+.text:1002A0F6                 test    ebx, ebx
+.text:1002A0F8                 jz      loc_1005AA7B
+.text:1002A0FE                 mov     eax, [ebp+var_10]
+.text:1002A101                 cmp     dword ptr [eax+0A8h], 0
+.text:1002A108                 jz      loc_1005AA95
+.text:1002A10E                 sub     edi, ebx
+
+...
+
+.text:1005AA7B loc_1005AA7B:                           ; CODE XREF: \verb|_stricmp_l+19|
+.text:1005AA7B                                         ; \verb|_stricmp_l+24|
+.text:1005AA7B                 call    _errno
+.text:1005AA80                 mov     dword ptr [eax], 16h
+.text:1005AA86                 call    _invalid_parameter_noinfo
+.text:1005AA8B                 mov     esi, 7FFFFFFFh
+.text:1005AA90                 jmp     loc_1002A13B
+
+...
+
+.text:100A4670 _invalid_parameter_noinfo proc near     ; CODE XREF: \verb|sub_10013BEC-10F|
+.text:100A4670                                         ; \verb|sub_10016C0F-10F|
+.text:100A4670                 xor     eax, eax
+.text:100A4672                 push    eax
+.text:100A4673                 push    eax
+.text:100A4674                 push    eax
+.text:100A4675                 push    eax
+.text:100A4676                 push    eax
+.text:100A4677                 call    _invalid_parameter
+.text:100A467C                 add     esp, 14h
+.text:100A467F                 retn
+.text:100A467F _invalid_parameter_noinfo endp
+
+...
+
+.text:100A4645 _invalid_parameter proc near            ; CODE XREF: \_invalid\_parameter(ushort const *,ushort const *,ushort const *,uint,uint)
+.text:100A4645                                         ; \verb|_invalid_parameter_noinfo+7|
+.text:100A4645
+.text:100A4645 arg_0           = dword ptr  8
+.text:100A4645 arg_4           = dword ptr  0Ch
+.text:100A4645 arg_8           = dword ptr  10h
+.text:100A4645 arg_C           = dword ptr  14h
+.text:100A4645 arg_10          = dword ptr  18h
+.text:100A4645
+.text:100A4645                 push    ebp
+.text:100A4646                 mov     ebp, esp
+.text:100A4648                 push    dword_100E0ED8  ; Ptr
+.text:100A464E                 call    ds:DecodePointer
+.text:100A4654                 test    eax, eax
+.text:100A4656                 jz      short loc_100A465B
+.text:100A4658                 pop     ebp
+.text:100A4659                 jmp     eax
+.text:100A465B ; ---------------------------------------------------------------------------
+.text:100A465B
+.text:100A465B loc_100A465B:                           ; CODE XREF: \verb|_invalid_parameter+11|
+.text:100A465B                 push    [ebp+arg_10]
+.text:100A465E                 push    [ebp+arg_C]
+.text:100A4661                 push    [ebp+arg_8]
+.text:100A4664                 push    [ebp+arg_4]
+.text:100A4667                 push    [ebp+arg_0]
+.text:100A466A                 call    _invoke_watson
+.text:100A466F                 int     3               ; Trap to Debugger
+.text:100A466F _invalid_parameter endp
+
+.text:100A469B _invoke_watson  proc near               ; CODE XREF: \verb|sub_1002CDB0+27068|
+.text:100A469B                                         ; \verb|sub_10029704+2A792|
+.text:100A469B                 push    17h             ; ProcessorFeature
+.text:100A469D                 call    IsProcessorFeaturePresent
+.text:100A46A2                 test    eax, eax
+.text:100A46A4                 jz      short loc_100A46AB
+.text:100A46A6                 push    5
+.text:100A46A8                 pop     ecx
+.text:100A46A9                 int     29h             ; Win8: RtlFailFast(ecx)
+.text:100A46AB ; ---------------------------------------------------------------------------
+.text:100A46AB
+.text:100A46AB loc_100A46AB:                           ; CODE XREF: \verb|_invoke_watson+9|
+.text:100A46AB                 push    esi
+.text:100A46AC                 push    1
+.text:100A46AE                 mov     esi, 0C0000417h
+.text:100A46B3                 push    esi
+.text:100A46B4                 push    2
+.text:100A46B6                 call    sub_100A4519
+.text:100A46BB                 push    esi             ; uExitCode
+.text:100A46BC                 call    __crtTerminateProcess
+.text:100A46C1                 add     esp, 10h
+.text:100A46C4                 pop     esi
+.text:100A46C5                 retn
+.text:100A46C5 _invoke_watson  endp
+\end{lstlisting}
+
+Maintenant la fonction \verb|invalid_parameter()| est récrite dans les nouvelles
+versions de MSVCR*.DLL, elle montre la boîte de dialogue, proposant de tuer le processus
+ou d'appeler le débogueur.
+Bien sûr, c'est beaucoup mieux que de retourner silencieusement.
+Peut-être que Microsoft a oublié de fixer MSVCRT.DLL depuis lors.
+
+Mais comment est-ce que ça fonctionnait du temps de Windows XP? Ça ne fonctionnait pas:
+MSVCRT.DLL de Windows XP ne vérifiait pas si les arguments étaient NULL.\\
+Donc, sous Windows XP mon code \verb|stricmp ("asd", NULL)| plantera, et c'est bien.
+
+Mon hypothèse: Microsoft a mis à jour les fichiers MSVCR*.DLL (MSVCRT.DLL inclus)
+pour Windows 7 en ajoutant des tests de vérification partout.
+Toutefois, puisque MSVCRT.DLL n'était plus beaucoup utilisé depuis MSVS .NET
+(année 2002), il n'a pas été testé proprement et le bogue est resté.
+Mais des compilateurs comme MinGW peuvent toujours utiliser cette DLL.
+
+Qu'aurais-je fait sans mes compétences en rétro-ingénierie?
+
+Le fichier MSVCRT.DLL de Windows 8.1 a le même bogue.
+

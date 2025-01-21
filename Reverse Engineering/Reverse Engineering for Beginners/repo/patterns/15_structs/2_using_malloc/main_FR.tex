@@ -1,0 +1,43 @@
+﻿\subsection{Allouons de l'espace pour une structure avec malloc()}
+\label{struct_malloc_example}
+
+Il est parfois plus simple de placer une structure sur le \gls{heap} que sur la pile:
+
+\lstinputlisting[style=customc]{patterns/15_structs/2_using_malloc/systemtime_malloc.c}
+
+Compilons cet exemple en utilisant l'option (\Ox) qui facilitera nos observations.
+
+\lstinputlisting[caption=MSVC \Optimizing,style=customasmx86]{patterns/15_structs/2_using_malloc/systemtime_malloc.asm}
+
+\myindex{\CStandardLibrary!malloc()}
+
+Puisque \TT{sizeof(SYSTEMTIME) = 16} c'est aussi le nombre d'octets qui doit être alloué par
+\TT{malloc()}. Celui-ci renvoie dans le registre \EAX un pointeur vers un bloc mémoire fraîchement
+alloué. Puis le pointeur est copié dans le registre \ESI.
+La fonction win32 \TT{GetSystemTime()} prend soin que la valeur de \ESI soit la même à l'issue de la
+fonction que lors de son appel. C'est pourquoi nous pouvons continuer à l'utiliser après sans avoir
+eu besoin de le sauvegarder.
+
+\myindex{x86!\Instructions!MOVZX}
+
+Tiens, une nouvelle instruction ~---\MOVZX (\emph{Move with Zero eXtend}).
+La plupart du temps, elle peut être utilisée comme \MOVSX. La différence est qu'elle positionne
+systématiquement les bits supplémentaires à 0.
+Elle est utilisée ici car \printf attend une valeur sur 32 bits et que nous ne disposons que d'un
+WORD dans la structure~---c'est à dire une valeur non signée sur 16 bits. Il nous faut donc forcer
+à zéro les bits 16 à 31 lorsque le WORD est copié dans un \Tint{}, sinon nous risquons de
+récupérer des bits résiduels de la précédente opération sur le registre.
+
+Dans cet exemple, il reste possible de représenter la structure sous forme d'un tableau de 8 WORDs:
+
+\lstinputlisting[style=customc]{patterns/15_structs/2_using_malloc/systemtime_malloc2.c}
+
+Nous avons alors:
+
+\lstinputlisting[caption=MSVC \Optimizing,style=customasmx86]{patterns/15_structs/2_using_malloc/systemtime_malloc2.asm}
+
+Encore une fois nous obtenons un code qu'il n'est pas possible de discerner du précédent.
+
+Et encore une fois, vous n'avez pas intérêt à faire cela, sauf si vous savez exactement ce que vous
+faites.
+

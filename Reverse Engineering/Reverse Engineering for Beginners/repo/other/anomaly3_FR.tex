@@ -1,0 +1,23 @@
+
+\subsection{ftol2() dans MSVC 2012}
+
+Je viens de trouver ceci dans la fonction ftol2() de la bibliothèque C/C++ standard
+(routine de conversion float-to-long) de Microsoft Visual Studio 2012.
+
+% TODO translate:
+\lstinputlisting[style=customasmx86]{other/ftol2_EN.asm}
+
+Notez les deux \INS{FSTP}-s (stocker un float avec pop) identiques à la fin.
+D'abord, j'ai cru qu'il s'agissait d'une anomalie du compilateur (je collectionne
+de tels cas tout comme certains collectionnent les papillons), mais il semble qu'il
+s'agisse d'un morceau d'assembleur écrit à la main, dans msvcrt.lib il y a un fichier
+objet avec cette fonction dedans et on peut y trouver cette chaîne:\\
+\verb|f:\dd\vctools\crt_bld\SELF_X86\crt\prebuild\tran\i386\ftol2.asm| ---
+qui est sans doute un chemin vers le fichier sur l'ordinateur du développeur où
+msvcrt.lib a été généré.
+
+Donc, bogue, typo induite par l'éditeur de texte ou fonctionnalité?
+% to be sync
+%So, bug, text editor-induced typo, or it was done by intent?
+%The code working correctly, anyway.
+

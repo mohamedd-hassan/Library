@@ -1,0 +1,176 @@
+% TODO resync with EN version
+\mysection{Ulteriori considerazioni sulla restituzione dei risultati}
+
+\myindex{x86!\Registers!EAX}
+
+In x86, il risultato dell'esecuzione dei una funzione è generalmente restituito
+\footnote{\Seealso: MSDN: Return Values (C++): \href{http://msdn.microsoft.com/en-us/library/7572ztz4.aspx}{MSDN}}
+nel registro \EAX. 
+Se il tipo del risultato è un byte o un \Tchar, viene utilizzata la parte bassa del registro \EAX (\AL). 
+Se una funzione restituisce un numero di tipo \Tfloat, viene invece utilizzato il registro FPU \ST{0}.
+\myindex{ARM!\Registers!R0}
+In ARM, il risultato è solitamente restituito nel registro \Reg{0}.
+
+\subsection{Tentativo di utilizzare il risultato di una funzione che resituisce \Tvoid}
+\label{UseResultOfVoidFunc}
+
+Che succederebbe se la funzione main dichiarasse il valore di ritorno di tipo \Tvoid invece di \Tint?
+Il cosiddetto startup-code chiama \main più o meno così:
+
+\begin{lstlisting}[style=customasmx86]
+push envp
+push argv
+push argc
+call main
+push eax
+call exit
+\end{lstlisting}
+
+In altre parole:
+
+\begin{lstlisting}[style=customc]
+exit(main(argc,argv,envp));
+\end{lstlisting}
+
+Se dichiariamo \main come \Tvoid, non viene esplicitamente restituito nulla  (usando lo statement \emph{return}),
+e quindi qualche valore casuale, che si trova memorizzato nel registro \EAX alla fine di \main, diventa argomento della funzione exit().
+Molto probabilmente si tratterà di un valore casuale, residuo dell'esecuzione della nostra funzione, quindi l'exit code del programma 
+è pseudo-casuale.
+\par
+Illustriamo meglio questo fatto. 
+La funzione \main ha ora un valore di ritorno di tipo \Tvoid:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf ("Hello, world!\n");
+};
+\end{lstlisting}
+
+Compiliamo il programma su Linux.
+
+\myindex{puts() instead of printf()}
+GCC 4.8.1 ha sostituito \printf con \puts 
+(abbiamo già visto questo caso: \myref{puts}), e va del tutto bene, poichè \puts restituisce il numero di caratteri stampati proprio come \printf.
+Notiamo che \EAX non viene azzerato prima della fine di \main.
+
+Ciò implica che il valore di \EAX alla fine di \main conterrà il valore lasciato lì da \puts.
+
+\begin{lstlisting}[caption=GCC 4.8.1,style=customasmx86]
+.LC0:
+	.string	"Hello, world!"
+main:
+	push	ebp
+	mov	ebp, esp
+	and	esp, -16
+	sub	esp, 16
+	mov	DWORD PTR [esp], OFFSET FLAT:.LC0
+	call	puts
+	leave
+	ret
+\end{lstlisting}
+
+\myindex{bash}
+
+Scriviamo uno script bash che mostra l'exit status:
+
+\begin{lstlisting}[caption=tst.sh]
+#!/bin/sh
+./hello_world
+echo $?
+\end{lstlisting}
+
+Eseguiamolo:
+
+\begin{lstlisting}
+$ tst.sh 
+Hello, world!
+14
+\end{lstlisting}
+
+14 è il numero di caratteri stampati. Il numero dei caratteri stampati \textit{scivola} da \printf{} attraverso \TT{EAX}/\TT{RAX} nell' \q{exit code}.
+
+Un altro esempio nel libro: \myref{ForgottenReturn}.
+
+\myindex{Hex-Rays}
+Comunque, quando decompiliamo C++ in Hex-Rays, spesso possiamo trovare una funzione che termina con il distruttore di qualche classe:
+
+\begin{lstlisting}[style=customasmx86]
+...
+
+call    ??1CString@@QAE@XZ ; CString::~CString(void)
+mov     ecx, [esp+30h+var_C]
+pop     edi
+pop     ebx
+mov     large fs:0, ecx
+add     esp, 28h
+retn
+\end{lstlisting}
+
+Dallo standard C++, i distruttori non ritornano nulla, ma quando Hex-Rays non lo capisce e pensa che sia il distruttore che la funzione ritornino \Tint, possiamo avere un output simile a questo:
+
+\begin{lstlisting}[style=customc] 
+...
+
+        return CString::~CString(&Str);
+}
+\end{lstlisting}
+
+\subsection{Che succede se il risultato della funzione non viene usato?}
+
+\printf restituisce il numero di caratteri mandati in output con successo, ma il risultato di questa funzione
+è usato molto raramente.
+
+E' possibile anche chiamare una funzione la cui essenza risiede nel restituire un valore e non usarlo del tutto:
+
+\begin{lstlisting}[style=customc]
+int f()
+{
+    // salta i primi 3 valori casuali:
+    rand();
+    rand();
+    rand();
+    // e usa il 4°:
+    return rand();
+};
+\end{lstlisting}
+
+Il risultato della funzione rand() è lasciato in \EAX in tutti e quattro i casi.
+Nei primi 3 però il valore in \EAX non viene usato.
+
+\subsection{Restituire una struttura}
+
+\myindex{\CLanguageElements!return}
+
+Torniamo al fatto che il valore di ritorno è lasciato nel registro \EAX.
+Questo è il motivo per cui i vecchi compilatori C non possono creare funzioni in grado di restituire qualcosa che non entri perfettamente in un 
+registro (solitamente un \Tint). Se lo si vuole fare, è necessario restituire l'informazione attraverso puntatori passati come argomenti alla funzione.
+
+Quindi, generalmente, se una funzione deve restituire più valori, ne restituisce (realmente) soltanto uno, ed il resto---tramite puntatori.
+
+Oggi è possibile restituire anche un'intera struttura, ma non è ancora una pratica molto diffusa.
+Se una funzione deve restituire una struttura grande, il chiamante (\gls{caller}) deve allocarla e passare come primo argomento della funzione un puntatore alla struttura, il tutto in modo trasparente per il programmatore.
+E' pressochè la stessa cosa di passare un puntatore manualmente come primo argomento, ma il compilatore "nasconde" questo passaggio.
+
+Un piccolo esempio:
+
+\lstinputlisting[style=customc]{patterns/06_return_results/6_1.c}
+
+\dots otteniamo (MSVC 2010 \Ox):
+
+\lstinputlisting[style=customasmx86]{patterns/06_return_results/6_1.asm}
+
+Il nome della macro per il passaggio interno del puntatore alla struttura è in questo caso \GTT{\$T3853}.
+
+\myindex{\CLanguageElements!C99}
+Questo stesso esempio può essere riscritto utilizzando l'estensione del linguaggio C99:
+
+\lstinputlisting[style=customc]{patterns/06_return_results/6_1_C99.c}
+
+\lstinputlisting[caption=GCC 4.8.1,style=customasmx86]{patterns/06_return_results/6_1_C99.asm}
+
+Come possiamo vedere, la funzione chiamata non fa altro che riempire i campi della struttura allocata dalla funzione chiamante,
+come se un puntatore alla struttura fosse stato passato.
+Pertanto non ci sono neanche impatti negativi sulla performance.

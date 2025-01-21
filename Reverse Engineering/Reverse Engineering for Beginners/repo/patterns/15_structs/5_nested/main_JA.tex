@@ -1,0 +1,45 @@
+\subsection{構造体の入れ子}
+
+さて、ある構造体が別の構造体の内部で定義される状況はどうでしょうか
+
+\lstinputlisting[style=customc]{patterns/15_structs/5_nested/nested.c}
+
+\dots この場合、\TT{inner\_struct}フィールドは両方とも\TT{outer\_struct}のフィールドa,bとd,eの間に
+位置します。
+
+コンパイルしてみましょう（MSVC 2010）。
+
+\lstinputlisting[caption=\Optimizing MSVC 2010 /Ob0,style=customasmx86]{patterns/15_structs/5_nested/nested_msvc_JA.asm}
+
+ここで1つ興味深いのは、このアセンブリコードを調べると、内部に別の構造体が使用されている
+ことさえわからないということです。
+従って、入れ子の構造体は\emph{一次の}または\emph{一次元の}構造体に展開されていると言えます。
+
+もちろん、\TT{struct inner\_struct c;}宣言を\TT{struct inner\_struct *c;}で置き換えるとしたら、
+（従って、ここでポインタを作成する）状況はまったく違ってきます。
+% FIXME1: нарисовать вложенную структуру и развернутую
+
+\clearpage
+\subsubsection{\olly}
+\myindex{\olly}
+
+例を \olly にロードしてメモリ上の\TT{outer\_struct}を
+見てみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/5_nested/olly.png}
+\caption{\olly: \printf が実行される前}
+\label{fig:nested_olly}
+\end{figure}
+
+値がメモリ上にどのようにあるかを示しています。
+\begin{itemize}
+\item \emph{(outer\_struct.a)} (byte) 1 + 3バイトのランダムなゴミの値
+\item \emph{(outer\_struct.b)} (32-bitワード) 2;
+\item \emph{(inner\_struct.a)} (32-bitワード) 0x64 (100);
+\item \emph{(inner\_struct.b)} (32-bitワード) 0x65 (101);
+\item \emph{(outer\_struct.d)} (byte) 3 + 3バイトのランダムなゴミの値
+\item \emph{(outer\_struct.e)} (32-bit word) 4.
+\end{itemize}
+

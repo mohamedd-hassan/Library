@@ -1,0 +1,9 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),numbers=left,style=customasmMIPS]{patterns/15_structs/3_tm_linux/MIPS/MIPS_O3_IDA_FR.lst}
+
+Dans cet exemple, le retard à l'exécution des instructions de branchement peuvent nous égarer.
+
+L'instruction \INS{addiu \$a1, 1900} en ligne 35 qui ajoute la valeur 1900 à l'année en est un 
+exemple. N'oubliez pas qu'elle est exécutée avant que le l'instruction \INS{JALR} ne fasse son effet.
+

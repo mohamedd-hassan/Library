@@ -1,0 +1,10 @@
+﻿    mov [counter], 2 ; 初期化
+    jmp check
+body:
+    ; ループボディ
+    ; ここで何かする
+    ; ローカルスタックでカウンタ変数を使用する
+    add [counter], 1 ; インクリメント
+check:
+    cmp [counter], 9
+    jle body

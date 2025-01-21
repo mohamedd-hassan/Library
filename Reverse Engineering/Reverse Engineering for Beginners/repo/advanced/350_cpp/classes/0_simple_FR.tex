@@ -1,0 +1,222 @@
+﻿\subsubsection{Un exemple simple}
+
+En interne, la représentation des classes \Cpp est presque la même que les structures.
+
+Essayons un exemple avec deux variables, deux constructeurs et une méthode:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/simple_FR.cpp}
+
+\myparagraph{MSVC: x86}
+
+Voici à quoi ressemble la fonction \main, traduite en langage d'assemblage:
+
+\lstinputlisting[caption=MSVC,style=customasmx86]{\CURPATH/classes/simple_1_msvc.asm}
+
+Voici ce qui se passe.
+Pour chaque objet (instance de la classe $c$) 8 octets sont alloués, exactement la
+taille requise pour stocker les deux variables.
+
+Pour \emph{c1} un constructeur par défaut sans argument \TT{??0c@@QAE@XZ} est appelé.
+Pour \emph{c2} un autre constructeur \TT{??0c@@QAE@HH@Z} est appelé et deux nombres
+sont passés comme arguments.
+
+\myindex{thiscall}
+\label{thiscall}
+\myindex{x86!\Registers!ECX}
+
+Un pointeur sur l'objet (\ITthis en terminologie \Cpp) est passé dans le registre \ECX.
+Ceci est appelé thiscall~(\myref{thiscall})---la méthode pour passer un pointeur
+à l'objet.
+
+MSVC le fait en utilisant le regsitre \ECX. Inutile de le dire, ce n'est pas une
+méthode standardisée, d'autres compilateurs peuvent le faire différemment, e.g.,
+par le premier argument de la fonction (comme GCC).
+
+\label{namemangling}
+\myindex{Name mangling}
+\myindex{OOP!Polymorphism}
+
+Pourquoi est-ce que ces fonctions ont un nom aussi étrange?
+C'est le \gls{name mangling}.
+
+Une classe \Cpp peut contenir plusieurs méthodes partageant le même nom mais ayant
+des arguments différents---c'est le polymorphisme.
+Et bien sûr, différentes classes peuvent avoir leurs propres méthodes avec le même nom.
+
+\myindex{Linker}
+
+Le \emph{Name mangling} nous permet d'encoder le nom de la classe + le nom de la méthode +
+tous les types des arguments de la méthode dans une chaîne ASCII, qui est ensuite
+utilisée comme le nom interne de la fonction.
+C'est ainsi car ni le linker, ni le chargeur de DLL de l'\ac{OS} (les mangled names
+peuvent aussi se trouver parmi les exports de DLL) n'ont conscience de \Cpp ou de
+l'\ac{OOP}.
+
+La fonction \TT{dump()} est appelée deux fois.
+
+Maintenant, regardons le code du constructeur:
+
+\lstinputlisting[caption=MSVC,style=customasmx86]{\CURPATH/classes/simple_2_msvc.asm}
+
+Les constructeurs sont juste des fonctions, ils utilisent un pointeur sur la structure
+dans \ECX, en copiant le pointeur dans leur propre variable locale, toutefois, ce
+n'est pas nécessaire.
+
+D'après le standard (C++11 12.1) nous savons que les constructeurs n'ont pas l'obligation
+de renvoyer une valeur.
+
+En fait, en interne, les constructeurs renvoient un pointeur sur l'objet nouvellement
+créé, i.e., \ITthis.
+
+Maintenant, la méthode \TT{dump()}:
+
+\lstinputlisting[caption=MSVC,style=customasmx86]{\CURPATH/classes/simple_3_msvc.asm}
+
+Assez simple: \TT{dump()} prend un pointeur sur la structure qui contient les deux
+\Tint dans \ECX, prend les deux valeurs et les passe à \printf.
+
+Le code est bien plus court s'il est compilé avec les optimisations (\Ox):
+
+\lstinputlisting[caption=MSVC,style=customasmx86]{\CURPATH/classes/simple_4_msvc_Ox.asm}
+
+\myindex{x86!\Instructions!RET}
+
+C'est tout. L'autre chose que nous devons noter est que le \glslink{stack pointer}{pointeur de pile}
+n'a pas été corrigé avec \TT{add esp, X} après l'appel du constructeur.
+En même temps, le constructeur a \TT{ret 8} au lieu de \RET à la fin.
+
+\myindex{thiscall}
+
+C'est parce que la convention d'appel thiscall~(\myref{thiscall}) est utilisée ici,
+qui, comme avec la méthode stdcall~(\myref{sec:stdcall}), offre à l'\glslink{callee}{appelée}
+la possibilité de corriger la pile au lieu de l'\glslink{caller}{appelante}.
+L'instruction \TT{ret x} ajoute \TT{X} à la valeur de \ESP, puis passe le contrôle
+à la fonction \glslink{caller}{appelante}.
+
+Regardez la section parlant des conventions d'appel~(\myref{sec:callingconventions}).
+
+Il faut également noter que le compilateur décide quand appeler le constructeur et
+le destructeur---mais nous le savons déjà des bases du langage \Cpp.
+
+\myparagraph{MSVC: x86-64}
+\label{simple_CPP_MSVC_x64}
+
+Comme nous le savons déjà, les 4 premiers arguments de fonction en x86-64 sont passés
+dans les registres \RCX, \RDX, \Reg{8} et \Reg{9}, tous les autres---par la pile.
+
+Néanmoins, le pointeur \ITthis sur l'objet est passé dans \RCX, le premier argument
+de la méthode dans \RDX, etc.
+Nous pouvons le voir dans les entrailles de la méthode \TT{c(int a, int b)}:
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{\CURPATH/classes/simple_MSVC_x64_FR.asm}
+
+Le type de donnée \Tint est toujours 32-bit en x64
+\footnote{Apparemment, pour faciliter le portage de code 32-bit \CCpp en x64},
+c'est donc pourquoi les parties 32-bit des registres sont utilisées ici.
+
+Nous voyons également \TT{JMP printf} au lieu de \RET dans la méthode \TT{dump()},
+\emph{astuce} que nous avons déjà vu plus tôt: \myref{JMP_instead_of_RET}.
+
+\myparagraph{GCC: x86}
+
+C'est presque la même chose avec GCC 4.4.1, avec quelques exceptions.
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{\CURPATH/classes/simple_GCC.asm}
+
+Ici, nous voyons un autre style de \emph{name mangling}, spécifique à GNU
+\footnote{Il y a un bon document à propos des différentes conventions de name mangling
+dans différent compilateurs:\\
+\InSqBrackets{\AgnerFogCC}.}.
+Il peut aussi être noté que le pointeur sur l'objet est passé comme premier argument
+de la fonction---invisible au programmeur, bien sûr.
+
+
+Premier constructeur:
+
+\begin{lstlisting}[style=customasmx86]
+                public _ZN1cC1Ev ; weak
+_ZN1cC1Ev       proc near               ; CODE XREF: main+10
+
+arg_0           = dword ptr  8
+
+                push    ebp
+                mov     ebp, esp
+                mov     eax, [ebp+arg_0]
+                mov     dword ptr [eax], 667
+                mov     eax, [ebp+arg_0]
+                mov     dword ptr [eax+4], 999
+                pop     ebp
+                retn
+_ZN1cC1Ev       endp
+\end{lstlisting}
+
+Il écrit juste les deux nombres en utilisant le pointeur passé comme premier (et
+seul) argument.
+
+Second constructeur:
+
+\begin{lstlisting}[style=customasmx86]
+                public _ZN1cC1Eii
+_ZN1cC1Eii      proc near
+
+arg_0           = dword ptr  8
+arg_4           = dword ptr  0Ch
+arg_8           = dword ptr  10h
+
+                push    ebp
+                mov     ebp, esp
+                mov     eax, [ebp+arg_0]
+                mov     edx, [ebp+arg_4]
+                mov     [eax], edx
+                mov     eax, [ebp+arg_0]
+                mov     edx, [ebp+arg_8]
+                mov     [eax+4], edx
+                pop     ebp
+                retn
+_ZN1cC1Eii      endp
+\end{lstlisting}
+
+Ceci est une fonction, l'analogue d'une qui pourrait ressembler à ceci:
+
+\begin{lstlisting}[style=customc]
+void ZN1cC1Eii (int *obj, int a, int b)
+{
+  *obj=a;
+  *(obj+1)=b;
+};
+\end{lstlisting}
+
+\dots et cela est entièrement prévisible.
+
+Maintenant, la fonction \TT{dump()}:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/classes/tmp1.asm}
+
+La \emph{représentation interne} de cette fonction a un seul argument, utilisé comme
+pointeur sur l'objet (\ITthis).
+
+Cette fonction pourrait être récrite en C comme ceci:
+
+\begin{lstlisting}[style=customc]
+void ZN1c4dumpEv (int *obj)
+{
+  printf ("%d; %d\n", *obj, *(obj+1));
+};
+\end{lstlisting}
+
+Ainsi, si nous basons notre jugement sur ces simples exemples, la différence entre
+MSVC et GCC est le style d'encodage des noms de fonctions (\emph{name mangling}) et
+la méthode pour passer un pointeur sur l'objet (via le registre \ECX ou via le premier
+argument).
+
+\myparagraph{GCC: x86-64}
+
+Les 6 premiers arguments, comme nous le savons déjà, sont passés par les registres
+\RDI, \RSI, \RDX, \RCX, \Reg{8} et \Reg{9} (\SysVABI),
+et le pointeur sur \ITthis via le premier (\RDI) et c'est ce que l'on voit ici.
+Le type de donnée \Tint est aussi 32-bit ici.
+
+L'\emph{astuce} du \JMP au lieu de \RET est aussi utilisée ici.
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{\CURPATH/classes/simple_GCC_x64_FR.s}
+

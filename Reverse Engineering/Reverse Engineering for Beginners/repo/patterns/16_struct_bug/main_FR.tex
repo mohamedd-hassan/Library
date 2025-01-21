@@ -1,0 +1,53 @@
+\mysection{Le bogue \emph{struct} classique}
+
+Ceci est un bogue \emph{struct} classique.
+
+Voici un exemple de définition:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/old.h}
+
+Et puis les fichiers C:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/setter.c}
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/printer.c}
+
+Jusqu'ici, tout va bien.
+
+Maintenant vous ajoutez un troisième champ dans la structure, entre les deux champs:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/new.h}
+
+Et vous modifiez probablement la fonction \verb|setter()|, mais oubliez \verb|printer()|:
+
+\lstinputlisting[style=customc]{patterns/16_struct_bug/setter_new.c}
+
+Vous compilez votre projet, mais le fichier C où se trouve \verb|printer()| qui
+est séparé, n'est pas recompilé car votre \ac{IDE} ou système de compilation n'a
+pas d'idée que ce module dépend d'une définition de structure \emph{test}.
+Peut-être car \verb|#include <new.h>| est oublié.
+Ou peut-être que le fichier d'entête \verb|new.h| est inclus dans \verb|printer.c|
+via un autre fichier d'entête.
+Le fichier objet n'est pas modifié (l'\ac{IDE} pense qu'il n'a pas besoin d'être
+recompilé), tandis que la fonction \verb|setter()| est déjà la nouvelle version.
+Ces deux fichiers objets (ancien et nouveau) peuvent tôt ou tard être liés dans un
+fichier exécutable.
+
+Ensuite, vous le lancez, et le \verb|setter()| met les 3 champs aux offsets +0,
++4 et +8.
+Toutefois. \verb|printer()| connait seulement 2 champs, et les prends aux offsets
++0 et +4 lors de l'affichage.
+
+Ceci conduits à des bogues obscurs et méchants.
+La raison est que l'\ac{IDE} ou le système de construction ou le Makefile ne savent
+pas que les deux fichiers C (ou modules) dépendent de l'entête.
+Un remède courant est de tout supprimer et de recompiler.
+
+Ceci est également vrai pour les classes C++, puisqu'elles fonctionnent tout comme
+des structures: \myref{CppClasses}.
+
+Ceci est une maladie ce \CCpp, et une source de critique, oui.
+De nombreux \ac{PL}s ont un meilleur support des modules et interfaces.
+Mais gardez à l'esprit l'époque de création du ocmpilateur C: dans les années 70,
+sur de vieux ordinateurs PDP.
+Donc tout a été simplifié à ceci par les créateurs du C.

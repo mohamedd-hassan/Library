@@ -1,0 +1,51 @@
+\mysection{Unions}
+
+Les \emph{unions} en \CCpp sont utilisées principalement pour interpréter une variable
+(ou un bloc de mémoire) d'un type de données comme une variable d'un autre type de données.
+
+% sections
+\input{patterns/17_unions/FPU_PRNG/main}
+\input{patterns/17_unions/epsilon/main}
+\input{patterns/17_unions/FSCALE_FR}
+
+\subsection{Calcul rapide de racine carré}
+
+Un autre algorithme connu où un \Tfloat est interprété comme un entier est celui
+de calcul rapide de racine carrée.
+
+\begin{lstlisting}[caption=Le code source provient de Wikipédia: \url{https://en.wikipedia.org/wiki/Methods_of_computing_square_roots},style=customc]
+/* Assumes that float is in the IEEE 754 single precision floating point format
+ * and that int is 32 bits. */
+float sqrt_approx(float z)
+{
+    int val_int = *(int*)&z; /* Same bits, but as an int */
+    /*
+     * To justify the following code, prove that
+     *
+     * ((((val_int / 2^m) - b) / 2) + b) * 2^m = ((val_int - 2^m) / 2) + ((b + 1) / 2) * 2^m)
+     *
+     * where
+     *
+     * b = exponent bias
+     * m = number of mantissa bits
+     *
+     * .
+     */
+ 
+    val_int -= 1 << 23; /* Subtract 2^m. */
+    val_int >>= 1; /* Divide by 2. */
+    val_int += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+ 
+    return *(float*)&val_int; /* Interpret again as float */
+}
+\end{lstlisting}
+
+À titre d'exercice, vous pouvez essayez de compiler cette fonction et de comprendre
+comme elle fonctionne.\\
+\\
+C'est un algorithme connu de calcul rapide de $\frac{1}{\sqrt{x}}$.
+\myindex{Quake III Arena}
+L'algorithme devînt connu, supposément, car il a été utilisé dans Quake III Arena.
+
+La description de l'algorithme peut être trouvée sur Wikipédia: \url{http://en.wikipedia.org/wiki/Fast_inverse_square_root}.
+

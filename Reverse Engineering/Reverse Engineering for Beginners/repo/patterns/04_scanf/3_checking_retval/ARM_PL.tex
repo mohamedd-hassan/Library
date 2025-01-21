@@ -1,0 +1,29 @@
+\subsubsection{ARM}
+
+\myparagraph{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/04_scanf/3_checking_retval/ex3_ARM_Keil_thumb_O3.asm}
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!BEQ}
+
+Nowymi instrukcjami są \CMP i \ac{BEQ}.
+
+\CMP jest równoważna instrukcji o takiej samej nazwie z x86. Odejmuje ona jeden argument od drugiego (bez zapisywania wyniku) i ustawia odpowiednie flagi procesora.
+% TODO: в мануале ARM $op1 + NOT(op2) + 1$ вместо вычитания
+
+\myindex{ARM!\Registers!Z}
+\myindex{x86!\Instructions!JZ}
+\ac{BEQ} skacze pod inny adres, jeśli wartość flagi Z jest równa 1. Taka sytuacja w naszym przykładzie zajdzie, jeśli wartość rejestru i liczby z operandów instrukcji \CMP będą sobie równe (tym samym ich różnica będzie równa 0).
+Tak samo zachowuje się instrukcja \JZ na x86.
+
+Cała reszta kodu jest bardzo prosta: przepływ sterowania dzieli się na dwa rozgałęzienia, które spotykają się w punkcie, gdzie 0 jest zapisywane do rejestru \Reg{0} jako wartość zwracana. Następnie funkcja się kończy.
+
+\myparagraph{ARM64}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,numbers=left,style=customasmARM]{patterns/04_scanf/3_checking_retval/ARM64_GCC491_O0_PL.s}
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!Bcc}
+Przepływ sterowania w tym przypadku rozgałęzia się dzięki parze instrukcji \INS{CMP}/\INS{BNE} (Branch if Not Equal).
+

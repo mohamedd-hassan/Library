@@ -1,0 +1,45 @@
+\subsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5,style=customasmMIPS]{patterns/05_passing_arguments/MIPS_O3_IDA_JA.lst}
+
+最初の4つの関数引数は、A-が前に付いた4つのレジスタに渡されます。
+
+\myindex{MIPS!\Instructions!MULT}
+
+MIPSには、HIとLOの2つの特殊レジスタがあり、\TT{MULT}命令の実行中に乗算の64ビット結果が格納されます。
+
+\myindex{MIPS!\Instructions!MFLO}
+\myindex{MIPS!\Instructions!MFHI}
+
+これらのレジスタは、\TT{MFLO}および\TT{MFHI}命令を使用することによってのみアクセスできます。
+ここでは\TT{MFLO}は乗算結果の低部分をとり、それを \$V0 に格納します。
+そのため、乗算結果の上位32ビット部分が削除されます（HIレジスタの内容は使用されません）。
+確かに、ここでは32ビットの \Tint データ型を扱います。
+
+\myindex{MIPS!\Instructions!ADDU}
+
+最後に、\TT{ADDU}（\q{Add Unsigned}）は3番目の引数の値を結果に加えます。
+
+\myindex{MIPS!\Instructions!ADD}
+\myindex{MIPS!\Instructions!ADDU}
+\myindex{Ada}
+\myindex{Integer overflow}
+
+MIPSには、\TT{ADD}と\TT{ADDU}の2種類の加算命令があります。
+それらの違いは、署名性に関連するものではなく、例外に対するものです。 \TT{ADD}では、オーバーフローに関する例外が発生することがあります。これは、たとえばAda \ac{PL}で有用\footnote{\url{http://blog.regehr.org/archives/1154}}であり、サポートされることもあります。 
+\TT{ADDU}は、オーバーフロー時に例外を発生させません。
+
+\CCpp ではこれをサポートしていないため、この例では\TT{ADD}の代わりに\TT{ADDU}が表示されています。
+
+32ビットの結果は \$V0 に残ります。
+
+\myindex{MIPS!\Instructions!JAL}
+\myindex{MIPS!\Instructions!JALR}
+
+\main に新しい命令があります(\TT{JAL} (\q{Jump and Link}))。
+
+\INS{JAL}と\INS{JALR}の違いは、相対オフセットが最初の命令でエンコードされる一方、
+\INS{JALR}はレジスタに格納された絶対アドレスにジャンプすることです（\q{ジャンプレジスタとリンクレジスタ}）。
+
+\ttf と \main の両方の関数は同じオブジェクトファイルに配置されるので、 
+\ttf の相対アドレスは既知で固定されています。

@@ -1,0 +1,13 @@
+; AL est aléatoire à ce point
+00000000: AE         scasb
+; CF est mis suivant le résultat de la soustraction
+; de l'octet aléatoire de la mémoire de AL.
+; donc c'est quelque peu aléatoire ici
+00000001: D6         setalc
+; AL est mis à 0xFF si CF=1 ou à 0 autrement
+00000002: 242D       and         al,02D ;'-'
+; AL vaut ici 0x2D ou 0
+00000004: 042F       add         al,02F ;'/'
+; AL vaut ici 0x5C ou 0x2F
+00000006: CD29       int         029       ; afficher AL sur l'écran
+00000008: EBF6       jmps        000000000 ; boucler indéfiniment

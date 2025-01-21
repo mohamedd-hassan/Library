@@ -1,0 +1,66 @@
+﻿\newcommand{\ARMELF}{\InSqBrackets{\emph{ELF for the ARM 64-bit Architecture (AArch64)}, (2013)}\footnote{\AlsoAvailableAs \url{http://infocenter.arm.com/help/topic/com.arm.doc.ihi0056b/IHI0056B_aaelf64.pdf}}}
+
+\subsection{Relocs in ARM64}
+\label{ARM64_relocs}
+
+As we know, there are 4-byte instructions in ARM64, so it is impossible to write a large number into a register
+using a single instruction.
+
+Nevertheless, an executable image can be loaded at any random address in memory, so that's why relocs exists.
+Read more about them (in relation to Win32 PE): \myref{subsec:relocs}.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+The address is formed using the \TT{ADRP} and \ADD instruction pair in ARM64.
+
+The first loads a 4KiB-page address and the second one adds the remainder.
+Let's compile the example from \q{\HelloWorldSectionName} 
+(\lstref{hw_c}) in GCC (Linaro) 4.9 under win32:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 and objdump of object file,style=customasmARM]{patterns/ARM/relocs1.lst}
+
+So there are 3 relocs in this object file.
+
+\begin{itemize}
+\item 
+The first one takes the page address, cuts the lowest 12 bits and writes the remaining high 21 bits
+to the \TT{ADRP} instruction's bit fields. This is because we don't need to encode the low 12 bits,
+and the \INS{ADRP} instruction has space only for 21 bits.
+
+\item 
+The second one puts the 12 bits of the address relative to the page start into the \ADD instruction's bit fields.
+
+\item 
+The last, 26-bit one, is applied to the instruction at address \TT{0x10} where the 
+jump to the \printf function is.
+
+All ARM64 (and in ARM in ARM mode) instruction addresses have zeros in the two lowest bits
+(because all instructions have a size of 4 bytes),
+so one have to encode only the highest 26 bits of 28-bit address space ($\pm 128$MB).
+
+\end{itemize}
+
+There are no such relocs in the executable file: because it's known where the \q{Hello!} string
+is located, in which page, and the address of \puts is also known.
+
+So there are values set already in the \TT{ADRP}, \ADD and \TT{BL} instructions
+(the linker has written them while linking):
+
+\lstinputlisting[caption=objdump of executable file,style=customasmARM]{patterns/ARM/relocs2.lst}
+
+\myindex{ARM!\Instructions!BL}
+
+As an example, let's try to disassemble the BL instruction manually.\\
+\TT{0x97ffffa0} is $0b10010111111111111111111110100000$.
+According to \InSqBrackets{\ARMSixFourRef C5.6.26}, \emph{imm26} is the last 26 bits:\\
+$imm26 = 0b11111111111111111110100000$.
+It is \TT{0x3FFFFA0}, but the \ac{MSB} is 1, 
+so the number is negative, and we can convert it manually to convenient form for us.
+By the rules of negation, just invert all bits: (it is \TT{0b1011111=0x5F}), and add 1 (\TT{0x5F+1=0x60}).
+So the number in signed form is \TT{-0x60}.
+Let's multiply \TT{-0x60} by 4 (because address stored in opcode is divided by 4): it is \TT{-0x180}.
+Now let's calculate destination address: \TT{0x4005a0} + (\TT{-0x180}) = \TT{0x400420} 
+(please note: we consider the address of the BL instruction, not the current value of \ac{PC}, which may be different!).
+So the destination address is \TT{0x400420}.\\
+\\
+More about ARM64-related relocs: \ARMELF.

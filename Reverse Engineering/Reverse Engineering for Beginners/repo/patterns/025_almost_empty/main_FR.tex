@@ -1,0 +1,32 @@
+\mysection{Fonction presque vide}
+\label{Boolector}
+\myindex{Boolector}
+\myindex{x86!\Instructions!JMP}
+
+Ceci est un morceau de code réel que j'ai trouvé dans Boolector\footnote{\url{https://boolector.github.io/}}:
+
+\lstinputlisting[style=customc]{patterns/025_almost_empty/boolectormain.c}
+
+Pourquoi quelqu'un ferait-il comme ça?
+Je ne sais pas mais mon hypothèse est que \verb|boolector_main()| peut être compilée
+dans une sorte de DLL ou bibliothèque dynamique, et appelée depuis une suite de test.
+Certainement qu'une suite de test peut préparer les variables \verb|argc/argv| comme
+le ferait \ac{CRT}.
+
+Il est intéressant de voir comment c'est compilé:
+
+\lstinputlisting[caption=GCC 8.2 x64 \NonOptimizing (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O0.s}
+
+Ceci est OK, le prologue (non optimisé) déplace inutilement deux arguments,
+\INS{CALL}, épilogue, \INS{RET}.
+Mais regardons la version optimisée:
+
+\lstinputlisting[caption=GCC 8.2 x64 \Optimizing (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O3.s}
+
+Aussi simple que ça: la pile et les registres ne sont pas touchés et \verb|boolector_main()|
+a le même ensemble d'arguments.
+Donc, tout ce que nous avons à faire est de passer l'exécution à une autre adresse.
+
+Ceci est proche d'une \glslink{thunk function}{fonction thunk}.
+
+Nous verons queelque chose de plus avancé plus tard: \myref{ARM_B_to_printf}, \myref{JMP_instead_of_RET}.

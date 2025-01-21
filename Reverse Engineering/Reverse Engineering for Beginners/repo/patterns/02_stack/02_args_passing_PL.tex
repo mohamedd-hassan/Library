@@ -1,0 +1,173 @@
+\subsubsection{Przekazywanie argumentów funkcji}
+
+Najpopularniejszy sposób na przekazywanie parametrów funkcji w x86 to \q{cdecl}:
+
+\begin{lstlisting}[style=customasmx86]
+push arg3
+push arg2
+push arg1
+call f
+add esp, 12 ; 4*3=12
+\end{lstlisting}
+
+Wywoływana funkcja pobiera swoje argumentu za pomocą wskaźnik stosu.
+
+Stos, przed wykonaniem pierwszej instrukcji z \ttf{}, wygląda następująco:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+ESP & adres powrotu \\
+\hline
+ESP+4 & \argument \#1, \MarkedInIDAAs{} \TT{arg\_0} \\
+\hline
+ESP+8 & \argument \#2, \MarkedInIDAAs{} \TT{arg\_4} \\
+\hline
+ESP+0xC & \argument \#3, \MarkedInIDAAs{} \TT{arg\_8} \\
+\hline
+\dots & \dots \\
+\hline
+\end{tabular}
+\end{center}
+
+Opis innych konwencji wywoływania funkcji znajduje się tutaj: ~(\myref{sec:callingconventions}).
+
+\par Nawiasem mówiąc, funkcja wywoływana nie posiada informacji o liczbie przekazywanych do niej argumentów.
+Funkcja \printf, która może mieć zmienną liczbę argumentów, ustala ich liczbę za pomocą  specyfikatorów formatu (rozpoczynających się od znaku \%).
+
+Jeśli napiszemy:
+
+\begin{lstlisting}
+printf("%d %d %d", 1234);
+\end{lstlisting}
+
+\printf wypisze 1234, a następnie jeszcze dwie losowe\footnote{Tak na prawdę nie są one losowe, patrz: \myref{noise_in_stack}} liczby, który przypadkowo znalazły się na stosie obok.
+
+\label{main_arguments}
+\par
+Dlatego nie ma znaczenia jak zapiszemy funkcję \main{}:\\
+jak \main{}, \TT{main(int argc, char *argv[])}\\
+lub \TT{main(int argc, char *argv[], char *envp[])}.
+
+W rzeczywistości kod z \ac{CRT} wywołuje \main mniej więcej tak:
+	
+\begin{lstlisting}[style=customasmx86]
+push envp
+push argv
+push argc
+call main
+...
+\end{lstlisting}
+
+Jeśli zadeklarujesz \main bez argumentów, one i tak będą na stosie, lecz nie zostaną wykorzystane.
+Jeśli zadeklarujesz \main jako \TT{main(int argc, char *argv[])},
+to będziesz mógł skorzystać z pierwszych dwóch argumentów, a trzeci będzie dla funkcji \q{niewidoczny}.
+Co więcej, można nawet zadeklarować \TT{main(int argc)} i to również zadziała.
+
+Inny, podobny, przykład: \ref{cdecl_DLL}.
+
+\myparagraph{Alternatywne sposoby na przekazywanie argumentów}
+
+Warto zauważyć, że nic nie zmusza programisty do przekazywanie argumentów przez stos. Nie ma takiego wymagania, można to robić to zupełnie inaczej, nie korzystając ze stosu.
+
+Dość popularnym sposobem wśród początkujących jest przekazywanie argumentów przez zmienne globalne, na przykład:
+
+\lstinputlisting[caption=Kod w asemblerze,style=customasmx86]{patterns/02_stack/global_args.asm}
+
+Ta metoda posiada oczywistą wadę: funkcja \emph{do\_something()} nie może wywołać sama siebie przez rekurencję (lub za pomocą innej funkcji), gdyż musiałaby nadpisać własne argumenty.
+To samo dotyczy zmiennych lokalnych, gdyby przechowywać je w zmiennych globalnych, to funkcja nie będzie mogła wywołać sama siebie.
+Co więcej, nie jest to bezpieczne w środowisku wielowątkowym\footnote{W poprawnej implementacji
+każdy wątek miałby własny stos lokalny, ze swoimi argumentami/zmiennymi.}.
+Przechowywania danych na stosie wszystko upraszcza ---
+stos może przechować tyle argumentów funkcji/zmiennych,
+na ile pozwoli jego rozmiar.
+
+W \InSqBrackets{\TAOCPvolI{}, 189} można przeczytać o jeszcze dziwniejszych metodach przekazywania argumentów, szczególnie wygodnych na IBM System/360.
+
+\myindex{MS-DOS}
+\myindex{x86!\Instructions!INT}
+
+W MS-DOS istniała metoda przekazywania argumentów przez rejestry, na przykład ten fragment kodu na wiekowym 16-bitowym MS-DOS
+wypisze \q{Hello, world!}:
+
+\begin{lstlisting}[style=customasmx86]
+mov  dx, msg      ; adres wiadomości
+mov  ah, 9        ; 9 oznacza funkcję "wypisz łańcuch znaków"
+int  21h          ; wywołanie systemowe ("syscall") DOS
+
+mov  ah, 4ch      ; funkcja "zakończ program"
+int  21h          ; wywołanie systemowe ("syscall") DOS
+
+msg  db 'Hello, World!\$'
+\end{lstlisting}
+
+\myindex{fastcall}
+Jest to całkiem podobne do metody \myref{fastcall}.
+Przypomina to również sposoby korzystania z wywołań systemowych (ang. syscall) na systemach Linuks (\myref{linux_syscall}) i Windows.
+
+\myindex{x86!\Flags!CF}
+Jeżeli funkcja w MS-DOS zwraca wartość typu boolean (jeden bit, zwykle oznaczający wystąpienie błędu), to często wykorzystywana jest flaga \TT{CF}.
+
+Na przykład:
+
+\begin{lstlisting}[style=customasmx86]
+mov ah, 3ch       ; "3c" oznacza "stwórz plik
+lea dx, filename
+mov cl, 1
+int 21h
+jc  error
+mov file_handle, ax
+...
+error:
+...
+\end{lstlisting}
+
+W razie wystąpienia błędu flaga \TT{CF} zostaje ustawiona i instrukcja \TT{JC} skacze do miejsca oznaczonego etykietą error. W przeciwnym razie uchwyt (ang. \emph{file handle}) stworzonego pliku zwracany jest przez rejestr \TT{AX}.
+
+Ta metoda wciąż jest wykorzystywana przez programistów asemblera.
+W kodach źródłowych Windows Research Kernel (który jest bardzo podobny do Windows 2003) możemy znaleźć coś takiego\\
+(plik \emph{base/ntos/ke/i386/cpu.asm}):
+
+\begin{lstlisting}[style=customasmx86]
+        public  Get386Stepping
+Get386Stepping  proc
+
+        call    MultiplyTest            ; Perform multiplication test
+        jnc     short G3s00             ; if nc, muttest is ok
+        mov     ax, 0
+        ret
+G3s00:
+        call    Check386B0              ; Check for B0 stepping
+        jnc     short G3s05             ; if nc, it's B1/later
+        mov     ax, 100h                ; It is B0/earlier stepping
+        ret
+
+G3s05:
+        call    Check386D1              ; Check for D1 stepping
+        jc      short G3s10             ; if c, it is NOT D1
+        mov     ax, 301h                ; It is D1/later stepping
+        ret
+
+G3s10:
+        mov     ax, 101h                ; assume it is B1 stepping
+        ret
+
+	...
+
+MultiplyTest    proc
+
+        xor     cx,cx                   ; 64K times is a nice round number
+mlt00:  push    cx
+        call    Multiply                ; does this chip's multiply work?
+        pop     cx
+        jc      short mltx              ; if c, No, exit
+        loop    mlt00                   ; if nc, YEs, loop to try again
+        clc
+mltx:
+        ret
+
+MultiplyTest    endp
+\end{lstlisting}
+
+
+

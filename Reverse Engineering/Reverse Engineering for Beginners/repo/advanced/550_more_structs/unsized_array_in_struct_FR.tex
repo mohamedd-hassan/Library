@@ -1,0 +1,92 @@
+\subsection{Tableau non dimensionné dans une structure C}
+
+Nous pouvons trouver certaines structures win32 avec la dernier champ défini comme
+un tableau d'un élément.
+
+\begin{lstlisting}[style=customc]
+typedef struct _SYMBOL_INFO {
+  ULONG   SizeOfStruct;
+  ULONG   TypeIndex;
+  
+  ...
+
+  ULONG   MaxNameLen;
+  TCHAR   Name[1];
+} SYMBOL_INFO, *PSYMBOL_INFO;
+\end{lstlisting}
+
+( \url{https://msdn.microsoft.com/en-us/library/windows/desktop/ms680686(v=vs.85).aspx} )
+
+Ceci est une astuce, signifiant que le dernier champ est un tableau de taille inconnue,
+qui doit être calculée lors de l'allocation de la structure.
+
+Pourquoi: le champ \emph{Name} peut-être court, donc pourquoi le définir avec une sorte
+de constante \emph{MAX\_NAME} qui peut être 128, 256 et même plus ?
+
+Pourquoi ne pas utiliser un pointeur à la place ? Alors vous devez allouer deux blocs:
+un pour la structure et  pour la chaîne.
+Ceci peut-être plus lent et peut nécessiter un plus large surplus de mémoire.
+Donc, vous devez déréférencer le pointeur (i.e., lire l'adresse de la chaîne dans
+la structure)---ce n'est pas un problème, mais certains disent que c'est un coût supplémentaire.
+
+Ceci est connu comme l'\emph{astuce struct}: \url{http://c-faq.com/struct/structhack.html}.
+
+Exemple:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+struct st
+{
+	int a;
+	int b;
+	char s[];
+};
+
+void f (struct st *s)
+{
+	printf ("%d %d %s\n", s->a, s->b, s->s);
+	// f() can't replace s[] with bigger string - size of allocated block is unknown at this point
+};
+
+int main()
+{
+#define STRING "Hello!"
+	struct st *s=malloc(sizeof(struct st)+strlen(STRING)+1); // incl. terminating zero
+	s->a=1;
+	s->b=2;
+	strcpy (s->s, STRING);
+	f(s);
+};
+\end{lstlisting}
+
+En quelques mots, ça fonctionne car le C n'a pas de vérification des bornes d'un
+tableau. Tout tableau est traité comme ayant une taille infinie.
+
+Problème: après l'allocation, la taille entière du bloc alloué pour la structure
+est inconnue (excepté pour le gestionnaire de mémoire), donc vous ne pouvez pas remplacer
+une chaîne par un chaîne plus large.
+Vous pourriez faire quelque chose comme ça si le champ était déclaré comme quelque
+chose comme \emph{s[MAX\_NAME]}.
+
+Autrement dit, vous avez une structure plus un tableau (ou une chaîne) fusionnés
+ensemble dans un bloc de mémoire alloué unique.
+Un autre problème est que vous ne pouvez évidemment pas déclarer deux tableaux comme
+ceci dans une structure unique, ou déclarer un autre champ après un tel tableau.
+
+Les cieux compilateurs nécessitent de déclarer le tableau avec au moins un élément:
+\emph{s[1]}, les plus récents permettent de le déclarer comme un tableau de taille
+variable:\emph{s[]}.
+Ceci est aussi appelé \emph{membre tableau flexible}.
+
+En lire plus à ce sujet dans
+GCC documentation\footnote{\url{https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html}},
+MSDN documentation\footnote{\url{https://msdn.microsoft.com/en-us/library/b6fae073.aspx}}.
+
+Dennis Ritchie (un des créateurs du C) a appelé ce truc \q{amabilité non voulue avec
+l'implémentation du C} (peut-être pour reconnaître la nature astucieuse de cette ruse).
+
+Aimez le ou non, utilisez le ou non:
+il est encore une autre démonstration de la façon dont les structures sont stockées
+dans la mémoire, c'est pourquoi j'en ai parlé.
+

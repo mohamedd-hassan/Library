@@ -1,0 +1,13 @@
+\myparagraph{ARM64: \Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=f\_signed(),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM64_GCC_O3_signed_JA.lst}
+
+\lstinputlisting[caption=f\_unsigned(),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM64_GCC_O3_unsigned_JA.lst}
+
+コメントはこの本の著者によって追加されました。 
+目立ったことは、コンパイラはいくつかの条件がまったく不可能であることを認識していないため、
+決して実行できない場所ではデッドコードがあることです。
+
+\mysubparagraph{\Exercise}
+
+これらの機能をサイズが少なくなるように手動で最適化し、新しい命令を追加せずに冗長な命令を削除してください。

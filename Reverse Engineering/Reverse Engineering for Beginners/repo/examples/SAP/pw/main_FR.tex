@@ -1,0 +1,140 @@
+\subsection{Fonctions de vérification de mot de passe de SAP 6.0}
+
+\myindex{SAP}
+
+Lorsque je suis retourné sur SAP 6.0 IDES installé sur une machine VMware, je me
+suis aperçu que j'avais oublié le mot de passe pour le compte SAP*, puis je m'en 
+suis souvenu, mais j'ai alors eu ce message
+\emph{<<Password logon no longer possible - too many failed attempts>>},
+car j'ai fait trop de tentatives avant de m'en rappeler.
+
+\myindex{Windows!PDB}
+
+La première très bonne nouvelle fût que le fichier \gls{PDB} complet de \emph{disp+work.pdb}
+était fourni avec SAP, et il contient presque tout: noms de fonction, structures,
+types, variable locale et nom d'arguments, etc. Quel cadeau somptueux!
+
+Il y a l'utilitaire TYPEINFODUMP\footnote{\url{http://www.debuginfo.com/tools/typeinfodump.html}} pour
+convertir les fichiers \gls{PDB} en quelque chose de lisible et grepable.
+
+Voici un exemple d'information d'une fonction + ses arguments + ses variables locales:
+
+\lstinputlisting{examples/SAP/pw/1.txt}
+
+Et voici un exemple d'une structure:
+
+\lstinputlisting{examples/SAP/pw/2.txt}
+
+Wow!
+
+Une autre bonne nouvelle: les appels de \emph{debugging} (il y en a beaucoup) sont
+très utiles.
+
+Ici, vous pouvez remarquer la variable globale \emph{ct\_level}\footnote{Plus d'information
+sur le niveau de trace: \url{http://help.sap.com/saphelp_nwpi71/helpdata/en/46/962416a5a613e8e10000000a155369/content.htm}}, qui reflète le niveau
+actuel de trace.
+
+Il y a beaucoup d'ajout de débogage dans le fichier \emph{disp+work.exe}:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/pw/3.asm}
+
+Si le niveau courant de trace est plus élevé ou égal à la limite défini dans le code
+ici, un message de débogage est écrit dans les fichiers de log comme \emph{dev\_w0},
+\emph{dev\_disp}, et autres fichiers \emph{dev*}.
+
+\myindex{\GrepUsage}
+
+Essayons de grepper dans le fichier que nous avons obtenu à l'aide de l'utilitaire
+TYPEINFODUMP:
+
+\begin{lstlisting}
+cat "disp+work.pdb.d" | grep FUNCTION | grep -i password
+\end{lstlisting}
+
+Nous obtenons:
+
+\lstinputlisting{examples/SAP/pw/4.txt}
+
+Essayons aussi de chercher des messages de debug qui contiennent les mots \emph{<<password>>}
+et \emph{<<locked>>}.
+L'un d'entre eux se trouve dans la chaîne \emph{<<user was locked by subsequently
+failed password logon attempts>>}, référencé dans\\
+la fonction \emph{password\_attempt\_limit\_exceeded()}.
+
+D'autres chaînes que cette fonction peut écrire dans le fichier de log sont:
+\emph{<<password logon attempt will be rejected immediately (preventing dictionary attacks)>>},
+\emph{<<failed-logon lock: expired (but not removed due to 'read-only' operation)>>},
+\emph{<<failed-logon lock: expired => removed>>}.
+
+Après avoir joué un moment avec cette fonction, nous remarquons que le problème se
+situe exactement dedans.
+Elle est appelée depuis la fonction \emph{chckpass()}~---une des fonctions de vérification
+u mot de passe.
+
+d'abord, nous voulons être sûrs que nous sommes au bon endroit:
+
+Lançons \tracer:
+\myindex{tracer}
+
+\begin{lstlisting}
+tracer64.exe -a:disp+work.exe bpf=disp+work.exe!chckpass,args:3,unicode
+\end{lstlisting}
+
+\begin{lstlisting}
+PID=2236|TID=2248|(0) disp+work.exe!chckpass (0x202c770, L"Brewered1                               ", 0x41) (called from 0x1402f1060 (disp+work.exe!usrexist+0x3c0))
+PID=2236|TID=2248|(0) disp+work.exe!chckpass -> 0x35
+\end{lstlisting}
+
+L'enchaînement des appels est: \emph{syssigni()} -> \emph{DyISigni()} -> \emph{dychkusr()} -> \emph{usrexist()} -> \emph{chckpass()}.
+
+Le nombre 0x35 est une erreur renvoyée dans \emph{chckpass()} à cet endroit:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/pw/5.asm}
+
+Bien, vérifions:
+
+\begin{lstlisting}
+tracer64.exe -a:disp+work.exe bpf=disp+work.exe!password_attempt_limit_exceeded,args:4,unicode,rt:0
+\end{lstlisting}
+
+\begin{lstlisting}
+PID=2744|TID=360|(0) disp+work.exe!password_attempt_limit_exceeded (0x202c770, 0, 0x257758, 0) (called from 0x1402ed58b (disp+work.exe!chckpass+0xeb))
+PID=2744|TID=360|(0) disp+work.exe!password_attempt_limit_exceeded -> 1
+PID=2744|TID=360|We modify return value (EAX/RAX) of this function to 0
+PID=2744|TID=360|(0) disp+work.exe!password_attempt_limit_exceeded (0x202c770, 0, 0, 0) (called from 0x1402e9794 (disp+work.exe!chngpass+0xe4))
+PID=2744|TID=360|(0) disp+work.exe!password_attempt_limit_exceeded -> 1
+PID=2744|TID=360|We modify return value (EAX/RAX) of this function to 0
+\end{lstlisting}
+
+Excellent! Nous pouvons nous connecter avec succès maintenant.
+
+À propos, nous pouvons prétendre que nous avons oublier le mot de passe, modifier
+la fonction \emph{chckpass()} afin qu'elle renvoie toujours une valeur de 0, ce qui
+est suffisant pour passer outre la vérification:
+
+\begin{lstlisting}
+tracer64.exe -a:disp+work.exe bpf=disp+work.exe!chckpass,args:3,unicode,rt:0
+\end{lstlisting}
+
+\begin{lstlisting}
+PID=2744|TID=360|(0) disp+work.exe!chckpass (0x202c770, L"bogus                                   ", 0x41) (called from 0x1402f1060 (disp+work.exe!usrexist+0x3c0))
+PID=2744|TID=360|(0) disp+work.exe!chckpass -> 0x35
+PID=2744|TID=360|We modify return value (EAX/RAX) of this function to 0
+\end{lstlisting}
+
+Ce que l'on peut aussi dire en analysant la fonction\\
+\emph{password\_attempt\_limit\_exceeded()},
+c'est qu'à son tout début, on voit cet appel:
+
+\lstinputlisting[style=customasmx86]{examples/SAP/pw/6.asm}
+
+Étonnement, la fonction \emph{sapgparam()} est utilisée pour chercher la valeur de
+certains paramètres de configuration. Cette fonction peut être appelée depuis 1768
+endroits différents.
+Il semble qu'avec l'aide de cette information, nous pouvons facilement trouver les
+endroits dans le code, où le contrôle du flux est affecté par des configurations
+spécifiques de paramètres.
+
+C'est vraiment agréable. Le nom des fonctions est très clair, bien plus que dans \oracle.
+\myindex{\Cpp}
+Il semble que le processus \emph{disp+work} est écrit en \Cpp. A-t-il été récrit il y a quelques temps?

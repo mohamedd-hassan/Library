@@ -1,0 +1,147 @@
+\subsection{Инструкции}
+
+В ARM имеется также для некоторых инструкций суффикс \emph{-S}, указывающий, 
+что эта инструкция будет модифицировать флаги.
+Инструкции без этого суффикса не модифицируют флаги.
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!ADDS}
+\myindex{ARM!\Instructions!CMP}
+Например, инструкция \TT{ADD} в отличие от \TT{ADDS}
+сложит два числа, но флаги не изменит.
+Такие инструкции удобно использовать
+между \CMP где выставляются флаги и, например, инструкциями перехода, где флаги используются.
+Они также лучше в смысле анализа зависимостей данных (data dependency analysis) 
+(потому что меньшее количество регистров модифицируется во время исполнения).
+
+% ADD
+% ADDAL
+% ADDCC
+% ADDS
+% ADR
+% ADREQ
+% ADRGT
+% ADRHI
+% ADRNE
+% ASRS
+% B
+% BCS
+% BEQ
+% BGE
+% BIC
+% BL
+% BLE
+% BLEQ
+% BLGT
+% BLHI
+% BLS
+% BLT
+% BLX
+% BNE
+% BX
+% CMP
+% IDIV
+% IT
+% LDMCSFD
+% LDMEA
+% LDMED
+% LDMFA
+% LDMFD
+% LDMGEFD
+% LDR.W
+% LDR
+% LDRB.W
+% LDRB
+% LDRSB
+% LSL.W
+% LSL
+% LSLS
+% MLA
+% MOV
+% MOVT.W
+% MOVT
+% MOVW
+% MULS
+% MVNS
+% ORR
+% POP
+% PUSH
+% RSB
+% SMMUL
+% STMEA
+% STMED
+% STMFA
+% STMFD
+% STMIA
+% STMIB
+% STR
+% SUB
+% SUBEQ
+% SXTB
+% TEST
+% TST
+% VADD
+% VDIV
+% VLDR
+% VMOV
+% VMOVGT
+% VMRS
+% VMUL
+%\myindex{ARM!Optional operators!ASR
+%\myindex{ARM!Optional operators!LSL
+%\myindex{ARM!Optional operators!LSR
+%\myindex{ARM!Optional operators!ROR
+%\myindex{ARM!Optional operators!RRX
+
+% AArch64
+% RET is BR X30 or BR LR but with additional hint to CPU
+
+\subsubsection{Таблица условных кодов}
+
+% TODO rework this!
+\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Код & 
+\HeaderColor Описание & 
+\HeaderColor Флаги \\
+\hline
+EQ                              & равно                                                         & Z == 1 \\
+\hline
+NE                              & не равно                                                      & Z == 0 \\
+\hline
+CS \ac{AKA} HS (Higher or Same) & перенос / беззнаковое, больше или равно                       & C == 1 \\
+\hline
+CC \ac{AKA} LO (LOwer)          & нет переноса / беззнаковое, меньше чем                        & C == 0 \\
+\hline
+MI                              & минус, отрицательный знак / меньше чем                        & N == 1 \\
+\hline
+PL                              & плюс, положительный знак или ноль /                           & N == 0 \\
+                                & больше чем или равно                                          & \\
+\hline
+VS                              & переполнение & V == 1 \\
+\hline
+VC                              & нет переполнения & V == 0 \\
+\hline
+HI                              & беззнаковое, больше чем                                       & C == 1 и \\
+                                &                                                               & Z == 0 \\
+\hline
+LS                              & беззнаковое, меньше или равно                                 & C == 0 или \\
+                                &                                                               & Z == 1 \\
+\hline
+GE                              & знаковое, больше чем или равно                                & N == V \\
+\hline
+LT                              & знаковое, меньше чем                                          & N != V \\
+\hline
+GT                              & знаковое, больше чем                                          & Z == 0 и \\
+                                &                                                               & N == V \\
+\hline
+LE                              & знаковое, меньше чем или равно                                & Z == 1 или \\
+                                &                                                               & N != V \\
+\hline
+Нету / AL                       & Всегда                                                        & Любые \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize
+

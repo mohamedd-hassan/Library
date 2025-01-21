@@ -1,0 +1,108 @@
+\subsection{10 PRINT CHR\$(205.5+RND(1)); : GOTO 10}
+
+Tous les exemples sont des fichier MS-DOS .COM.
+%FIXME1 -> about .COM files
+
+\myindex{MS-DOS}
+Dans [Nick Montfort et al, \emph{10 PRINT CHR\$(205.5+RND(1)); : GOTO 10}, (The MIT Press:2012)]
+\footnote{\AlsoAvailableAs \url{http://trope-tank.mit.edu/10_PRINT_121114.pdf}}
+
+nous pouvons nous renseigner sur l'un des générateurs de labyrinthe le plus simple
+possible.
+
+Il affiche simplement un caractère slash ou backslash aléatoirement et indéfiniment,
+donnant quelque chose comme ceci:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{examples/demos/10print/10print.png}
+\end{figure}
+
+Il y a quelques implémentations connues en x86 16-bit.
+
+\subsubsection{Version de Trixter en 42 octets}
+
+\newcommand{\FNURLTRIXTER}{\footnote{\url{http://trixter.oldskool.org/2012/12/17/maze-generation-in-thirteen-bytes/}}}
+
+Le listing provient du site web\FNURLTRIXTER, mais les commentaires sont miens.
+
+\lstinputlisting[style=customasmx86]{examples/demos/10print/10print_42_FR.lst}
+
+\myindex{Intel!8253}
+La valeur pseudo aléatoire ici est en fait le temps qui a passé depuis le démarrage
+du système, pris depuis le temps du chip 8253, dont la valeur est incrémentée 18,2
+fois par seconde.
+
+En écrivant zéro sur le port \TT{43h},
+nous envoyons la commande \q{select counter 0},
+"counter latch", 
+"binary counter" (pas une valeur \ac{BCD}).
+
+\myindex{x86!\Instructions!POPF}
+Les interruptions sont ré-autorisées avec l'instruction \TT{POPF}, qui restaure aussi
+le flag \TT{IF}.
+
+\myindex{x86!\Instructions!IN}
+Il n'est pas possible d'utiliser l'instruction \TT{IN} avec des registres autres
+que \TT{AL}, d'où le mélange.
+
+\subsubsection{
+Ma tentative de réduire la version de Trixter: 27 octets}
+
+Nous pouvons dire que puisque nous utilisons le timer non pas pour avoir une valeur
+précise, mais une valeur pseudo aléatoire, nous n'avons pas besoin de passer du temps
+(et du code) pour interdire les interruptions.
+
+Une autre chose que l'on peut dire est que nous n'avons besoin que d'un bit de la
+partie basse 8-bit, donc lisons-le seulement.
+
+Nous pouvons réduire légèrement le code et obtenons 27 octets:
+
+\lstinputlisting[style=customasmx86]{examples/demos/10print/10print_27_FR.lst}
+
+\subsubsection{
+Prendre le contenu résiduel de la mémoire comme source d'aléas}
+
+Puisqu'il s'agit de MS-DOS, il n'y a pas du tout de protection de la mémoire, nous
+pouvons lire l'adresse que nous voulons.
+\myindex{x86!\Instructions!LODSB}
+Encore mieux que ça: une seule instruction \TT{LODSB} lit un octet depuis l'adresse
+\TT{DS:SI}, mais ce n'est pas un problème si les valeurs des registres ne sont pas
+définies, lisons 1) des octets aléatoires; 2) depuis un endroit aléatoire de la mémoire! 
+
+Il est suggéré dans la page web de Trixter\FNURLTRIXTER d'utiliser \TT{LODSB} sans
+aucune initialisation.
+
+\myindex{x86!\Instructions!SCASB}
+Il est aussi suggéré que l'on utilisé à la place l'instruction \TT{SCASB}, car elle
+met les flags suivant l'octet qu'elle lit.
+
+Une autre idée pour minimiser le code est d'utiliser l'appel système DOS \TT{INT 29h},
+qui affiche simplement le caractère stocké dans le registre \TT{AL}.
+
+C'est ce que Peter Ferrie a fait
+\footnote{\url{http://pferrie.host22.com/misc/10print.htm}}:
+
+\lstinputlisting[caption=Peter Ferrie: 10 octets,style=customasmx86]{examples/demos/10print/ferrie_10_FR.lst}
+
+Donc il est possible de se passer complètement de saut conditionnel.
+Le code \ac{ASCII} du backslash (\q{\textbackslash{}}) est \TT{0x5C} et \TT{0x2F}
+pour le slash (\q{/}).
+Dons nous devons convertir un bit (pseudo aléatoire) dans le flag \TT{CF} en une
+valeur \TT{0x5C} ou \TT{0x2F}.
+
+Ceci est fait facilement: en \TT{AND}-ant tous les bits de \TT{AL} (où tous les 8
+bits sont mis ou effacés) nous obtenons 0 ou \TT{0x2D}.
+
+En ajoutant \TT{0x2F} à cette valeur, nous obtenons \TT{0x5C} ou \TT{0x2F}.
+
+Puis il suffit de l'afficher sur l'écran.
+
+\subsubsection{\Conclusion{}}
+
+\myindex{DOSBox}
+Il vaut la peine de mentionner que le résultat peut être différent dans DOSBox, \gls{Windows NT}
+et même MS-DOS,
+
+à cause de conditions différentes: le chip timer peut être émulé différemment et le
+contenu initial du registre peut être différent aussi.

@@ -1,0 +1,13 @@
+\mysection{Pusta funkcja raz jeszcze}
+
+Wróćmy do przykładu z pustą funkcją \myref{empty_func}.
+Uzbrojeni w wiedzę o prologu i epilogu funkcji, spójrzmy na wynik kompilacji GCC bez optymalizacji:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/016_empty_redux/1.s}
+
+Poza instrukcją \INS{RET} jest tam jedynie prolog i epilog, które nie zostały zoptymalizowane.
+
+\INS{NOP} wygląda jak kolejna osobliwość kompilatora.
+Jedyną instrukcją, która realizuje działanie programu, jest tutaj \INS{RET}.
+Wszystkie pozostałe można by usunąć (zoptymalizować).
+

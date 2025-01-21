@@ -1,0 +1,4 @@
+; fonctionne avec des valeurs 64-bit: soustrait val2 de val1.
+; .lo signifie les 32 bits les plus bas, .hi signifie les plus hauts.
+SUB val1.lo, val2.lo
+SBB val1.hi, val2.hi ; utilise CF mis à 1 ou 0 par l'instruction précédente

@@ -1,0 +1,45 @@
+% TODO proof-reading
+\subsection{Modèle de mémoire de la \ac{JVM}}
+
+x86 et d'autres environnements de bas niveau utilisent la pile pour le passage des
+paramètres et le stockage de variables locales.
+
+La \ac{JVM} est légèrement différente.
+
+Elle a:
+
+\begin{itemize}
+\item Le tableau des variables locales, Local Variable Array (\ac{LVA}).
+Il est utilisé comme stockage pour les paramètres en entrée de fonction et les variables
+locales.
+
+Des instructions comme \INS{iload\_0} charge une valeur depuis cet espace.
+
+\INS{istore} y stocke des valeurs.
+Au début les paramètres de la fonction sont stockés: commençant à 0 ou à 1 (si l'indice
+0 est occupé par le pointeur \emph{this}).
+
+Ensuite les variables locales sont allouées.
+
+
+Chaque slot a une taille de 32-bit.
+
+De ce fait, les valeurs de types de données \emph{long} et \emph{double} occupent
+deux slots.
+
+
+\item Pile des opérandes (ou simplement \q{pile}).
+Elle est utilisée pour les calculs et la passage de paramètres lors de l'appel d'autres
+fonctions.
+
+Contrairement aux environnements bas niveau comme x86, il n'est pas possible d'accèder
+à la pile sans utiliser des instructions qui poussent ou prennent des valeurs dans/depuis
+la pile.
+
+
+\item Heap. Il est utilisé pour le stockage d'objets et de tableaux.
+
+\end{itemize}
+
+Ces 3 espaces sont isolés les uns des autres.
+

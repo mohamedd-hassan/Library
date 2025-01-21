@@ -1,0 +1,70 @@
+﻿\subsubsection{3次元配列の例}
+
+多次元配列でも同じです。
+
+\Tint 型の配列で作業していきます。各要素はメモリ上で4バイト必要とします。
+
+見てみましょう。
+
+\lstinputlisting[caption=単純な例,style=customc]{patterns/13_arrays/5_multidimensional/multi.c}
+
+\myparagraph{x86}
+
+MSVC 2010の結果
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/13_arrays/5_multidimensional/multi_msvc_JA.asm}
+
+特別なことはありません。インデックスの計算では、式 $address=600 \cdot 4 \cdot x + 30 \cdot 4 \cdot y + 4z$ 
+では3つの入力引数が使用され、配列を多次元として表現しています。
+\Tint 型は32ビット（4バイト）なので、
+係数は4倍する必要があることを忘れないでください。
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/13_arrays/5_multidimensional/multi_gcc_JA.asm}
+
+GCCコンパイラは異なります。
+
+計算での演算において（$30y$）、GCCは乗算命令を使わないコードを生成します。
+このようにします。
+$(y+y) \ll 4 - (y+y) = (2y) \ll 4 - 2y = 2 \cdot 16 \cdot y - 2y = 32y - 2y = 30y$. 
+従って、 $30y$ の計算には、加算命令が1つだけです。
+ビットシフト演算と減算が使用されます。
+これはより高速です。
+
+\myparagraph{ARM + \NonOptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\NonOptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/13_arrays/5_multidimensional/multi_Xcode_thumb_O0_JA.asm}
+
+\NonOptimizing LLVMは変数すべてをローカルスタックに保存しますが、冗長です。
+
+配列の要素のアドレスはすでに見た式によって計算されます。
+
+\myparagraph{ARM + \OptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/13_arrays/5_multidimensional/multi_Xcode_thumb_O3_JA.asm}
+
+既に見たシフト、加減算による乗算を置き換えるためのトリックもここにあります。
+
+\myindex{ARM!\Instructions!RSB}
+\myindex{ARM!\Instructions!SUB}
+新しい命令を見てみます：\RSB (\emph{Reverse Subtract})
+
+単純に \SUB として機能しますが、実行前にオペランドをスワップします。
+なぜでしょう？
+\myindex{ARM!Optional operators!LSL}
+\SUB および \RSB は、シフト係数が適用される第2のオペランド（\INS{LSL\#4}）への命令です。
+
+ただし、この係数は第2オペランドにのみ適用されます。
+
+これは、加算や乗算のような可換的な（交換可能な）演算の場合は問題ありません。
+（結果を変更せずにオペランドを入れ替えてもかまいません）
+
+しかし、減算は非可換的な演算なので、 \RSB が存在します。
+
+\myparagraph{MIPS}
+
+\myindex{MIPS!Global Pointer}
+私の例はとても小さいので、GCCコンパイラはグローバルポインタによってアドレス可能な64KiB領域に
+配列を配置することに決めました。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/13_arrays/5_multidimensional/multi_MIPS_O3_IDA_JA.lst}
+

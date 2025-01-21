@@ -1,0 +1,47 @@
+﻿\mysection{Thread Local Storage}
+\label{TLS}
+\myindex{TLS}
+
+TLS est un espace de données propre à chaque thread, qui peut y conserver ce qu'il estime utile.
+Un exemple d'utilisation bien connu en est la variable globale \emph{errno} du standard C.
+
+Plusieurs threads peuvent invoquer simultanément différentes fonctions qui retournent toutes un code 
+erreur dans la variable \emph{errno}. L'utilisation d'une variable globale dans le contexte d'un 
+programme comportant plusieurs threads serait donc inadaptée dans ce cas. C'est pourquoi la variable 
+\emph{errno} est conservée dans l'espace \ac{TLS}.\\
+\\
+\myindex{\Cpp!C++11}
+La version 11 du standard C++ a ajouté un nouveau modificateur \emph{thread\_local} qui indique que 
+chaque thread possède sa propre copie de la variable, qui peut-être initialisée et est
+alors conservée dans l'espace \ac{TLS}
+\footnote{\myindex{C11} C11 supporte aussi les thread, mais optionel}:
+
+\begin{lstlisting}[caption=C++11,style=customc]
+#include <iostream>
+#include <thread>
+
+thread_local int tmp=3;
+
+int main()
+{
+	std::cout << tmp << std::endl;
+};
+\end{lstlisting}
+
+Compilé avec MinGW GCC 4.8.1, mais pas avec MSVC 2012.
+
+Dans le contexte des fichiers au format PE, la variable \emph{tmp} sera allouée dans la section dédiée 
+au \ac{TLS} du fichier exécutable résultant de la compilation.
+
+\subsection{Amélioration du générateur linéaire congruent}
+\label{LCG_TLS}
+
+Le générateur de nombres pseudo-aléatoires \myref{LCG_simple} que nous avons étudié précédemment 
+contient une faiblesse. Son comportement est buggé dans un environnement multi-thread. Il utilise 
+en effet une variable d'état dont la valeur peut être lue et/ou modifiée par plusieurs threads 
+simultanément.
+
+% subsections
+\input{OS/TLS/LCG_win32_FR}
+\input{OS/TLS/LCG_linux_FR}
+

@@ -1,0 +1,54 @@
+\subsection{絶対値の計算}
+\label{sec:abs}
+
+簡単な関数の例。
+
+\lstinputlisting[style=customc]{abs.c}
+
+\subsubsection{\Optimizing MSVC}
+
+これは普通、どのようにコードが生成されるのかを示したものです。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/07_jcc/abs/abs_MSVC2012_Ox_x64_JA.asm}
+
+GCC 4.9はほとんど同じです。
+
+\subsubsection{\OptimizingKeilVI: \ThumbMode}
+
+\lstinputlisting[caption=\OptimizingKeilVI: \ThumbMode,style=customasmARM]{patterns/07_jcc/abs/abs_Keil_thumb_O3_JA.s}
+
+\myindex{ARM!\Instructions!RSB}
+
+ARMにはネゲート命令がないため、Keilコンパイラは\q{逆引き命令}を使用します。これは逆のオペランドで減算するだけです。
+
+\subsubsection{\OptimizingKeilVI: \ARMMode}
+
+ARMモードでは、いくつかの命令に条件コードを追加することができます。そのため、Keilコンパイラは次のように処理します。
+
+\lstinputlisting[caption=\OptimizingKeilVI: \ARMMode,style=customasmARM]{patterns/07_jcc/abs/abs_Keil_ARM_O3_JA.s}
+
+今度は条件付きジャンプはありません。これは良いですね。：\myref{branch_predictors}
+
+\subsubsection{\NonOptimizing GCC 4.9 (ARM64)}
+
+\myindex{ARM!\Instructions!XOR}
+
+ARM64には、否定するための命令\INS{NEG}があります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 (ARM64),style=customasmARM]{patterns/07_jcc/abs/abs_GCC49_ARM64_O0_JA.s}
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/abs/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!BLTZ}
+ここでは\INS{BLTZ}（\q{Branch if Less Than Zero}）という新しい命令があります。
+\myindex{MIPS!\Instructions!SUBU}
+\myindex{MIPS!\Pseudoinstructions!NEGU}
+
+\INS{NEGU}擬似命令もあります。これはゼロからの減算だけです。 
+\INS{SUBU}と\INS{NEGU}の両方の \q{U}接尾辞は、整数オーバーフローの場合に発生する例外がないことを意味します。
+
+\subsubsection{Branchless version?}
+
+このコードを分岐がないバージョンにすることもできます。 これについては、後述の\myref{chap:branchless_abs}を参照してください。

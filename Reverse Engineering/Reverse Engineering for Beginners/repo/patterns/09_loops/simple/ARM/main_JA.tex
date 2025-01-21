@@ -1,0 +1,52 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[label=Keil_number_sign,style=customasmARM]{patterns/09_loops/simple/ARM/Keil_ARM_O0.asm}
+
+ループカウンタ $i$ は\Reg{4}レジスタに格納されます。
+\INS{MOV R4, \#2}命令は $i$ をちょうど初期化します。 
+\INS{MOV R0, R4}、および\INS{BL printing\_function}命令は、
+\ttf 関数の引数を準備する最初の命令と2番目の関数を呼び出すループの本体を構成します。 
+\myindex{ARM!\Instructions!ADD}
+\INS{ADD R4, R4, \#1}命令は、各繰り返しで $i$ 変数に1を加算するだけです。 
+\INS{CMP R4, \#0xA}は $i$ と\TT{0xA}（10）を比較します。 
+次の命令\INS{BLT}（\emph{Branch Less Than}）は、 $i$ が10未満の場合にジャンプします。
+それ以外の場合は、\Reg{0}に0が書き込まれます（関数が0を返すため）。
+そして関数の実行が終了します。
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/09_loops/simple/ARM/Keil_thumb_O3.asm}
+
+実質的に同じです。
+
+\myparagraph{\OptimizingXcodeIV (\ThumbTwoMode)}
+\label{ARM_unrolled_loops}
+
+\lstinputlisting[style=customasmARM]{patterns/09_loops/simple/ARM/xcode_thumb_O3.asm}
+
+実際、これは私の \ttf 関数にありました：
+
+\begin{lstlisting}[style=customc]
+void printing_function(int i)
+{
+    printf ("%d\n", i);
+};
+\end{lstlisting}
+
+\myindex{Unrolled loop}
+\myindex{Inline code}
+だから、LLVMはループを\emph{展開}しただけでなく、
+私の非常に単純な関数 \ttf を\emph{インライン}化し、
+呼び出すのではなく本体を8回挿入しました。
+
+これは、関数が（私の例のように）とても簡単で、（ここのように）あまり呼び出されないときに可能です。
+
+\myparagraph{ARM64: \Optimizing GCC 4.9.1}
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1,style=customasmARM]{patterns/09_loops/simple/ARM/ARM64_GCC491_O3_JA.s}
+
+\myparagraph{ARM64: \NonOptimizing GCC 4.9.1}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 -fno-inline,style=customasmARM]{patterns/09_loops/simple/ARM/ARM64_GCC491_O0_JA.s}

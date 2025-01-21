@@ -1,0 +1,32 @@
+﻿\subsection{文字列境界}
+
+\myindex{win32!GetOpenFileName}
+パラメータがwin32の\emph{GetOpenFileName()}関数にどのように渡されるかは興味深いことです。 
+それを呼び出すには、許可されたファイル拡張子のリストを設定する必要があります：
+
+\begin{lstlisting}[style=customc]
+	OPENFILENAME *LPOPENFILENAME;
+	...
+	char * filter = "Text files (*.txt)\0*.txt\0MS Word files (*.doc)\0*.doc\0\0";
+	...
+	LPOPENFILENAME = (OPENFILENAME *)malloc(sizeof(OPENFILENAME));
+	...
+	LPOPENFILENAME->lpstrFilter = filter;
+	...
+
+	if(GetOpenFileName(LPOPENFILENAME))
+	{
+		...
+\end{lstlisting}
+
+ここでは、\emph{GetOpenFileName()}に文字列のリストが渡されます。 
+解析するのは問題ではありません。ゼロバイトが1つ出現するたびに、これがアイテムになります。 
+ゼロバイトが2バイト出現すれば、リストの最後になります。 
+この文字列を \printf に渡すと、最初の項目は単一の文字列として扱われます。
+
+これは文字列か、そうではないのか。
+これは、複数のゼロ終端されたC文字列を含むバッファであり、全体として格納して処理することができます。
+
+\myindex{\CStandardLibrary!strtok}
+もう一つの例は\emph{strtok()}関数です。文字列をとり、その真ん中にゼロバイトを書き込みます。 
+したがって、入力文字列をいくつかの種類のバッファに変換します。バッファには、ゼロで終了するC文字列がいくつかあります。

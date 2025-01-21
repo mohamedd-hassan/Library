@@ -1,0 +1,22 @@
+_dst$ = 8		; taille = 4
+_src$ = 12		; taille = 4
+_cnt$ = 16		; taille = 4
+_memcpy	PROC
+	mov	edx, DWORD PTR _cnt$[esp-4]
+	test	edx, edx
+	je	SHORT $LN1@f
+	mov	eax, DWORD PTR _dst$[esp-4]
+	push	esi
+	mov	esi, DWORD PTR _src$[esp]
+	sub	esi, eax
+; ESI=src-dst, i.e., différence des pointeurs
+$LL8@f:
+	mov	cl, BYTE PTR [esi+eax] ; charger l'octet em "esi+dst" ou en "src-dst+dst" au début ou juste en "src"
+	lea	eax, DWORD PTR [eax+1] ; dst++
+	mov	BYTE PTR [eax-1], cl   ; stocker l'octet en "(dst++)--" ou juste en "dst" au début
+	dec	edx                    ; décrémenter le compteur jusqu'à ce que nous ayons fini
+	jne	SHORT $LL8@f
+	pop	esi
+$LN1@f:
+	ret	0
+_memcpy	ENDP

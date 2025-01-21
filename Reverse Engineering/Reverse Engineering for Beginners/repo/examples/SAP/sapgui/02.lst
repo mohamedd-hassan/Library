@@ -1,0 +1,5 @@
+.text:64405160                 push    dword ptr [esi+2854h]
+.text:64405166                 push    offset aCdwsguiPrepare ; \verb|"\nCDwsGui::PrepareInfoWindow: sapgui env"...|
+.text:6440516B                 push    dword ptr [esi+2848h]
+.text:64405171                 call    dbg
+.text:64405176                 add     esp, 0Ch

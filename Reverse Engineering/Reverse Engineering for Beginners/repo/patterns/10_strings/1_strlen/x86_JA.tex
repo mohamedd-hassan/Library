@@ -1,0 +1,128 @@
+﻿\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+コンパイルしてみましょう。
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_1_msvc_JA.asm}
+
+\myindex{x86!\Instructions!MOVSX}
+\myindex{x86!\Instructions!TEST}
+
+新しい命令が2つ出てきました、 \MOVSX と \TEST です。
+
+\label{MOVSX}
+
+最初の \MOVSX は、メモリ内のアドレスからバイトを取り出し、その値を32ビットレジスタに格納します。 
+\MOVSX は\emph{MOV with Sign-Extend}の略です。 
+\MOVSX はソースバイトが\emph{負}の場合は1に、\emph{正}の場合は0に残りのビットを8から31に設定します。
+
+そして、それが理由です。
+
+デフォルトでは、 \Tchar 型はMSVCとGCCで署名されています。 一方が \Tchar で
+他方が \Tint である2つの値がある場合（ \Tint も署名されます）、最初の値に-2（\TT{0xFE}としてコード化されています）
+が含まれ、このバイトを \Tint コンテナにコピーするだけで\TT{0x000000FE} 、
+これは符号付きの \Tint ビューのポイントから254ですが、-2ではありません。
+符号付き \Tint の場合、-2は\TT{0xFFFFFFFE}としてコード化されます。 
+したがって、 \Tchar 型の変数から\TT{0xFE}を \Tint に転送する必要がある場合は、
+その符号を識別して拡張する必要があります。 これが \MOVSX の役割です。
+
+コンパイラが \EDX に \Tchar 変数を格納する必要があるかどうかを言うのは難しいですが、
+8ビットのレジスタ部分（ \DL など）を取ることができます。 どうやら、コンパイラの\gls{register allocator}はそのように機能します。
+
+\myindex{ARM!\Instructions!TEST}
+
+次に、\TT{TEST EDX, EDX}が表示されます。 
+\TEST 命令の詳細については、ビットフィールドに関するセクション~(\myref{sec:bitfields})を参照してください。 
+ここでは、この命令は \EDX の値が0に等しいかどうかをチェックするだけです。
+
+\myparagraph{\NonOptimizing GCC}
+
+GCC 4.4.1で試してみましょう。
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_3_gcc.asm}
+
+\label{movzx}
+\myindex{x86!\Instructions!MOVZX}
+
+結果はMSVCとほぼ同じですが、 \MOVSX の代わりに \MOVZX があります。 
+\MOVZX は\emph{MOV with Zero-Extend}の略です。
+この命令は、8ビットまたは16ビットの値を32ビットレジスタにコピーし、残りのビットを0に設定します。
+実際、この命令は以下の命令ペアを置き換えることができることでのみ役立ちます：
+\TT{xor eax, eax / mov al, [...]}
+
+一方、コンパイラがこのコードを生成できることは明らかです。
+\TT{mov al, byte ptr [eax] / test al, al} はほぼ同じですが、
+\EAX レジスタの最上位ビットにランダムノイズが含まれます。
+しかし、それがコンパイラの欠点だと考えてみましょう。より理解しやすいコードを生成することはできません。
+厳密に言えば、コンパイラは（人間に）理解できるコードを出力する義務は全くありません。
+
+\myindex{x86!\Instructions!SETcc}
+
+次の新しい命令は \SETNZ です。
+ここで、 \AL にゼロが含まれていない場合、\TT{test al, al}は \ZF フラグを0に設定しますが、
+\TT{ZF==0}（\emph{NZ}は\emph{ゼロではない}）の場合、 \SETNZ は \AL に1を設定します。
+自然言語で言えば、\emph{\AL がゼロでなければ、loc\_80483F0にジャンプせよ}となります。
+コンパイラは冗長なコードを出力しますが、最適化がオフになっていることを忘れないでください。
+
+\myparagraph{\Optimizing MSVC}
+\label{strlen_MSVC_Ox}
+
+さて、最適化をオンにして、MSVC 2012ですべてコンパイルしましょう（\Ox）。
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 /Ob0,style=customasmx86]{patterns/10_strings/1_strlen/10_2_JA.asm}
+
+すべて単純です。
+言うまでもなく、コンパイラは、ローカル変数が少数である小さな関数でのみ
+効率を持つレジスタを使用することができます。
+
+\myindex{x86!\Instructions!INC}
+\myindex{x86!\Instructions!DEC}
+\INC/\DEC は\gls{increment}/\gls{decrement}命令です。すなわち、変数に1を加算または減算します。
+
+\input{patterns/10_strings/1_strlen/olly_JA.tex}
+
+\myparagraph{\Optimizing GCC}
+
+最適化をオンにして（ \Othree キー）GCC 4.4.1をチェックしましょう。
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_3_gcc_O3.asm}
+ 
+ここで、GCCは \MOVZX の存在を除いてMSVCとほぼ同じです。 
+しかし、ここでは \MOVZX を\TT{mov dl, byte ptr [eax]}に置き換えることができます。
+
+おそらく、GCCのコードジェネレータが \Tchar 変数に割り当てられた32ビットEDXレジスタ全体を\emph{記憶している}
+ことを覚えているのはおそらく簡単です。
+そして、最も高いビットにはいつでもノイズがないことを確かめることができます。
+
+\label{strlen_NOT_ADD}
+\myindex{x86!\Instructions!NOT}
+\myindex{x86!\Instructions!XOR}
+
+その後で、新しい命令を見ます、 \NOT です。 この命令は、オペランドのすべてのビットを反転します。
+\TT{XOR ECX, 0ffffffffh}命令と同義です。 
+\NOT と次の \ADD は ポインタの差を計算し、1を差し引きます。 
+\emph{str}へのポインタが格納されている開始 \ECX では反転され、1が減算されます。
+
+つまり、ループ本体の直後の関数の最後では、これらの操作が実行されます。
+
+\begin{lstlisting}[style=customc]
+ecx=str;
+eax=eos;
+ecx=(-ecx)-1; 
+eax=eax+ecx
+return eax
+\end{lstlisting}
+
+\dots~これは事実上次のものと同等です：
+
+\begin{lstlisting}[style=customc]
+ecx=str;
+eax=eos;
+eax=eax-ecx;
+eax=eax-1;
+return eax
+\end{lstlisting}
+
+なぜGCCはそれがより良いと判断したのでしょうか。
+推測するのは難しいですが、おそらく両方の変種は効率の面では同じです。

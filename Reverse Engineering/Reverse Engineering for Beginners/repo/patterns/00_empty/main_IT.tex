@@ -1,0 +1,76 @@
+\mysection{Una funzione vuota}
+\label{empty_func}
+
+La funzione più semplice è sicuramente quella che non fa niente:
+
+\lstinputlisting[label=lst:empty_func,caption=\ITph{},style=customc]{patterns/00_empty/1.c}
+
+Compiliamola!
+
+\subsection{x86}
+
+Questo è quello che i compilatori GCC e MSVC producono per una piattaforma x86:
+
+\lstinputlisting[caption=\Optimizing GCC/MSVC (\assemblyOutput),style=customasmx86]{patterns/00_empty/1.s}
+
+\myindex{x86!\Instructions!RET}
+C'è solo un'istruzione: \RET, la quale ritorna l'esecuzione al \gls{caller}.
+
+\subsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode) \assemblyOutput,style=customasmARM]{patterns/00_empty/1_Keil_ARM_O3.s}
+
+L'indirizzo di ritorno non viene salvato nello stack locale nella \ac{ISA} ARM, ma invece nel registro link,
+quindi l'istruzione \INS{BX LR} causa l'esecuzione di un salto (jump) a quell'indirizzo---effettivamente ritornando l'esecuzione
+al \gls{caller}.
+
+\subsection{MIPS}
+
+Esistono due convenzioni utilizzate nel mondo MIPS quando vengono chiamati i registri:
+per numero (da \$0 a \$31) o per pseudonimo (\$V0, \$A0, etc.).
+
+L'output in assembly di GCC qua sotto elenca i registri per numero:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/00_empty/MIPS.s}
+
+\dots mentre \IDA utilizza gli pseudonimi:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/00_empty/MIPS_IDA.lst}
+
+\myindex{MIPS!\Instructions!J}
+La prima istruzione è un salto (J or JR) che ritorna il flusso di esecuzione al \gls{caller},
+saltando all'indirizzo contenuto nel registro \$31 (o \$RA).
+
+Questo è il registro analogo a \ac{LR} in ARM.
+
+La seconda istruzione è \ac{NOP}, che non fa niente.
+Per il momento possiamo ignorarla.
+
+\subsubsection{Una nota sulle istruzioni MIPS ed i nomi dei registri}
+
+I nomi dei registri e delle istruzioni nel mondo MIPS sono tradizionalmente scritti in minuscolo.
+Tuttavia, per uniformità, questo libro manterrà l'utilizzo del maiuscolo,
+che è la convenzione utilizzata in tutti gli altri \ac{ISA} mostrati in questo libro.
+
+\subsection{Le funzioni vuote in pratica}
+
+Anche se le funzioni vuote sembrano inutili, sono abbastanza utilizzate nel codice a basso livello.
+
+Prima di tutto, sono abbastanza popolari nelle funzioni per debug, come questa:
+
+\lstinputlisting[caption=\CCpp Code,style=customc]{patterns/00_empty/dbg_print_IT.c}
+
+In una build non di debug (come in una ``release''), \TT{\_DEBUG} non è definito,
+quindi la funzione \TT{dbg\_print()}, nonostante venga ancora chiamata durante l'esecuzione,
+sarà vuota.
+
+Similmente, un metodo popolare per la protezione del software è di creare una build per gli acquirenti regolari, ed una build di demo.
+In una build di demo possono mancare alcune funzionalità importanti, come in questo esempio:
+
+\lstinputlisting[caption=\CCpp Code,style=customc]{patterns/00_empty/demo_IT.c}
+
+La funzione \TT{save\_file()} può essere chiamata quando l'utente fa click sul menu \TT{File->Salva}.
+La versione demo può essere distribuita con questa voce di menu disattivata, ma anche se un cracker la riattiva,
+verrà chiamata semplicemente una funzione vuota che non contiene del codice utile.
+
+IDA segnala queste funzioni con dei nomi come \TT{nullsub\_00}, \TT{nullsub\_01}, etc.

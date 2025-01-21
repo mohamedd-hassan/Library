@@ -1,0 +1,89 @@
+\subsection{Calcul de la moyenne arithmétique}
+
+Imaginons que nous voulions calculer la \glslink{arithmetic mean}{moyenne arithmétique},
+et que pour une raison quelconque, nous voulions passer toutes les valeurs comme
+arguments de la fonction.
+
+Mais il est impossible d'obtenir le nombre d'arguments dans une fonction variadique
+en \CCpp, donc indiquons la valeur $-1$ comme terminateur.
+
+\subsubsection{Utilisation de la macro va\_arg}
+
+Il y a le fichier d'entête standard stdarg.h qui défini des macros pour prendre en
+compte de tels arguments.
+
+Les fonctions \printf et \scanf l'utilisent aussi.
+
+\lstinputlisting[style=customc]{\CURPATH/arith_FR.c}
+
+Le premier argument doit être traité comme un argument normal.
+\myindex{\CStandardLibrary!va\_arg}
+
+Tous les autres arguments sont chargés en utilisant la macro \TT{va\_arg} et ensuite
+ajoutés.
+
+Qu'y a-t-il à l'intérieur?
+
+\myparagraph{Convention d'appel \emph{cdecl}}
+
+\lstinputlisting[caption=MSVC 6.0 \Optimizing,style=customasmx86]{\CURPATH/arith_MSVC60_Ox_FR.asm}
+
+Les arguments, comme on le voit, sont passés à \main un par un.
+
+Le premier argument est poussé sur la pile locale en premier.
+
+La valeur terminale ($-1$) est poussée plus tard.
+
+La fonction \TT{arith\_mean()} prend la valeur du premier argument et le stocke dans
+la variable $sum$.
+
+Puis, elle met dans le registre \EDX l'adresse du second argument, prend sa valeur,
+l'ajoute à $sum$, et fait cela dans une boucle infinie, jusqu'à ce que $-1$ soit
+trouvé.
+
+Lorsqu'il est rencontré, la somme est divisée par le nombre de valeurs (en excluant $-1$)
+et le \gls{quotient} est renvoyé.
+
+Donc, autrement dit, la fonction traite le morceau de pile comme un tableau de valeurs
+entières d'une longueur infinie.
+
+Maintenant nous pouvons comprendre pourquoi la convention d'appel \emph{cdecl} nous
+force à pousser le premier argument au moins sur la pile.
+
+Car sinon, il ne serait pas possible de trouver le premier argument, ou, pour les
+fonctions du genre de printf, il ne serait pas possible de trouver l'adresse de la
+chaîne de format.
+
+\myparagraph{Convention d'appel basée sur les registres}
+\label{variadic_arith_registers}
+
+Le lecteur attentif pourrait demander, qu'en est-il de la convention d'appel où les
+tous premiers arguments sont passés dans des registres?
+Regardons:
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{\CURPATH/arith_MSVC_2012_Ox_x64_FR.asm}
+
+Nous voyons que les 4 premiers arguments sont passés dans des registres, et les deux
+autres---par la pile.
+
+La fonction \TT{arith\_mean()} place d'abord ces 4 arguments dans le \emph{Shadow Space}
+puis traite le \emph{Shadow Space} et la pile derrière comme s'il s'agissait d'un tableau
+continu!
+
+Qu'en est-il de GCC? Les choses sont légèrement plus maladroites ici, car maintenant
+la fonction est divisée en deux parties:
+la première partie sauve les registres dans la \q{zone rouge}, traite cet espace,
+et la seconde partie traite la pile:
+
+\lstinputlisting[caption=GCC 4.9.1 x64 \Optimizing,style=customasmx86]{\CURPATH/arith_GCC491_x64_O3_FR.s}
+
+À propos, un usage similaire du \emph{Shadow Space} est aussi considéré ici: \myref{pointer_to_argument}.
+
+\subsubsection{Utilisation du pointeur sur le premier argument de la fonction}
+
+L'exemple peut être récrit sans la macro \TT{va\_arg}:
+
+\lstinputlisting[style=customc]{\CURPATH/arith2.c}
+
+Autrement dit, si l'argument mis est un tableau de mots (32-bit ou 64-bit), nous devons
+juste énumérer les éléments du tableau en commençant par le premier.

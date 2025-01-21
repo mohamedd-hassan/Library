@@ -1,0 +1,80 @@
+\subsubsection{Zapisywanie adresu powrotu}
+
+\myparagraph{x86}
+
+\myindex{x86!\Instructions!CALL}
+Przed wywołaniem funkcji za pomocą instrukcji \CALL, na stos odkładany jest adres kolejnej instrukcji (tej bezpośrednio za \CALL). Następnie następuje skok bezwarunkowy pod adres z operandu instrukcji \CALL.
+
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!JMP}
+Instrukcja \CALL jest równoważna parze instrukcji \INS{PUSH adres\_docelowy / JMP}.
+
+\myindex{x86!\Instructions!RET}
+\myindex{x86!\Instructions!POP}
+\RET zdejmuje adres ze stosu i przekazuje tam sterowanie~---
+jest to równoważne parze instrukcji \TT{POP tmp / JMP tmp}.
+
+\myindex{\Stack!\MLStackOverflow}
+\myindex{\Recursion}
+Bardzo łatwo przepełnić stos, poprzez nieskończoną rekurencję:
+
+\begin{lstlisting}[style=customc]
+void f()
+{
+	f();
+};
+\end{lstlisting}
+
+MSVC 2008 wyświetli ostrzeżenie:
+
+\begin{lstlisting}
+c:\tmp6>cl ss.cpp /Fass.asm
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 15.00.21022.08 for 80x86
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+ss.cpp
+c:\tmp6\ss.cpp(4) : warning C4717: 'f' : recursive on all control paths, function will cause runtime stack overflow
+\end{lstlisting}
+
+\dots ale wygeneruje plik wykonywalny:
+
+\lstinputlisting[style=customasmx86]{patterns/02_stack/1.asm}
+
+\dots jeśli włączymy optymalizację (opcja \TT{\Ox}), to zoptymalizowany kod nie będzie powodował przepełnienia stosu i działał  \emph{poprawnie}\footnote{o ironio!}
+
+\lstinputlisting[style=customasmx86]{patterns/02_stack/2.asm}
+
+GCC 4.4.1 wygeneruje taki sam kod w obu przypadkach i nie wyświetli żadnego ostrzeżenia.
+
+\myparagraph{ARM}
+
+\myindex{ARM!\Registers!Link Register}
+Programy na ARM również korzystają ze stosu do zapisywania adresu powrotu, ale w trochę inny sposób.
+Jak już było wspomniane w rozdziale \q{\HelloWorldSectionName}~(\myref{sec:hw_ARM}),
+adres powrotu (\ac{RA}) jest zapisywany do rejestru \ac{LR} (\gls{link register}).
+Jeśli zajdzie potrzeba wywołania kolejnej funkcji i ponownego użycia  \ac{LR}, to jego zawartość będzie musiała być gdzieś zapisana.
+
+\myindex{Function prologue}
+\myindex{ARM!\Instructions!PUSH}
+\myindex{ARM!\Instructions!POP}
+
+Zwykle odbywa się to w prologu funkcji, często widzimy tam instrukcję jak \INS{PUSH \{R4-R7,LR\}}, a w epilogu
+\INS{POP \{R4-R7,PC\}}~--- rejestry, z których będzie korzystała bieżąca funkcja, w tym rejestr \ac{LR}, odkładane są na stos.
+
+\myindex{ARM!Leaf function}
+Jeśli jakaś funkcja nie wywołuje żadnych innych funkcji w trakcie swojej pracy, w terminologii \ac{RISC} nazywana jest
+\emph{\glslink{leaf function}{funkcją-liściem}}\footnote{\href{http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka13785.html}{infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka13785.html}}.
+Z tego powodu funkcja-liść nie odkłada rejestru \ac{LR} na stos, ponieważ go nie zmienia.
+Jeśli funkcja jest niewielkich rozmiarów i korzysta z małej liczby rejestrów, to może w ogóle nie korzystać ze stosu.
+Stąd w ARM możliwe jest wywoływanie małych funkcji-liści bez używania stosu.
+Jest to szybsze niż w starych x86, gdyż nie korzysta się z pamięci zewnętrznej RAM do korzystania ze stosu.
+\footnote{Kiedyś, na PDP-11 i VAX, instrukcja CALL (wywołanie innych funkcji) była kosztowna; procesor spędzał na \CALL nawet do 50\% czasu wykonania programu. Z tego powodu posiadanie dużej liczby małych funkcji uchodziło za \glslink{anti-pattern}{antywzorzec}
+\InSqBrackets{\TAOUP Chapter 4, Part II}.}.
+Ten mechanizm przydaje się również, gdy pamięć pod stos nie została jeszcze zaalokowana albo jest niedostępna.
+
+kilka przykładów takich funkcji:
+\myref{ARM_leaf_example1}, \myref{ARM_leaf_example2}, 
+\myref{ARM_leaf_example3}, \myref{ARM_leaf_example4}, \myref{ARM_leaf_example5},
+\myref{ARM_leaf_example6}, \myref{ARM_leaf_example7}, \myref{ARM_leaf_example10}.
+
+

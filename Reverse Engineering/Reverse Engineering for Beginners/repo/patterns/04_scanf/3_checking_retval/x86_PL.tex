@@ -1,0 +1,147 @@
+\subsubsection{MSVC: x86}
+
+Poniżej wynik kompilacji pod MSVC 2010:
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3_MSVC_x86.asm}
+
+\myindex{x86!\Registers!EAX}
+\glslink{caller}{Funkcja wywołująca} (\main) potrzebuje rezultatu zwróconego przez \glslink{callee}{funkcję wywoływaną} (\scanf),
+więc \glslink{callee}{funkcja wywoływana} zwraca go za pomocą rejestru \EAX.
+
+\myindex{x86!\Instructions!CMP}
+Rezultat sprawdzamy za pomocą instrukcji \TT{CMP EAX, 1} (\emph{CoMPare}) ~--- porównujemy wartość w rejestrze \EAX z liczbą 1.
+
+\myindex{x86!\Instructions!JNE}
+Instrukcja \JNE to skok warunkowy, następujący po \CMP. \JNE oznacza \emph{Jump if Not Equal}.
+
+Jeśli wartość w \EAX jest różna od 1, \ac{CPU} przekaże sterowanie pod adres z operandu instrukcji \JNE, w naszym przypadku jest to \TT{\$LN2@main}.
+Przekazanie sterowania pod ten adres oznacza wykonanie funkcji \printf z argumentem \TT{What you entered? Huh?}.
+Jeśli natomiast \scanf zakończyła się sukcesem i wartość w EAX jest równa 1, skok warunkowy nie zostanie wykonany i kolejno zostanie wywołana funkcja \printf, z dwoma argumentami:\\
+\TT{'You entered \%d...'} i wartością \TT{x}.
+
+\myindex{x86!\Instructions!XOR}
+\myindex{\CLanguageElements!return}
+W tym drugin przypadku - gdy \scanf zakończyła się poprawnie - nie ma potrzeby wykonywać drugiego wywołania funkcji \printf, stąd przed wywołaniem znajduje się instrukcja \JMP (skok bezwarunkowy).
+Instrukcja przekazuje sterowanie w miejsce za drugim wywołaniem \printf, ale przed instrukcją \TT{XOR EAX, EAX}, która realizuje \TT{return 0}.
+
+% FIXME internal \ref{} to x86 flags instead of wikipedia
+\myindex{x86!\Registers!\Flags}
+Można powiedzieć, że porówywanie dwóch wartości jest zwykle realizowane przez parę instrukcji \CMP/\Jcc, gdzie \emph{cc} oznacza \emph{condition code} (\emph{kod warunku}).
+\CMP porównuje dwie wartości i ustawia flagę procesora \footnote{rejestr FLAGS, więcej o tym przeczytasz pod adresem: \href{http://en.wikipedia.org/wiki/FLAGS_register_(computing)}{wikipedia}.}.
+\Jcc sprawdza te flagi i decyduje czy przekazać sterowanie pod podany adres.
+
+\myindex{x86!\Instructions!CMP}
+\myindex{x86!\Instructions!SUB}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Registers!ZF}
+\label{CMPandSUB}
+Zabrzmi to paradoksalnie, ale instrukcja \CMP to tak na prawdę \SUB (subtract - \emph{odejmij}).
+Nie tylko \CMP, ale wszystkie instrukcje arytmetyczne modyfikują flagi procesora.
+Jeśli porównamy 1 z 1, $1-1$ daje 0, więc flaga \ZF zostanie ustawiona.
+W żadnym innym przypadku flaga \ZF nie zostanie ustawiona, poza tym gdy operandy są sobie równe.
+\JNE sprawdza tylko flagę \ZF i wykonuje skok, jeśli nie jest ustawiona. \JNE jest synonimem \JNZ (\emph{Jump if Not Zero}).
+Asembler tłumaczy zarówno \JNE jak i \JNZ na ten sam kod operacji (opcode).
+Instrukcja \CMP może być zastąpiona przez \SUB i prawie wszystko powinno działać poprawnie, poza tym, że \SUB zmieni wartość pierwszego operandu na wynik operacji odejmowania.
+\CMP to \emph{SUB bez zapisywania wyniku operacji, ale ze zmianą flag}.
+
+\subsubsection{MSVC: x86: IDA}
+
+\myindex{IDA}
+Nadszedł czas na uruchomienie programu \IDA i pokazanie jego możliwości.
+Przy okazji, początkującym pomoże ustawienie opcji \TT{/MD} w MSVC, co spowoduje, że wszystkie
+funkcji biblioteki standardowej nie będą statycznie zlinkowane do pliku wykonywalnego,
+ale zostaną zaimportowane z \TT{MSVCR*.DLL} podczas wykonania.
+Dzięki temu łatwiej będzie zobaczyć, które funkcje z biblioteki standardowej zostały użyte i gdzie.
+
+Podczas analizy kodu w programie \IDA warto dla siebie (i innych) robić notatki.
+W tym przypadku widzimy, że skok \TT{JNZ} wykona się w przypadku błędu.
+Można przesunąć kursor do etykiety, nacisnąć \q{n} i zmienić nazwę na \q{error}.
+Zmienimy również nazwę kolejnej etykiety na \q{exit}.
+
+Poniżej listing po zmianiach nazw:
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3.lst}
+
+Te drobne modyfikacje ułatwiły zrozumienie kodu, jednak nie warto przesadzać i komentować każdej instrukcji.
+
+% FIXME draw button?
+W \IDA nożesz również ukryć (zwinąć) kod wybranej funkcji.
+Zaznacz blok kodu, wciśnij Ctrl-\q{--} na klawiaturze numerycznej i wpisz tekst, który ma
+zostać wyświetlony zamiast kodu.
+
+Ukryjmy dwa bloki kodu i nadajmy im nazwy:
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/3_checking_retval/ex3_2.lst}
+
+% FIXME draw button?
+By rozwinąć poprzednio zwinięte fragmenty, użyj Ctrl-\q{+} na klawiaturze numerycznej.
+
+\clearpage
+Po naciśnięciu \q{spacji} zobaczymy reprezentację funkcji w postaci grafu.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/IDA.png}
+\caption{Tryb grafu w IDA}
+\label{fig:ex3_IDA_1}
+\end{figure}
+
+Z każdego skoku warunkowego wychodzą dwie strzałki: zielona i czerwona.
+Zielona wskazuje blok, który się wykona w przypadku wykonania skoku, a czerwona - blok, który się wykona, gdy do skoku nie dojdzie.
+
+\clearpage
+W tym trybie można zwinąć węzły i nadać nazwę tak stworzonej \q{grupie węzłów}.
+Zróbmy to dla 3 bloków:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/IDA2.png}
+\caption{Tryb grafu w IDA przy 3 zwiniętych węzłach}
+\label{fig:ex3_IDA_2}
+\end{figure}
+
+Jest to dość użyteczne.
+Można powiedzieć, że istotną częścią pracy osoby zajmującej się inżynierią wsteczną (a także każdego innego badacza) jest ograniczenie ilości informacji.
+
+\input{patterns/04_scanf/3_checking_retval/olly_PL.tex}
+
+\clearpage
+\subsubsection{MSVC: x86 + Hiew}
+\myindex{Hiew}
+
+Na tym przykładzie pokażemy proste \emph{poprawianie} plików wykonalnych.
+Tak zmodyfikujmy program, by zawsze wypisał wejście wprowadzony przez użytkownika, niezależnie od jego treści.
+
+Zakładając, że plik wykonywalny jest linkowany dynamicznie z \TT{MSVCR*.DLL} (kompilacja z opcją \TT{/MD}),
+zobaczymy funkcję \main na początku sekcji \TT{.text}.
+Otwórzmy plik w Hiew i znajdźmy początek sekcji \TT{.text} (Enter, F8, F6, Enter, Enter).
+
+Widzimy:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/hiew_1.png}
+\caption{Hiew: funkcja \main}
+\label{fig:scanf_ex3_hiew_1}
+\end{figure}
+
+Hiew znajduje łańuchy znaków \ac{ASCIIZ} i je wyświetla, tak samo dzieje się również z nazwami zaimportowanych funkcji.
+
+\clearpage
+Przesuń kursor do adresu \TT{.00401027} (znajduje się tam instrukcja \TT{JNZ}, którą musimy ominąć), naciśnij F3 i wpisz \q{9090} (co oznacza dwie instrukcje \ac{NOP}):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/hiew_2.png}
+\caption{Hiew: zastąpienie \TT{JNZ} przez dwie instrukcje \ac{NOP}}
+\label{fig:scanf_ex3_hiew_2}
+\end{figure}
+
+Następnie naciśnij F9 (update). Plik wykonywalny został zapisany na dysk i będzie się zachowywał zgodnie z naszymi oczekiwaniami.
+
+Dwie instrukcje \ac{NOP} nie są najbardziej eleganckim rozwiązaniem.
+Innym sposobem byłoby poprawienie instrukcji przez zapisanie 0 do drugiego bajtu kodu operacji (\glslink{jump offset}{przesunięcie skoku}),
+by \TT{JNZ} zawsze skakała do kolejnej instrukcji.
+
+Można też program zmodyfikować w drugą stronę: zastąpić pierwszy bajt przez \TT{EB}, nie zmieniając drugiego bajtu (\glslink{jump offset}{przesunięcie skoku}).
+Otrzymamy wtedy skok bezwarunkowy, który zawsze będzie zachodził, przez co za każdym razem dostaniemy wiadomość o błędzie.

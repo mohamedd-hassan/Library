@@ -1,0 +1,108 @@
+﻿\clearpage
+\mysubparagraph{\olly}
+
+Visto che questo esempio è ingannevole, seguiamolo da \olly.
+
+\olly può rilevare tali costrutti switch () e può aggiungere alcuni commenti utili.
+\EAX vale 2 all' inizio, che è il valore di input della funzione: 
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly1.png}
+\caption{\olly: \EAX 
+ora contiente il primo (e solo) argomento della funzione}
+\label{fig:switch_few_olly1}
+\end{figure}
+
+\clearpage
+0 è sottrato da 2 in \EAX. 
+Ovviamente, \EAX contiene ancora 2.
+Ma lo \ZF flag è ora 0, ad indicare che il risultato è diverso da zero:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly2.png}
+\caption{\olly: \SUB eseguito}
+\label{fig:switch_few_olly2}
+\end{figure}
+
+\clearpage
+E' stato eseguito \DEC e ora \EAX contiene 1. 
+Ma 1 è diverso da zero, quindi lo \ZF flag è ancora 0:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly3.png}
+\caption{\olly: primo \DEC eseguito}
+\label{fig:switch_few_olly3}
+\end{figure}
+
+\clearpage
+Il seguente \DEC è stato eseguito. 
+\EAX è finalmente 0 e lo \ZF flag viene impostato, perchè il risultato è zero:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly4.png}
+\caption{\olly: secondo \DEC eseguito}
+\label{fig:switch_few_olly4}
+\end{figure}
+
+\olly mostra che questo salto ora verrà eseguito.
+
+\clearpage
+Ora, il puntatore alla stringa \q{two}, verrà scritto nello stack:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly5.png}
+\caption{\olly: 
+il puntatore alla stringa verrà scritto nel posto del primo argomento}
+\label{fig:switch_few_olly5}
+\end{figure}
+
+% TODO: homogenize numbers
+% now they are inconsistent: sometimes plain text, sometimes in math mode
+% some kind of \expr{} both for numbers and expressions? --DY
+Nota: l'argomento corrente della funzione è 2 e 2 ora si trova nello stack all'indirizzo \TT{0x001EF850}.
+
+\clearpage
+\MOV scrive scrive il puntatore alla stringa all' indirizzo \TT{0x001EF850} (notare la finestra dello stack).
+Dopodichè, avviene il salto.
+Questa è la prima istruzione della funzione \printf in MSVCR100.DLL (Questo esempio è stato compilato con lo switch /MD): 
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly6.png}
+\caption{\olly: prima istruzione della \printf in MSVCR100.DLL}
+\label{fig:switch_few_olly6}
+\end{figure}
+
+Ora la \printf tratta la stringa a \TT{0x00FF3010} come unico argomento e stampa la strunga.
+
+\clearpage
+Questa è l'ultima istruzione della \printf:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly7.png}
+\caption{\olly: ultima istruzione della \printf in MSVCR100.DLL}
+\label{fig:switch_few_olly7}
+\end{figure}
+
+La stringa \q{two} è appena stata stampata nella finestra della console.
+
+\clearpage
+Ora premiamo F7 o F8 (\stepover) e ritorniamo\dots non nella \ttf , ma piuttosto nel \main:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/1_few/olly8.png}
+\caption{\olly: ritorno al \main}
+\label{fig:switch_few_olly8}
+\end{figure}
+
+Si, il salto è stato diretto, dalla \printf al \main.
+Perchè \ac{RA} nello stack, non punta da qualche parte dentro \ttf , ma piuttosto nel \main.
+E \CALL \TT{0x00FF1000} è stata l'effettiva istruzione che ha chiamato \ttf.
+

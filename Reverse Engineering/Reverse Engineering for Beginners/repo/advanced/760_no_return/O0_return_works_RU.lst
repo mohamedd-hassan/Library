@@ -1,0 +1,25 @@
+create_color:
+	push	rbp
+	mov	rbp, rsp
+	sub	rsp, 32
+	mov	DWORD PTR [rbp-20], edi
+	mov	DWORD PTR [rbp-24], esi
+	mov	DWORD PTR [rbp-28], edx
+	mov	edi, 12
+	call	malloc
+; RAX = указатель на буфер
+	mov	QWORD PTR [rbp-8], rax
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-20]
+	mov	DWORD PTR [rax], edx
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-24]
+	mov	DWORD PTR [rax+4], edx
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-28]
+	mov	DWORD PTR [rax+8], edx
+; перезагрузить указатель на буфер в RAX опять, и это избыточная операция
+	mov	rax, QWORD PTR [rbp-8] ; новая инструкция
+	leave
+	ret
+

@@ -1,0 +1,90 @@
+\clearpage
+\myparagraph{x86 + MSVC + \olly}
+\myindex{\olly}
+\myindex{x86!\Registers!\Flags}
+
+\olly でこの例を実行すると、フラグがどのように設定されているかを見ることができます。 
+符号なしの数値で動作する\TT{f\_unsigned()}から始めましょう。
+
+\CMP はここで3回実行されますが、同じ引数についてはフラグは毎回同じです。
+
+最初の比較の結果は、
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned1.png}
+\caption{\olly: \TT{f\_unsigned()}: 最初の条件付きジャンプ}
+\label{fig:jcc_olly_unsigned_1}
+\end{figure}
+
+従って、フラグは、C=1、P=1、A=1、Z=0、S=1、T=0、D=0、O=0です。
+
+これらは \olly では1文字の略号で命名されています。
+
+\olly は、（\JBE）ジャンプがトリガーされることを示唆しています。 
+実際に、インテルのマニュアル（\myref{x86_manuals}）を調べると、
+CF=1またはZF=1の場合、JBEが起動することがわかります。 
+条件はここに当てはまるので、ジャンプが開始されます。
+
+\clearpage
+次の条件付きジャンプは、
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned2.png}
+\caption{\olly: \TT{f\_unsigned()}: 2番目の条件付きジャンプ}
+\label{fig:jcc_olly_unsigned_2}
+\end{figure}
+
+\olly は、 \JNZ がトリガーされることを示唆しています。 
+実際、ZF=0（ゼロフラグ）の場合、JNZが起動します。
+
+\clearpage
+3番目の条件付きジャンプは、 \JNB です。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned3.png}
+\caption{\olly: \TT{f\_unsigned()}: 3番目の条件付きジャンプ}
+\label{fig:jcc_olly_unsigned_3}
+\end{figure}
+
+インテルのマニュアル（\myref{x86_manuals}）では、CF=0（キャリーフラグ）の場合に \JNB が起動することがわかります。 
+今回は当てはまらないので、3番目の \printf が実行されます。
+
+\clearpage
+次に、\olly で、符号付きの値で動作する\TT{f\_signed()}関数を見てみましょう。 
+フラグは、C=1、P=1、A=1、Z=0、S=1、T=0、D=0、O=0と同様に設定されます。 
+最初の条件付きジャンプ \JLE が起動されます。
+
+インテルマニュアル（166ページの7.1.4）では、ZF = 1またはSFxOFの場合にこの命令がトリガされることがわかりました。 SFxOF私たちの場合は、ジャンプがトリガするように。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed1.png}
+\caption{\olly: \TT{f\_signed()}: 最初の条件付きジャンプ}
+\label{fig:jcc_olly_signed_1}
+\end{figure}
+
+インテルマニュアル（\myref{x86_manuals}）では、ZF=1または SF$\neq$OF の場合にこの命令が起動されることがわかりました。 
+私たちの場合では SF$\neq$OF が、ジャンプが起動されます。
+
+\clearpage
+2番目の \JNZ 条件付きジャンプはZF=0の場合（ゼロ・フラグ）に起動します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed2.png}
+\caption{\olly: \TT{f\_signed()}: 2番目の条件付きジャンプ}
+\label{fig:jcc_olly_signed_2}
+\end{figure}
+
+\clearpage
+第3の条件付きジャンプ \JGE は、SF=OFの場合にのみ実行されるため、起動しません。今回は、当てはまりません。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed3.png}
+\caption{\olly: \TT{f\_signed()}: 3番目の条件付きジャンプ}
+\label{fig:jcc_olly_signed_3}
+\end{figure}

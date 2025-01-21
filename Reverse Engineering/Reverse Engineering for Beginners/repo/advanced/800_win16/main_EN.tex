@@ -1,0 +1,27 @@
+\mysection{Windows 16-bit}
+\myindex{Windows!Windows 3.x}
+
+16-bit Windows programs are rare nowadays, but can be used in the cases of retrocomputing
+or dongle hacking (\myref{dongles}).
+
+16-bit Windows versions were up to 3.11.
+95/98/ME also support 16-bit code, as well as the 32-bit versions of the \gls{Windows NT} line.
+The 64-bit versions of \gls{Windows NT} line do not support 16-bit executable code at all.
+
+The code resembles MS-DOS's one.
+
+Executable files are of type NE-type (so-called \q{new executable}).
+
+All examples considered here were compiled by the OpenWatcom 1.9 compiler, using these switches:
+
+\begin{lstlisting}
+wcl.exe -i=C:/WATCOM/h/win/ -s -os -bt=windows -bcl=windows example.c
+\end{lstlisting}
+
+\input{\CURPATH/ex1.tex}
+\input{\CURPATH/ex2.tex}
+\input{\CURPATH/ex3.tex}
+\input{\CURPATH/ex4.tex}
+\input{\CURPATH/ex5.tex}
+\input{\CURPATH/ex6_EN.tex}
+

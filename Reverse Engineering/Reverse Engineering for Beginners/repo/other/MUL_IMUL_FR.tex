@@ -1,0 +1,56 @@
+\section{Utiliser IMUL au lieu de MUL}
+\label{IMUL_over_MUL}
+
+\myindex{x86!\Instructions!MUL}
+\myindex{x86!\Instructions!IMUL}
+Un exemple comme \lstref{unsigned_multiply_C} où deux valeurs non signées sont multipliées
+compile en \lstref{unsigned_multiply_lst} où \IMUL est utilisé à la place de \MUL.
+
+Ceci est une propriété importante des instructions \MUL et \IMUL.
+Tout d'abord, les deux produisent une valeur 64-bit si deux valeurs 32-bit sont multipliées,
+ou une valeur 128-bit si deux valeurs 64-bit sont multipliées (le plus grand \glslink{product}{produit}
+dans un environnement 32-bit est \\
+\GTT{0xffffffff*0xffffffff=0xfffffffe00000001}).
+Mais les standards \CCpp n'ont pas de moyen d'accèder à la moitié supérieure du résultat,
+et un \glslink{product}{produit} a toujours la même taille que ses multiplicandes.
+Et les deux instructions \MUL et \IMUL fonctionnent de la même manière si la moitié
+supérieure est ignorée, i.e, elles produisent le même résultat dans la partie inférieure.
+Ceci est une propriété importante de la façon de représenter les nombre en \q{complément
+à deux}.
+
+Donc, le compilateur \CCpp peut utiliser indifféremment ces deux instructions.
+
+Mais \IMUL est plus flexible que \MUL, car elle prend n'importe quel(s) registre(s) comme
+source, alors que \MUL nécessite que l'un des multiplicandes soit stocké dans le
+registre \AX/\EAX/\RAX
+Et même plus que ça: \MUL stocke son résultat dans la paire \GTT{EDX:EAX} en environnement
+32-bit, ou \GTT{RDX:RAX} dans un 64-bit, donc elle calcule toujours le résultat complet.
+Au contraire, il est possible de ne mettre qu'un seul registre de destination lorsque
+l'on utilise \IMUL, au lieu d'une paire, et alors le \ac{CPU} calculera seulement
+la partie basse, ce qui fonctionne plus rapidement [voir Torborn Granlund,
+\emph{Instruction latencies and throughput for AMD and Intel x86 processors}\footnote{\url{http://yurichev.com/mirrors/x86-timing.pdf}}].
+
+Cela étant considéré, les compilateurs \CCpp peuvent générer l'instruction \IMUL
+plus souvent que \MUL.
+
+\myindex{Compiler intrinsic}
+Néanmoins, en utilisant les fonctions intrinsèques du compilateur, il est toujours
+possible d'effectuer une multiplication non signée et d'obtenir le résultat \emph{complet}.
+Ceci est parfois appelé \emph{multiplication étendue}.
+MSVC a une fonction intrinsèque pour ceci, appelée \emph{\_\_emul}\footnote{\url{https://msdn.microsoft.com/en-us/library/d2s81xt0(v=vs.80).aspx}}
+et une autre: \emph{\_umul128}\footnote{\url{https://msdn.microsoft.com/library/3dayytw9%28v=vs.100%29.aspx}}.
+GCC offre le type de données \emph{\_\_int128}, et dans le cas de multiplicandes 64-bit,
+ils sont déjà promus en 128-bit, puis le \glslink{product}{produit} est stocké dans
+une autre valeur \emph{\_\_int128}, puis le résultat est décalé de 64 bits à droite,
+et vous obtenez la moitié haute du résultat\footnote{Exemple: \url{http://stackoverflow.com/a/13187798}}.
+
+\subsection{Fonction MulDiv() dans Windows}
+\myindex{Windows!Win32!MulDiv()}
+
+Windows possède la fonction MulDiv()\footnote{\url{https://msdn.microsoft.com/en-us/library/windows/desktop/aa383718(v=vs.85).aspx}},
+fonction qui fusionne une multiplication et une division, elle multiplie deux entiers
+32-bit dans une valeur 64-bit intermédiaire et la divise par un troisième entier 32-bit.
+C'est plus facile que d'utiliser deux fonctions intrinsèques, donc les développeurs
+de Microsoft ont écrit une fonction spéciale pour cela.
+Et il semble que ça soit une fonction très utilisée, à en juger par son utilisation.
+

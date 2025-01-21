@@ -1,0 +1,17 @@
+﻿\subsection{FSCALE replacement}
+\myindex{x86!\Instructions!FSCALE}
+
+Agner Fog氏による\emph{Optimizing subroutines in assembly language / An optimization guide for x86 platforms}では
+\footnote{\url{http://www.agner.org/optimize/optimizing_assembly.pdf}}、多くのCPUでは\INS{FSCALE} \ac{FPU}命令
+（$2^n$の計算）が遅くなる可能性があると述べ、より速いものを提案しています。
+
+これが私のアセンブリコードの \CCpp への翻訳です。
+
+\lstinputlisting[style=customc]{patterns/17_unions/FSCALE.c}
+
+\INS{FSCALE}命令はあなたの環境ではより速いかもしれませんが、それでも、それは\emph{共用体}の良い例であり、
+指数が$2^n$形式で格納されるという事実です。
+そのため、入力された$n$の値はIEEE 754形式で符号化された数の指数にシフトされます。
+その後、0x3f800000または0x3ff0000000000000を追加して指数を補正します。
+
+\emph{構造体}を使用してシフトなしで同じことを実行できますが、それでも内部ではシフト操作が発生しました。

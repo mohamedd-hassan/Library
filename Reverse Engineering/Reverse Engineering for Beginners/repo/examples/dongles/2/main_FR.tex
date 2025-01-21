@@ -1,0 +1,171 @@
+\subsection{Exemple \#2: SCO OpenServer}
+
+\label{examples_SCO}
+\myindex{SCO OpenServer}
+Un ancien logiciel pour SCO OpenServer de 1997 développé par une société qui a disparue
+depuis longtemps.
+
+Il y a un driver de dongle special à installer dans le système, qui contient les
+chaînes de texte suivantes:
+\q{Copyright 1989, Rainbow Technologies, Inc., Irvine, CA}
+et
+\q{Sentinel Integrated Driver Ver. 3.0 }.
+
+Après l'installation du driver dans SCO OpenServer, ces fichiers apparaissent dans
+l'arborescence /dev:
+
+\begin{lstlisting}
+/dev/rbsl8
+/dev/rbsl9
+/dev/rbsl10
+\end{lstlisting}
+
+Le programme renvoie une erreur lorsque le dongle n'est pas connecté, mais le message
+d'erreur n'est pas trouvé dans les exécutables.
+
+\myindex{COFF}
+
+Grâce à \ac{IDA}, il est facile de charger l'exécutable COFF utilisé dans SCO OpenServer.
+
+Essayons de trouver la chaîne \q{rbsl} et en effet, elle se trouve dans ce morceau
+de code:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/1.lst}
+
+Oui, en effet, le programme doit communiquer d'une façon ou d'une autre avec le driver.
+
+\myindex{thunk-functions}
+Le seul endroit où la fonction \TT{SSQC()} est appelée est dans la \glslink{thunk
+ function}{fonction thunk}:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/2.lst}
+
+SSQ() peut être appelé depuis au moins 2 fonctions.
+
+L'une d'entre elles est:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/check1_EN.lst}
+
+\q{\TT{3C}} et \q{\TT{3E}} semblent familiers: il y avait un dongle Sentinel Pro de
+Rainbow sans mémoire, fournissant seulement une fonction de crypto-hachage secrète.
+
+Vous pouvez lire une courte description de la fonction de hachage dont il s'agit
+ici: \myref{hash_func}.
+
+Mais retournons au programme.
+
+Donc le programme peut seulement tester si un dongle est connecté ou s'il est absent.
+
+Aucune autre information ne peut être écrite dans un tel dongle, puisqu'il n'a pas
+de mémoire.
+Les codes sur deux caractères sont des commandes (nous pouvons voir comment les commandes
+sont traitées dans la fonction \TT{SSQC()}) et toutes les autres chaînes sont hachées
+dans le dongle, transformées en un nombre 16-bit.
+L'algorithme était secret, donc il n'était pas possible d'écrire un driver de remplacement
+ou de refaire un dongle matériel qui l'émulerait parfaitement.
+
+Toutefois, il est toujours possible d'intercepter tous les accès au dongle et de
+trouver les constantes auxquelles les résultats de la fonction de hachage sont comparées.
+
+Mais nous devons dire qu'il est possible de construire un schéma de logiciel de protection
+de copie robuste basé sur une fonction secrète de hachage cryptographique: il suffit
+qu'elle chiffre/déchiffre les fichiers de données utilisés par votre logiciel.
+
+Mais retournons au code:
+
+Les codes 51/52/53 sont utilisés pour choisir le port imprimante LPT.
+3x/4x sont utilisés pour le choix de la \q{famille} (c'est ainsi que les dongles
+Sentinel Pro sont différenciés les uns des autres: plus d'un dongle peut être connecté
+sur un port LPT).
+
+La seule chaîne passée à la fonction qui ne fasse pas 2 caractères est "0123456789".
+
+Ensuite, le résultat est comparé à l'ensemble des résultats valides.
+
+Si il est correct, 0xC ou 0xB est écrit dans la variable globale \TT{ctl\_model}.%
+
+Une autre chaîne de texte qui est passée est
+"PRESS ANY KEY TO CONTINUE: ", mais le résultat n'est pas testé.
+Difficile de dire pourquoi, probablement une erreur\footnote{C'est un sentiment
+étrange de trouver un bug dans un logiciel aussi ancien.}.
+
+Voyons où la valeur de la variable globale \TT{ctl\_model} est utilisée.
+
+Un tel endroit est:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/4.lst}
+
+Si c'est 0, un message d'erreur chiffré est passé à une routine de déchiffrement
+et affiché.
+
+\myindex{x86!\Instructions!XOR}
+
+La routine de déchiffrement de la chaîne semble être un simple \glslink{xoring}{xor}:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/err_warn.lst}
+
+C'est pourquoi nous étions incapable de trouver le message d'erreur dans les fichiers
+exécutable, car ils sont chiffrés (ce qui est une pratique courante).
+
+Un autre appel à la fonction de hachage \TT{SSQ()} lui passe la chaîne \q{offln}
+et le résultat est comparé avec \TT{0xFE81} et \TT{0x12A9}.
+
+Si ils ne correspondent pas, ça se comporte comme une sorte de fonction \TT{timer()}
+(peut-être en attente qu'un dongle mal connecté soit reconnecté et re-testé?) et ensuite
+déchiffre un autre message d'erreur à afficher.
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/check2_EN.lst}
+
+Passer outre le dongle est assez facile: il suffit de patcher tous les sauts après
+les instructions \CMP pertinentes.
+
+Une autre option est d'écrire notre propre driver SCO OpenServer, contenant une table
+de questions et de réponses, toutes celles qui sont présentent dans le programme.
+
+\subsubsection{Déchiffrer les messages d'erreur}
+
+À propos, nous pouvons aussi essayer de déchiffrer tous les messages d'erreurs.
+L'algorithme qui se trouve dans la fonction \TT{err\_warn()} est très simple, en effet:
+
+\lstinputlisting[caption=Decryption function,style=customasmx86]{examples/dongles/2/decrypting_FR.lst}
+
+Comme on le voit, non seulement la chaîne est transmise à la fonction de déchiffrement
+mais aussi la clef:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/2/tmp1_EN.asm}
+
+L'algorithme est un simple \glslink{xoring}{xor}: chaque octet est xoré avec la clef, mais
+la clef est incrémentée de 3 après le traitement de chaque octet.
+
+Nous pouvons écrire un petit script Python pour vérifier notre hypothèse:
+
+\lstinputlisting[caption=Python 3.x]{examples/dongles/2/decr1.py}
+
+Et il affiche: \q{check security device connection}.
+Donc oui, ceci est le message déchiffré.
+
+Il y a d'autres messages chiffrés, avec leur clef correspondante.
+Mais inutile de dire qu'il est possible de les déchiffrer sans leur clef.
+Premièrement, nous voyons que le clef est en fait un octet.
+C'est parce que l'instruction principale de déchiffrement (\XOR) fonctionne au niveau
+de l'octet.
+La clef se trouve dans le registre \ESI, mais seulement une partie de \ESI d'un octet
+est utilisée.
+Ainsi, une clef pourrait être plus grande que 255, mais sa valeur est toujours arrondie.
+
+En conséquence, nous pouvons simplement essayer de brute-forcer, en essayant toutes
+les clefs possible dans l'intervalle 0..255.
+Nous allons aussi écarter les messages comportants des caractères non-imprimable.
+
+\lstinputlisting[caption=Python 3.x]{examples/dongles/2/decr2.py}
+
+Et nous obtenons:
+
+\lstinputlisting[caption=Results]{examples/dongles/2/decr2_result.txt}
+
+Ici il y a un peu de déchet, mais nous pouvons rapidement trouver les messages en
+anglais.
+
+À propos, puisque l'algorithme est un simple chiffrement xor, la même fonction peut
+être utilisée pour chiffrer les messages.
+Si besoin, nous pouvons chiffrer nos propres messages, et patcher le programme en les insérant.

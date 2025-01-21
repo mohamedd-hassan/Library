@@ -1,0 +1,66 @@
+\subsubsection{アドレスのパッチ(Win64)}
+
+この例が\TT{/MD}スイッチ（\TT{MSVCR*.DLL}ファイルリンケージのために小さな実行可能ファイルを意味します）を使用してMSVC 2013でコンパイルされた場合、 \main 関数が最初に来て簡単に見つかります
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr1.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+実験として、アドレスを1ずつ\gls{increment}することができます：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr2.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Hiewは \q{ello, world}を示しています。 そしてパッチが適用された実行可能ファイルを実行すると、この文字列が表示されます。
+
+\subsubsection{バイナリイメージから他の文字列を抜き取る(Linux x64)}
+
+Linux x64ボックスでGCC 5.4.0を使用して私たちの例をコンパイルしたときに得たバイナリファイルには、他の多くのテキスト文字列があります。
+ほとんどはインポートされた関数名とライブラリ名です。
+
+objdumpを実行して、コンパイル済みファイルのすべてのセクションの内容を取得します。
+
+\begin{lstlisting}[basicstyle=\ttfamily, mathescape]
+$\$$ objdump -s a.out
+
+a.out:     file format elf64-x86-64
+
+Contents of section .interp:
+ 400238 2f6c6962 36342f6c 642d6c69 6e75782d  /lib64/ld-linux-
+ 400248 7838362d 36342e73 6f2e3200           x86-64.so.2.
+Contents of section .note.ABI-tag:
+ 400254 04000000 10000000 01000000 474e5500  ............GNU.
+ 400264 00000000 02000000 06000000 20000000  ............ ...
+Contents of section .note.gnu.build-id:
+ 400274 04000000 14000000 03000000 474e5500  ............GNU.
+ 400284 fe461178 5bb710b4 bbf2aca8 5ec1ec10  .F.x[.......^...
+ 400294 cf3f7ae4                             .?z.
+
+...
+\end{lstlisting}
+
+テキスト文字列\q{/lib64/ld-linux-x86-64.so.2}のアドレスを\TT{printf()}に渡すのは問題ではありません
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int main()
+{
+    printf(0x400238);
+    return 0;
+}
+\end{lstlisting}
+
+信じがたいですが、このコードは前述の文字列を表示します。
+
+アドレスを\TT{0x400260}に変更すると、 \q{GNU}文字列が出力されます。 
+このアドレスは、私の特定のGCCバージョン、GNUツールセットなどに当てはまります。
+あなたのシステムでは、実行ファイルは若干異なる場合があり、すべてのアドレスも異なります。 
+また、このソースコードに/からコードを追加/削除すると、おそらくすべてのアドレスが前後に移動します。

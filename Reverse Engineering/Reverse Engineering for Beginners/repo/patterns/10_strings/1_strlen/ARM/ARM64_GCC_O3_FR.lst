@@ -1,0 +1,15 @@
+my_strlen:
+	mov	x1, x0
+	; X1 est maintenant un pointeur temporaire (eos), se comportant comme un \emph{curseur}
+.L58:
+        ; charger un octet de X1 dans W2, incrémenter X1 (post-index)
+	ldrb	w2, [x1],1
+	; Compare and Branch if NonZero: comparer W2 avec 0, 
+        ; sauter en .L58 si il ne l'est pas
+	cbnz	w2, .L58
+	; calculer la différence entre le pointeur initial dans X0 
+        ; et l'adresse courante dans X1
+	sub	x0, x1, x0
+	; decrement lowest 32-bit of result
+	sub	w0, w0, #1
+	ret

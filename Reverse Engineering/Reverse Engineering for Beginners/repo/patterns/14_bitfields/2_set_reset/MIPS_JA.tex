@@ -1,0 +1,13 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/14_bitfields/2_set_reset/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!ORI}
+
+\INS{ORI}はもちろん、OR演算を行います。命令の中の\q{I}は機械語の中に値が埋め込まれることを意味します。
+
+\myindex{MIPS!\Instructions!AND}
+
+しかしその後、私たちは \AND があります。 0xFFFFFDFFを単一の命令に埋め込むことは不可能であるため、 \INS{ANDI}を使用する方法はありません。
+そのため、コンパイラは最初にレジスタ \$V0 に0xFFFFFDFFをロードしてから、
+レジスタからすべての値を取る \AND を生成します。

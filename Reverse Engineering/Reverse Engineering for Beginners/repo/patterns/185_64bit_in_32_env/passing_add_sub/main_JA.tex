@@ -1,0 +1,55 @@
+﻿\subsection{Arguments passing, addition, subtraction}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/passing_add_sub/1.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 /Ob1,style=customasmx86]{patterns/185_64bit_in_32_env/passing_add_sub/1_MSVC.asm}
+
+\GTT{f\_add\_test()}関数では、各64ビット値が2つの32ビット値を使用して渡されることを確認できます。
+上位部分が最初に、次に下位部分になります。
+
+足し算と引き算もペアで行われます。
+
+\myindex{x86!\Instructions!ADC}
+さらに、下位32ビット部分が最初に追加されます。 
+加算中にキャリーが発生した場合は、\TT{CF}フラグが設定されます。
+
+次の\INS{ADC}命令は、値の上位部分を加算し、 $CF=1$ の場合は1を加算します。
+
+\myindex{x86!\Instructions!SBB}
+減算もペアで行われます。 
+最初の \SUB は、後続の \INS{SBB} 命令でチェックされるCFフラグをオンにすることもできます。
+キャリーフラグがオンの場合は、結果から1も減算されます。
+
+\GTT{f\_add()}関数の結果がどのように \printf{} に渡されるのかを理解するのは簡単です。
+
+\lstinputlisting[caption=GCC 4.8.1 -O1 -fno-inline,style=customasmx86]{patterns/185_64bit_in_32_env/passing_add_sub/1_GCC.asm}
+
+GCCのコードも同様です。
+
+\subsubsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/passing_add_sub/Keil_ARM_O3.s}
+
+\myindex{ARM!\Instructions!ADDS}
+\myindex{ARM!\Instructions!SUBS}
+\myindex{ARM!\Instructions!ADC}
+\myindex{ARM!\Instructions!SBC}
+
+最初の64ビット値は\Reg{0}と\Reg{1}のレジスタペアに渡され、2番目の値は\Reg{2}と\Reg{3}のレジスタペアに渡されます。 
+ARMには\INS{ADC}命令（キャリーフラグをカウントする）と\INS{SBC}（\q{subtract with carry}）もあります。
+重要なこと：下位部分が加算/減算されるとき、-S接尾辞付きの\INS{ADDS} および \INS{SUBS}命令が使用されます。 
+-S接尾辞は\q{set flags}をあらわし、flags（特にキャリーフラグ）は、結果として生じる\INS{ADC}/\INS{SBC}命令が確実に必要とするものです。
+そうでなければ、接尾辞-Sを付けずに命令を実行します（ \ADD および \SUB ）。
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/passing_add_sub/MIPS_O3_IDA_JA.lst}
+
+MIPSにはフラグレジスタがないため、算術演算の実行後にそのような情報は存在しません。
+そのため、\INS{ADC} や \INS{SBB}ような命令はありません。 
+キャリーフラグが設定されるかどうかを知るために、デスティネーションレジスタを1または0に
+設定する比較｛\INS{SLTU}命令を使用）も行われます。
+その後、この1または0が最終結果に加算または減算されます。
+

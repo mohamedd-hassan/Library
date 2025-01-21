@@ -1,0 +1,25 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/10_strings/1_strlen/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!NOR}
+\myindex{MIPS!\Pseudoinstructions!NOT}
+
+MIPSには \NOT 命令がありませんが、\NOR は\TT{OR~+~NOT}演算です。
+
+この操作はデジタルエレクトロニクス\footnote{NORは\q{汎用ゲート}と呼ばれます}で広く使用されています。 
+\myindex{Apollo Guidance Computer}
+
+たとえば、Apolloプログラムで使用されているApolloガイダンス・コンピュータは、
+5600個のNORゲートを使用して作成されました：
+[Jens Eickhoff, \emph{Onboard Computers, Onboard Software and Satellite Operations: An Introduction}, (2011)]を参照。
+しかし、NOR要素はコンピュータプログラミングであまり一般的ではありません。
+
+したがって、NOT演算は\TT{NOR~DST,~\$ZERO,~SRC}として実装されています。
+
+% to be synced with Eng
+基本から、符号付き数値のビット反転は、
+符号の変更と結果からの1の減算と同じであることがわかります。
+
+ですから、ここでは $str$ の値をとり、それを $-str-1$ に変換することはしません。 
+次の加算演算は結果を準備します。

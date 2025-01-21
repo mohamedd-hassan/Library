@@ -1,0 +1,71 @@
+str_trim:
+; IDA n'a pas connaissance des noms des variables locales, nous les entrons manuellement
+saved_GP          = -0x10
+saved_S0           = -8
+saved_RA           = -4
+
+                lui     $gp, (__gnu_local_gp >> 16)
+                addiu   $sp, -0x20
+                la      $gp, (__gnu_local_gp & 0xFFFF)
+                sw      $ra, 0x20+saved_RA($sp)
+                sw      $s0, 0x20+saved_S0($sp)
+                sw      $gp, 0x20+saved_GP($sp)
+; appeler strlen(). l'adresse de la chaîne en entrée est toujours dans \$a0,
+; strlen() la prendra d'ici:
+                lw      $t9, (strlen & 0xFFFF)($gp)
+                or      $at, $zero ; slot de délai de chargement, NOP
+                jalr    $t9
+; l'adresse de la chaîne en entrée est toujours dans \$a0, mettons la dans \$s0:
+                move    $s0, $a0   ; slot de délai de branchement
+; le résultat de strlen() (i.e., la longueur de la chaîne) est maintenant dans \$v0
+; sauter à la sortie si \$v0==0 (i.e., la longueur de la chaîne est 0):
+                beqz    $v0, exit
+                or      $at, $zero ; slot de délai de branchement, NOP
+                addiu   $a1, $v0, -1
+; \$a1 = \$v0-1 = str\_len-1
+                addu    $a1, $s0, $a1
+; \$a1 = adresse de la chaîne en entrée + \$a1 = s+strlen-1
+; charger l'octet à l'adresse \$a1:
+                lb      $a0, 0($a1)
+                or      $at, $zero ; slot de délai de chargement, NOP
+; est-ce que l'octet est zéro? sauter à la sortie si oui:
+                beqz    $a0, exit
+                or      $at, $zero ; slot de délai de branchement, NOP
+                addiu   $v1, $v0, -2
+; \$v1 = str\_len-2
+                addu    $v1, $s0, $v1
+; \$v1 = \$s0+\$v1 = s+str\_len-2
+                li      $a2, 0xD
+; sauter le corps de boucle:
+                b       loc_6C
+                li      $a3, 0xA   ; slot de délai de branchement
+loc_5C:
+; charger l'octet suivant de la mémoire dans \$a0:
+                lb      $a0, 0($v1)
+                move    $a1, $v1
+; \$a1=s+str\_len-2
+; sauter à la sortie si l'octet chargé est zéro:
+                beqz    $a0, exit
+; décrémenter str\_len:
+                addiu   $v1, -1    ; slot de délai de branchement
+loc_6C:
+; à ce moment, \$a0=octet chargé, \$a2=0xD (symbole CR) et \$a3=0xA (symbole LF)
+; l'octet chargé est CR? sauter alors en loc\_7C:
+                beq     $a0, $a2, loc_7C
+                addiu   $v0, -1    ; slot de délai de branchement
+; l'octet chargé est LF? sauter à la sortie si ce n'est pas LF:
+                bne     $a0, $a3, exit
+                or      $at, $zero ; slot de délai de branchement, NOP
+loc_7C:
+; l'octet chargé est CR à ce moment
+; sauter en loc\_5c (début du corps de la boucle) si str\_len (dans \$v0) n'est pas zéro:
+                bnez    $v0, loc_5C
+; simultanément, stocker zéro à cet endroit en mémoire:
+                sb      $zero, 0($a1) ; slot de délai de branchement
+; le label "exit" à été renseigné manuellemnt:
+exit:
+                lw      $ra, 0x20+saved_RA($sp)
+                move    $v0, $s0
+                lw      $s0, 0x20+saved_S0($sp)
+                jr      $ra
+                addiu   $sp, 0x20     ; slot de délai de branchement

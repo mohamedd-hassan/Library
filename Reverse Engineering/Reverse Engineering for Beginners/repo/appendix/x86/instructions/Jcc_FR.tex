@@ -1,0 +1,67 @@
+\item[Jcc] (où cc ---  condition code)
+
+\myindex{x86!\Instructions!JAE}
+\myindex{x86!\Instructions!JA}
+\myindex{x86!\Instructions!JBE}
+\myindex{x86!\Instructions!JB}
+\myindex{x86!\Instructions!JC}
+\myindex{x86!\Instructions!JE}
+\myindex{x86!\Instructions!JGE}
+\myindex{x86!\Instructions!JG}
+\myindex{x86!\Instructions!JLE}
+\myindex{x86!\Instructions!JL}
+\myindex{x86!\Instructions!JNAE}
+\myindex{x86!\Instructions!JNA}
+\myindex{x86!\Instructions!JNBE}
+\myindex{x86!\Instructions!JNB}
+\myindex{x86!\Instructions!JNC}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Instructions!JNGE}
+\myindex{x86!\Instructions!JNG}
+\myindex{x86!\Instructions!JNLE}
+\myindex{x86!\Instructions!JNL}
+\myindex{x86!\Instructions!JNO}
+\myindex{x86!\Instructions!JNS}
+\myindex{x86!\Instructions!JNZ}
+\myindex{x86!\Instructions!JO}
+\myindex{x86!\Instructions!JPO}
+\myindex{x86!\Instructions!JP}
+\myindex{x86!\Instructions!JS}
+\myindex{x86!\Instructions!JZ}
+
+Beaucoup de ces instructions ont des synonymes (notés avec AKA), qui ont été ajoutés
+par commodité. Ils sont codés avec le même opcode.
+L'opcode a un \glslink{jump offset}{offset de saut}.
+
+\label{Jcc}
+\begin{description}
+\item[JAE] \ac{AKA} JNC: saut si supérieur ou égal (non signé): C=0
+\item[JA] \ac{AKA} JNBE: saut si supérieur (non signé): CF=0 et ZF=0
+\item[JBE] saut si inférieur ou égal (non signé): CF=1 ou ZF=1
+\item[JB] \ac{AKA} JC: saut si inférieur(non signé): CF=1
+\item[JC] \ac{AKA} JB: saut si CF=1
+\item[JE] \ac{AKA} JZ: saut si égal ou zéro: ZF=1
+\item[JGE] saut si supérieur ou égal (signé): SF=OF
+\item[JG] saut si supérieur (signé): ZF=0 et SF=OF
+\item[JLE] saut si inférieur ou égal (signé): ZF=1 ou SF$\neq$OF
+\item[JL] saut si inférieur (signé): SF$\neq$OF
+\item[JNAE] \ac{AKA} JC: saut si non supérieur ou égal (non signé): CF=1
+\item[JNA] saut si non supérieur (non signé): CF=1 et ZF=1
+\item[JNBE] saut si non inférieur ou égal (non signé): CF=0 et ZF=0
+\item[JNB] \ac{AKA} JNC: saut si non inférieur (non signé): CF=0
+\item[JNC] \ac{AKA} JAE: saut si CF=0, synonyme de JNB.
+\item[JNE] \ac{AKA} JNZ: saut si non égal ou non zéro: ZF=0
+\item[JNGE] saut si non supérieur ou égal (signé): SF$\neq$OF
+\item[JNG] saut si non supérieur (signé): ZF=1 ou SF$\neq$OF
+\item[JNLE] saut si non inférieur ou égal (signé): ZF=0 et SF=OF
+\item[JNL] saut si non inférieur (signé): SF=OF
+\item[JNO] saut si non débordement: OF=0
+\item[JNS] saut si le flag SF vaut zéro
+\item[JNZ] \ac{AKA} JNE: saut si non égal ou non zéro: ZF=0
+\item[JO] saut si débordement: OF=1
+\item[JPO] saut si le flag PF vaut 0 (Jump Parity Odd)
+\item[JP] \ac{AKA} \ac{JPE}: saut si le flag PF est mis
+\item[JS] saut si le flag SF est mis
+\item[JZ] \ac{AKA} JE: saut si égal ou zéro: ZF=1
+\end{description}
+

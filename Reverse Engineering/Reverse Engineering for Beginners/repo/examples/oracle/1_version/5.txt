@@ -1,0 +1,2 @@
+select BANNER from GV$VERSION where inst_id = 
+USERENV('Instance')

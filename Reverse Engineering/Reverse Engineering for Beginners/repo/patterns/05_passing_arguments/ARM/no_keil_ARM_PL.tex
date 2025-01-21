@@ -1,0 +1,34 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/05_passing_arguments/ARM/tmp1.asm}
+
+Funkcja \main po prostu wywołuje dwie inne funkcje, przekazując trzy wartości do pierwszej z nich~---(\ttf).
+
+Jak zauważyliśmy poprzednio, w ARM 4 pierwsze wartości są zwykle przekazywane przez 4 pierwsze rejestry (\Reg{0}-\Reg{3}).
+
+Funkcja \ttf używa trzech pierwszych (\Reg{0}-\Reg{2}) do przechowywania argumentów.
+
+\myindex{ARM!\Instructions!MLA}
+Instrukcja \TT{MLA} (\emph{Multiply Accumulate})
+mnoży dwa pierwsze operandy (\Reg{3} i \Reg{1}), dodaje do ich iloczynu trzeci (\Reg{2}) a wynik zapisuje
+do rejestru zerowego (\Reg{0}), który, zgodnie ze standardem, służy do zwracania wartości z funkcji.
+
+\myindex{Fused multiply–add}
+Jednoczesne mnożenie i dodawanie (\emph{Fused multiply–add}) \footnote{przyp. tłum. - prawdziwe \emph{Fused multiply-add} stosuje jedno zaokrąglanie podczas tej operacji - \href{https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add}{Wikipedia}. Instrukcja \TT{MLA} nie jest opisana jako \emph{Fused} na \href{https://www.keil.com/support/man/docs/armasm/armasm_dom1361289878324.htm}{stronie Keil}}.
+jest bardzo użyteczną operacją. Na x86 nie było takich instrukcji przed wprowadzaniem rozszerzenia FMA (zestaw nowych instrukcji typu SIMD)
+\footnote{\href{https://en.wikipedia.org/wiki/FMA_instruction_set}{wikipedia}}.
+
+Pierwsza instrukcja \TT{MOV R3, R0},
+jest nadmiarowa (operację można by zrealizować za pomocą tylko jednej instrukcji \TT{MLA}).
+Kompilator pominął optymalizację, gdyż pracował w trybie z wyłączoną optymalizacją.
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+Instrukcja \TT{BX} zwraca sterowanie do adresu przechowywanego w rejestrze \ac{LR} i, jeśli trzeba,
+zmienia tryb pracy procesora z Thumb na ARM bądź odwrotnie.
+Może się to okazać niezbędne, gdyż funkcja \ttf nie wie z jakiego kodu jest wywoływana, może to być zarówno ARM jak i Thumb.
+Zatem jeśli jest wywoływana z kodu Thumb,
+\TT{BX} zwróci sterowanie do funkcji wywołującej i zmieni tryb procesora na Thumb.
+Jeśli funkcja została wywołana z kodu ARM, wtedy nie zmieni trybu \InSqBrackets{\ARMSevenRef A2.3.2}.
+% look for "BXWritePC()" in manual

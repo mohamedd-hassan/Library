@@ -1,0 +1,53 @@
+﻿\mysection{Réordonnancement des blocs élémentaires}
+
+% TODO __builtin_expect in GCC?
+
+\subsection{Optimisation guidée par profil}
+\label{PGO}
+
+\myindex{\oracle}
+\myindex{Intel C++}
+
+Cette méthode d'optimisation déplace certains \gls{basic block}s vers d'autres sections du fichier 
+binaire exécutable.
+
+Il est évident que certaines parties d'une fonction sont exécutées plus fréquemment que d'autres
+(ex: le corps d'une boucle) et d'autres moins souvent (ex: gestionnaire d'erreur, gestionnaires 
+d'exception).
+
+Le compilateur ajoute dans le code exécutable des instructions d'instrumentation. Le développeur 
+exécute ensuite un nombre important de tests, ce qui permet de collecter des statistiques.
+
+A l'aider de ces dernières, le compilateur prépare le fichier exécutable final en déplacant les 
+fragments de code les moins exécutés vers une autre section.
+
+Tous les fragments de code les plus souvent exécutés sont ainsi regroupés, ce qui constitue un 
+facteur important pour la rapidité d'exécution et l'utilisation du cache.
+
+Voici un exemple de code \oracle produit par le compilateur Intel C++:
+
+\lstinputlisting[caption=orageneric11.dll (win32),style=customasmx86]{other/orageneric.lst}
+
+La distance entre ces deux fragments de code avoisine les 9 Mo.
+
+Tous les fragments de code rarement exécutés sont regroupés à la fin de la section de code de la DLL.
+
+La partie de la fonction qui a été déplacée était marquée par le compilateur Intel C++ avec le 
+préfixe \TT{VInfreq}.
+
+Nous voyons donc qu'une partie de la fonction qui écrit dans un fichier journal (probablement à la 
+suite d'une erreur ou d'un avertissement) n'a sans doute pas été exécuté très souvent durant les 
+tests effectués par les développeurs Oracle lors de la collecte des statistiques. Il n'est même pas 
+dit qu'elle ait jamais été exécutée.
+
+Le bloc élémentaire qui écrit dans le journal s'achève par un retour à la partie \q{hot} de la 
+fonction.
+
+Un autre bloc élémentaire \q{infrequent} est celui qui retourne le code erreur 27050.
+
+Pour ce qui est des fichiers Linux au format ELF, le compilateur Intel C++ déplace tous les 
+fragments de code rarement exécutés vers une section séparée nommée \TT{text.unlikely}. 
+Les fragments les plus souvent exécutés sont quant à eux regroupés dans la section \TT{text.hot}.
+
+Cette information peut aider le rétro ingénieur à distinguer la partie principale d'une fonction 
+des parties qui assurent la gestion d'erreurs.

@@ -1,0 +1,30 @@
+.text:00000000 main:
+.text:00000000
+.text:00000000 var_10          = -0x10
+.text:00000000 var_4           = -4
+.text:00000000
+; 関数プロローグ:
+.text:00000000                 lui     $gp, (__gnu_local_gp >> 16)
+.text:00000004                 addiu   $sp, -0x20
+.text:00000008                 la      $gp, (__gnu_local_gp & 0xFFFF)
+.text:0000000C                 sw      $ra, 0x20+var_4($sp)
+.text:00000010                 sw      $gp, 0x20+var_10($sp)
+; printf()のアドレスをロードする:
+.text:00000014                 lw      $t9, (printf & 0xFFFF)($gp)
+; テキスト文字列のアドレスをロードし、printf()の1番目の引数を設定する:
+.text:00000018                 la      $a0, $LC0        # "a=\%d; b=\%d; c=\%d"
+; printf()の2番目の引数を設定する:
+.text:00000020                 li      $a1, 1
+; printf()の3番目の引数を設定する:
+.text:00000024                 li      $a2, 2
+; printf()をコールする:
+.text:00000028                 jalr    $t9
+; printf()の4番目の引数を設定する (分岐遅延スロット):
+.text:0000002C                 li      $a3, 3
+; 関数エピローグ:
+.text:00000030                 lw      $ra, 0x20+var_4($sp)
+; 戻り値に0を設定する:
+.text:00000034                 move    $v0, $zero
+; リターン
+.text:00000038                 jr      $ra
+.text:0000003C                 addiu   $sp, 0x20 ; branch delay slot

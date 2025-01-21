@@ -1,0 +1,64 @@
+﻿\clearpage
+\myparagraph{\Optimizing MSVC + \olly}
+\myindex{\olly}
+
+\olly でこの（最適化された）例を試すことができます。ここに最初のイテレーションがあります：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly1.png}
+\caption{\olly: 最初のイテレーションの開始}
+\label{fig:strlen_olly_1}
+\end{figure}
+
+\olly がループを見つけ、便宜上、その指示を括弧で\emph{囲んだ}ことがわかります。 
+\EAX の右ボタンをクリックして、\q{Follow in Dump}を選択すると、メモリウィンドウが正しい場所にスクロールします。
+ここではメモリ内に \q{hello!}という文字列があります。
+その後に少なくとも1つのゼロバイトがあり、次にランダムなごみがあります。
+
+\olly が有効なアドレスを持つレジスタを見ると、それは文字列を指しており、
+文字列として表示されます。
+
+\clearpage
+F8（\stepover）を数回押して、ループの本体の先頭に移動しましょう：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly2.png}
+\caption{\olly: 2回目のイテレーションの開始}
+\label{fig:strlen_olly_2}
+\end{figure}
+
+\EAX には文字列中の2番目の文字のアドレスが含まれていることがわかります。
+
+\clearpage
+
+我々はループから脱出するためにF8を十分な回数押す必要があります：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly3.png}
+\caption{\olly: 計算すべきポインタの差}
+\label{fig:strlen_olly_3}
+\end{figure}
+
+% FIXME:
+\EAX には文字列の直後に0バイトのアドレスが含まれることがわかりました。一方、
+\EDX は変更されていないので、まだ文字列の先頭を指しています。
+
+これらの2つのアドレスの差がここで計算されています。
+
+\clearpage
+\SUB 命令が実行されました。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly4.png}
+\caption{\olly: \EAX がデクリメントされる}
+\label{fig:strlen_olly_4}
+\end{figure}
+
+ポインタの違いは \EAX レジスタにあります(値は7)。
+確かに、 \q{hello!}文字列の長さは6ですが、7にはゼロバイトが含まれています。
+しかし、\TT{strlen()}は文字列中のゼロ以外の文字数を返さなければなりません。
+したがって、デクリメントが実行され、関数が戻ります。

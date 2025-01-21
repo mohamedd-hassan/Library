@@ -1,0 +1,123 @@
+\mysection{MIPS}
+
+\subsection{\Registers}
+\label{MIPS_registers_ref}
+
+\myindex{MIPS!O32}
+( Соглашение о вызовах O32 )
+
+\subsubsection{Регистры общего пользования (\ac{GPR})}
+
+%\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Номер & 
+\HeaderColor Псевдоимя & 
+\HeaderColor Описание \\
+\hline
+\$0             & \$ZERO          & Всегда ноль. Запись в этот регистр это как \ac{NOP}. \\
+\hline
+\$1             & \$AT            & Используется как временный регистр \\
+                &                 & для ассемблерных макросов и псевдоинструкций. \\
+\hline
+\$2 \dots \$3   & \$V0 \dots \$V1 & Здесь возвращается результат функции. \\
+\hline
+\$4 \dots \$7   & \$A0 \dots \$A3 & Аргументы функции. \\
+\hline
+\$8 \dots \$15  & \$T0 \dots \$T7 & Используется для временных данных. \\
+\hline
+\$16 \dots \$23 & \$S0 \dots \$S7 & Используется для временных данных\AsteriskOne{}. \\
+\hline
+\$24 \dots \$25 & \$T8 \dots \$T9 & Используется для временных данных. \\
+\hline
+\$26 \dots \$27 & \$K0 \dots \$K1 & Зарезервировано для ядра \ac{OS}. \\
+\hline
+\$28            & \$GP            & Глобальный указатель\AsteriskTwo{}. \\
+\hline
+\$29            & \$SP            & \ac{SP}\AsteriskOne{}. \\
+\hline
+\$30            & \$FP            & \ac{FP}\AsteriskOne{}. \\
+\hline
+\$31            & \$RA            & \ac{RA}. \\
+\hline
+n/a             & PC              & \ac{PC}. \\
+\hline
+n/a             & HI              & старшие 32 бита результата умножения или остаток от деления\AsteriskThree{}. \\
+\hline
+n/a             & LO              & младшие 32 бита результата умножения или результат деления\AsteriskThree{}. \\
+\hline
+\end{tabular}
+\end{center}
+%\normalsize
+
+\subsubsection{Регистры для работы с числами с плавающей точкой}
+\label{MIPS_FPU_registers}
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Название & \HeaderColor Описание \\
+\hline
+\$F0..\$F1   & Здесь возвращается результат функции. \\
+\hline
+\$F2..\$F3   & Не используется. \\
+\hline
+\$F4..\$F11  & Используется для временных данных. \\
+\hline
+\$F12..\$F15 & Первые два аргумента функции. \\
+\hline
+\$F16..\$F19 & Используется для временных данных. \\
+\hline
+\$F20..\$F31 & Используется для временных данных\AsteriskOne{}. \\
+\hline
+%fcr31 & Control/status register. \\
+%\hline
+\end{tabular}
+\end{center}
+
+\AsteriskOne{} --- \Gls{callee} должен сохранять.\\
+\AsteriskTwo{} --- \Gls{callee} должен сохранять (кроме \ac{PIC}-кода).\\
+\myindex{MIPS!\Instructions!MFLO}
+\myindex{MIPS!\Instructions!MFHI}
+\AsteriskThree{} --- доступны используя инструкции \TT{MFHI} и \TT{MFLO}.\\
+
+\subsection{\Instructions}
+
+Есть три типа инструкций.
+
+\begin{itemize}
+
+\item Тип R: имеющие 3 регистра. R-инструкции обычно имеют такой вид:
+
+\begin{lstlisting}
+instruction destination, source1, source2
+\end{lstlisting}
+
+Важно помнить, что если первый и второй регистр один и тот же, IDA может показать инструкцию в сокращенной
+форме:
+
+\begin{lstlisting}
+instruction destination/source1, source2
+\end{lstlisting}
+
+Это немного напоминает Интеловский синтаксис ассемблера x86.
+
+\item Тип I: имеющие 2 регистра и 16-битное \q{immediate}-значение.
+
+\item Тип J: инструкции перехода, имеют 26 бит для кодирования смещения.
+
+\end{itemize}
+
+\subsubsection{Инструкции перехода}
+
+Какая разница между инструкциями начинающихся с B- (\INS{BEQ}, \INS{B}, итд) и с J- (\INS{JAL}, \INS{JALR}, итд)?
+
+B-инструкции имеют тип I, так что, смещение в этих инструкциях кодируется как 16-битное значение.
+Инструкции \INS{JR} и \INS{JALR} имеют тип R, и они делают переход по абсолютному адресу указанному в регистре.
+\INS{J} и \INS{JAL} имеют тип J, так что смещение кодируется как 26-битное значение.
+
+Коротко говоря, в B-инструкциях можно кодировать условие 
+(\INS{B} на самом деле это псевдоинструкция для \TT{BEQ \$ZERO, \$ZERO, LABEL}),
+а в J-инструкциях нельзя.
+

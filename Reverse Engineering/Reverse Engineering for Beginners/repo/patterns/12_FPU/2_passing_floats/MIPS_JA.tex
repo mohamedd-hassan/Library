@@ -1,0 +1,14 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/12_FPU/2_passing_floats/MIPS_O3_IDA_JA.lst}
+
+そしてここでも、\INS{LUI}は \Tdouble の32ビット部分を \$V0 にロードしています。 
+そして、これを理解するのは難しいです。
+
+\myindex{MIPS!\Instructions!MFC1}
+
+ここで私たちの新しい指示は\INS{MFC1}です（\q{Coprocessor 1から移動}）。 
+FPUはコプロセッサ番号1なので、命令名に\q{1}が入ります。 
+この命令は、コプロセッサのレジスタからCPU（\ac{GPR}）のレジスタに値を転送します。 
+したがって、最後に\TT{pow()}の結果はレジスタ \$A3 と \$A2 に移動され、
+\printf はこのレジスタのペアから64ビットのdouble値をとります。

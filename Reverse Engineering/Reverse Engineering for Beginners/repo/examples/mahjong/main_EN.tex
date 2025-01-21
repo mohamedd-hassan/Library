@@ -1,0 +1,78 @@
+﻿\section{Mahjong solitaire prank (Windows 7)}
+
+Mahjong solitaire is a great game, but can we make it harder, by disabling the \emph{Hint} menu item?
+
+In Windows 7, I can find Mahjong.dll and Mahjong.exe in:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..inboxgames-shanghai_31bf3856ad364e35_6.1.7600.16385_none\| \\
+\verb|c07a51d9507d9398|.
+
+Also, the \verb|Mahjong.exe.mui| file in:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_en-us| \\
+\verb|_c430954533c66bf3|
+
+and in
+
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_ru-ru| \\
+\verb|_0d51acf984cb679a|.
+
+I'm using English Windows, but with Russian language support, so there are might be resource files for two languages.
+\myindex{Resource Hacker}
+By opening Mahjong.exe.mui in Resource Hacker, there we can see a menu definition:
+
+\begin{lstlisting}[caption=Menu resources in Mahjong.exe.mui]
+103 MENU
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+{
+  POPUP "&Game"
+  {
+    MENUITEM "&New Game\tF2",  40000
+    MENUITEM SEPARATOR
+    MENUITEM "&Undo\tCtrl+Z",  40001
+    MENUITEM "&Hint\tH",  40002
+    MENUITEM SEPARATOR
+    MENUITEM "&Statistics\tF4",  40003
+    MENUITEM "&Options\tF5",  40004
+    MENUITEM "Change &Appearance\tF7",  40005
+    MENUITEM SEPARATOR
+    MENUITEM "E&xit",  40006
+  }
+  POPUP "&Help"
+  {
+    MENUITEM "&View Help\tF1",  40015
+    MENUITEM "&About Mahjong Titans",  40016
+    MENUITEM SEPARATOR
+    MENUITEM "Get &More Games Online",  40020
+  }
+}
+\end{lstlisting}
+
+The \emph{Hint} submenu has the 40002 code.
+Now I'm opening Mahjong.exe in IDA and find the 40002 value.
+
+(I'm writing this in November 2019. Somehow, IDA can't get PDBs from Microsoft servers. Maybe Windows 7 is unsupported anymore?
+Anyway, I can't get function names...)
+
+\lstinputlisting[style=customasmx86,caption=Mahjong.exe]{examples/mahjong/1_EN.lst}
+
+This piece of code enables or disables the \emph{Hint} menu item.
+
+\myindex{Windows!EnableMenuItem}
+And according to MSDN\footnote{\url{https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enablemenuitem}}:
+
+\verb$MF_DISABLED | MF_GRAYED = 3$ and \verb|MF_ENABLED = 0|.
+
+I think, this function enables or disables several menu items (\emph{Hint}, \emph{Undo}, etc), according to the value in \verb|arg_0|.
+Because at start, when a user choose solitaire type, \verb|Hint| and \verb|Undo| items are disabled.
+They are enabled when the game has begun.
+
+So I'm patching the Mahjong.exe file at 0x01020637 by replacing 0x75 with 0xEB byte, making this \INS{JNZ} jump working always.
+Effectively, this will make calling \verb|EnableMenuItem(..., ..., 3)| always.
+Now the \emph{Hint} submenu is always disabled.
+
+Also, somehow, the \verb|EnableMenuItem()| function called twice, for \verb|hMenu| and for \verb|hmenu|.
+Perhaps, the program has two menus, and maybe switching them?
+
+As a homework, try to disable \emph{Undo} menu item, to make the game even harder.

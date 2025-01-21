@@ -1,0 +1,132 @@
+\subsubsection{ARM + \OptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]
+02 0C C0 E3          BIC     R0, R0, #0x200
+01 09 80 E3          ORR     R0, R0, #0x4000
+1E FF 2F E1          BX      LR
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!BIC}
+L'instruction \INS{BIC} (\emph{BItwise bit Clear}) est une instruction pour mettre
+à zéro des bits spécifiques. Ceci est comme l'instruction \AND, mais avec un opérande
+inversé. I.e., c'est analogue à la paire d'instructions \NOT+\AND.
+
+\myindex{ARM!\Instructions!ORR}
+\INS{ORR} est le \q{ou logique}, analogue à \OR en x86.
+
+Jusqu'ici, c'est facile.
+
+\subsubsection{ARM + \OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+01 21 89 03          MOVS    R1, 0x4000
+08 43                ORRS    R0, R1
+49 11                ASRS    R1, R1, #5   ; génère 0x200 et le met dans R1
+88 43                BICS    R0, R1
+70 47                BX      LR
+\end{lstlisting}
+
+Il semble que Keil a décidé que le code en mode Thumb, pour générer \TT{0x200} à
+partir de \TT{0x4000}, est plus compact que celui pour écrire \TT{0x200} dans un
+registre arbitraire.
+% TODO1 пример, как компилятор при помощи сдвигов оптизирует такое: a=0x1000; b=0x2000; c=0x4000, etc
+
+\myindex{ARM!\Instructions!ASRS}
+
+C'est pourquoi, avec l'aide de \INS{ASRS} (\ASRdesc), cette valeur est calculée comme
+$\TT{0x4000} \gg 5$.
+
+\subsubsection{ARM + \OptimizingXcodeIV (\ARMMode)}
+\label{anomaly:LLVM}
+\myindex{\CompilerAnomaly}
+
+\begin{lstlisting}[caption=\OptimizingXcodeIV (\ARMMode),label=ARM_leaf_example3,style=customasmARM]
+42 0C C0 E3          BIC             R0, R0, #0x4200
+01 09 80 E3          ORR             R0, R0, #0x4000
+1E FF 2F E1          BX              LR
+\end{lstlisting}
+
+Le code qui a été généré par LLVM, pourrait être quelque chose  comme ça sous la
+forme de code source:
+
+\begin{lstlisting}[style=customc]
+    REMOVE_BIT (rt, 0x4200);
+    SET_BIT (rt, 0x4000);
+\end{lstlisting}
+
+Et c'est exactement ce dont nous avons besoin.
+Mais pourquoi \TT{0x4200}?
+Peut-être que c'est un artefact de l'optimiseur de LLVM\footnote{C'était LLVM build
+2410.2.00 fourni avec Apple Xcode 4.6.3}.
+
+Probablement une erreur de l'optimiseur du compilateur, mais le code généré fonctionne
+malgré tout correctement.
+
+Vous pouvez en savoir plus sur les anomalies de compilateur ici~(\myref{anomaly:Intel}).
+
+\OptimizingXcodeIV pour le mode Thumb génère le même code.
+
+\subsubsection{ARM: plus d'informations sur l'instruction \INS{BIC}}
+\myindex{ARM!\Instructions!BIC}
+
+Retravaillons légèrement l'exemple:
+
+\begin{lstlisting}[style=customc]
+int f(int a)
+{
+    int rt=a;
+
+    REMOVE_BIT (rt, 0x1234);
+
+    return rt;
+};
+\end{lstlisting}
+
+Ensuite Keil 5.03 pour mode ARM avec optimisation fait:
+
+\begin{lstlisting}[style=customasmARM]
+f PROC
+        BIC      r0,r0,#0x1000
+        BIC      r0,r0,#0x234
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+Il y a deux instructions \INS{BIC}, i.e., les bits \TT{0x1234} sont mis à zéro en
+deux temps.
+
+C'est parce qu'il n'est pas possible d'encoder \TT{0x1234} dans une instruction \INS{BIC},
+mais il est possible d'encoder \TT{0x1000} et \TT{0x234}.
+
+\subsubsection{ARM64: GCC (Linaro) 4.9 \Optimizing}
+
+GCC en compilant \Optimizing pour ARM64 peut utiliser l'instruction \AND au
+lieu de \INS{BIC}:
+
+\begin{lstlisting}[caption=GCC (Linaro) 4.9 \Optimizing,style=customasmARM]
+f:
+	and	w0, w0, -513	; 0xFFFFFFFFFFFFFDFF
+	orr	w0, w0, 16384	; 0x4000
+	ret
+\end{lstlisting}
+
+\subsubsection{ARM64: GCC (Linaro) 4.9 \NonOptimizing}
+
+GCC \NonOptimizing génère plus de code redondant, mais fonctionne comme celui optimisé:
+
+\begin{lstlisting}[caption=GCC (Linaro) 4.9 \NonOptimizing,style=customasmARM]
+f:
+	sub	sp, sp, #32
+	str	w0, [sp,12]
+	ldr	w0, [sp,12]
+	str	w0, [sp,28]
+	ldr	w0, [sp,28]
+	orr	w0, w0, 16384	; 0x4000
+	str	w0, [sp,28]
+	ldr	w0, [sp,28]
+	and	w0, w0, -513	; 0xFFFFFFFFFFFFFDFF
+	str	w0, [sp,28]
+	ldr	w0, [sp,28]
+	add	sp, sp, 32
+	ret
+\end{lstlisting}

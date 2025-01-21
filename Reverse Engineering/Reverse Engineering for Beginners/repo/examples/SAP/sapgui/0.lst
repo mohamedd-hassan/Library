@@ -1,0 +1,24 @@
+.text:6440D51B                 lea     eax, [ebp+2108h+var_211C]
+.text:6440D51E                 push    eax             ; int
+.text:6440D51F                 push    offset aTdw_nocompress ; "TDW\_NOCOMPRESS"
+.text:6440D524                 mov     byte ptr [edi+15h], 0
+.text:6440D528                 call    chk_env
+.text:6440D52D                 pop     ecx
+.text:6440D52E                 pop     ecx
+.text:6440D52F                 push    offset byte_64443AF8
+.text:6440D534                 lea     ecx, [ebp+2108h+var_211C]
+
+; demangled name: int ATL::CStringT::Compare(char const *)const
+.text:6440D537                 call    ds:mfc90_1603
+.text:6440D53D                 test    eax, eax
+.text:6440D53F                 jz      short loc_6440D55A
+.text:6440D541                 lea     ecx, [ebp+2108h+var_211C]
+
+; demangled name: const char* ATL::CSimpleStringT::operator PCXSTR 
+.text:6440D544                 call    ds:mfc90_910
+.text:6440D54A                 push    eax             ; Str
+.text:6440D54B                 call    ds:atoi
+.text:6440D551                 test    eax, eax
+.text:6440D553                 setnz   al
+.text:6440D556                 pop     ecx
+.text:6440D557                 mov     [edi+15h], al

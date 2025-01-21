@@ -1,0 +1,65 @@
+﻿\subsection{除算}
+
+\subsubsection{ビットシフトによる除算}
+\label{division_by_shifting}
+
+4で除算する例：
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a/4;
+};
+\end{lstlisting}
+
+MSVC 2010の結果
+
+\begin{lstlisting}[caption=MSVC 2010,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	shr	eax, 2
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+\label{SHR}
+\myindex{x86!\Instructions!SHR}
+
+この例の \SHR （\emph{SHift Right}）命令は、右に2ビット分シフトしています。 
+左の2つの解放されたビット（例えば、2つの最上位ビット）はゼロに設定されます。
+2つの最下位ビットは破棄されます。 
+実際には、これらの2つのドロップビットは除算演算の余りです。
+SHR命令はSHLのように動作しますが、他の方向に動作します。
+
+\myindex{x86!\Instructions!SHR}
+
+\SHR 命令は \SHL のように動作しますが、別の方向に動作します。
+
+\input{shift_right}
+
+10進数の数字で23を想像すると理解しやすいでしょう。
+最後の桁（3：除算した結果の余り）を落とすだけで、23を10で簡単に除算することができます。
+2は、\gls{quotient}として動作の後に残されます。
+
+残りの部分は削除されますが、それは問題ありません。整数値で作業しますが、
+これらは\glslink{real number}{real numbers}ではありません!
+
+ARMでの4の除算
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSR      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+MIPSでの4の除算
+
+\begin{lstlisting}[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]
+        jr      $ra
+        srl     $v0, $a0, 2 ; branch delay slot
+\end{lstlisting}
+
+\myindex{MIPS!\Instructions!SRL}
+SRL命令は\q{Shift Right Logical}の略です。

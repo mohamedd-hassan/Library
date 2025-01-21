@@ -1,0 +1,33 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/05_passing_arguments/ARM/tmp1.asm}
+
+La funzione \main chiama altre due funzioni, con tre valori passati alla prima ~---(\ttf).
+
+Come detto in precedenza, in ARM i primi 4 valori sono solitamente passati nei primi 4 registri (\Reg{0}-\Reg{3}).
+
+La funzione \ttf, come si può osservare, usa i primi 3 registri (\Reg{0}-\Reg{2}) come argomenti.
+
+\myindex{ARM!\Instructions!MLA}
+L'istruzione \TT{MLA} (\emph{Multiply Accumulate}) 
+moltiplica i suoi primi due operandi (\Reg{3} e \Reg{1}), aggiunge al prodotto il terzo operando (\Reg{2}) e salva il risultato
+nel zeresimo registro (\Reg{0}), attraverso il quale, da standard, le funzioni restituiscono i valori.
+
+\myindex{Fused multiply–add}
+La moltiplicazione e addizione fatte in una volta sola (\emph{Fused multiply–add}) è un'operazione molto utile. 
+Non vi era alcune funzione analoga in x86 prima dell'avvento delle istruzioni FMA in SIMD.
+\footnote{\href{https://en.wikipedia.org/wiki/FMA_instruction_set}{wikipedia}}.
+
+La prima istruzione \TT{MOV R3, R0}, 
+è apparentemente ridondante (al suo posto sarebbe potuta essere usata una singola istruzione \TT{MLA}). 
+Il compilatore, come previsto, non ha quindi ottimizzato il codice.
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+L'istruzione \TT{BX} restituisce il controllo all'indirizzo memorizzato nel registro \ac{LR} e, se necessario, 
+effettua lo switch della modalità del processore da Thumb a ARM o viceversa.
+Ciò può essere necessario in quanto, come possiamo vedere ,la funzione \ttf non è al corrente di che tipo di codice potrebbe esere chiamato in seguito (ARM o Thumb).
+Dunque, se viene chiamata da codice Thumb \TT{BX} non resituisce soltanto il controllo alla funzione chiamante ma cambia anche la modalità del processore a Thumb. 
+Se la funzione viene chiamata da codice ARM, non effettua lo scambio di modalità \InSqBrackets{\ARMSevenRef A2.3.2}.
+% look for "BXWritePC()" in manual

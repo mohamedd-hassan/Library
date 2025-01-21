@@ -1,0 +1,3 @@
+.text:6441747C                 push    offset aErrorCsrcompre ; \verb|"\nERROR: CsRCompress: invalid handle"|
+.text:64417481                 call    eax ; \verb|dword_644F94C8|
+.text:64417483                 add     esp, 4

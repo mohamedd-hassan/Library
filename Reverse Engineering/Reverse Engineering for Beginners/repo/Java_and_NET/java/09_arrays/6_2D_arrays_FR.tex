@@ -1,0 +1,73 @@
+% TODO proof-reading
+\subsubsection{Tableaux bi-dimensionnels}
+
+Les tableaux bidimensionnels en Java sont juste des tableaux unidimensionnel de
+\emph{références} sur d'autres tableaux uni-dimensionnels.
+
+Créons un tableau bi-dimensionnel:
+
+\begin{lstlisting}[style=customjava]
+	public static void main(String[] args)
+	{
+		int[][] a = new int[5][10];
+		a[1][2]=3;
+	}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static void main(java.lang.String[]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=3, locals=2, args_size=1
+         0: iconst_5
+         1: bipush        10
+         3: multianewarray #2,  2      // class "[[I"
+         7: astore_1
+         8: aload_1
+         9: iconst_1
+        10: aaload
+        11: iconst_2
+        12: iconst_3
+        13: iastore
+        14: return
+\end{lstlisting}
+
+Il est créé en utilisant l'instruction \TT{multianewarray}: le type de l'objet et
+ses dimensions sont passés comme opérandes.
+
+La taille du tableau (10*5) est laissée dans la pile (en utilisant les instructions
+\TT{iconst\_5} et \TT{bipush}).
+
+Une \emph{référence} à la line \#1 est chargée à l'offset 10 (\TT{iconst\_1} et \TT{aaload}).
+
+La colonne est choisie en utilisant \TT{iconst\_2} à l'offset 11.
+
+La valeur à écrire est mise à l'offset 12.
+
+\TT{iastore} en 13 écrit l'élément du tableau.
+
+Comment un élément est-il accédé?
+
+\begin{lstlisting}[style=customjava]
+	public static int get12 (int[][] in)
+	{
+		return in[1][2];
+	}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static int get12(int[][]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: aload_0
+         1: iconst_1
+         2: aaload
+         3: iconst_2
+         4: iaload
+         5: ireturn
+\end{lstlisting}
+
+Un \emph{référence} sur la ligne du tableau est chargée à l'offset 2, la colonne
+est mise à l'offset 3, puis \TT{iaload} charge l'élément du tableau.
+

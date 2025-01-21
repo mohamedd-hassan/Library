@@ -1,0 +1,67 @@
+main:
+
+var_70          = -0x70
+var_68          = -0x68
+var_14          = -0x14
+var_10          = -0x10
+var_C           = -0xC
+var_8           = -8
+var_4           = -4
+; prologue de la fonction:
+                lui     $gp, (__gnu_local_gp >> 16)
+                addiu   $sp, -0x80
+                la      $gp, (__gnu_local_gp & 0xFFFF)
+                sw      $ra, 0x80+var_4($sp)
+                sw      $s3, 0x80+var_8($sp)
+                sw      $s2, 0x80+var_C($sp)
+                sw      $s1, 0x80+var_10($sp)
+                sw      $s0, 0x80+var_14($sp)
+                sw      $gp, 0x80+var_70($sp)
+                addiu   $s1, $sp, 0x80+var_68
+                move    $v1, $s1
+                move    $v0, $zero
+; cette valeur va être utilisée comme fin de boucle.
+; elle a été pré-calculée par le compilateur GCC à l'étape de la compilation:
+                li      $a0, 0x28  # '('
+
+loc_34:                                  # CODE XREF: main+3C
+; stocker la valeur en mémoire:
+                sw      $v0, 0($v1)
+; incrémenter la valeur à sauver de 2 à chaque itération:
+                addiu   $v0, 2
+; fin de boucle atteinte?
+                bne     $v0, $a0, loc_34
+; ajouter 4 à l'adresse dans tous les cas
+                addiu   $v1, 4
+; la boucle de remplissage du tableau est finie
+; la seconde boucle commence
+                la      $s3, $LC0        # "a[\%d]=\%d\textbackslash{}n"
+; la variable "i" va être dans \$s0:
+                move    $s0, $zero
+                li      $s2, 0x14
+
+loc_54:                                  # CODE XREF: main+70
+; appeler printf():
+                lw      $t9, (printf & 0xFFFF)($gp)
+                lw      $a2, 0($s1)
+                move    $a1, $s0
+                move    $a0, $s3
+                jalr    $t9
+; incrémenter "i":
+                addiu   $s0, 1
+                lw      $gp, 0x80+var_70($sp)
+; sauter au corps de la boucle si la fin n'est pas atteinte:
+                bne     $s0, $s2, loc_54
+; déplacer le pointeur mémoire au prochain mot de 32-bit:
+                addiu   $s1, 4
+; épilogue de la fonction
+                lw      $ra, 0x80+var_4($sp)
+                move    $v0, $zero
+                lw      $s3, 0x80+var_8($sp)
+                lw      $s2, 0x80+var_C($sp)
+                lw      $s1, 0x80+var_10($sp)
+                lw      $s0, 0x80+var_14($sp)
+                jr      $ra
+                addiu   $sp, 0x80
+
+$LC0:           .ascii "a[%d]=%d\n"<0>   # DATA XREF: main+44

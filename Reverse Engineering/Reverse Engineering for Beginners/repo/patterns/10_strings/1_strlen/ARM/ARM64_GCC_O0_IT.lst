@@ -1,0 +1,32 @@
+my_strlen:
+; prologo funzione
+	sub	sp, sp, #32
+; il primo argomento (str) verrà salvato in [sp,8]
+	str	x0, [sp,8]
+	ldr	x0, [sp,8]
+; copia "str" nella variabile "eos"
+	str	x0, [sp,24]
+	nop
+.L62:
+; eos++
+	ldr	x0, [sp,24]  ; carica "eos" in X0
+	add	x1, x0, 1    ; incrementa X0
+	str	x1, [sp,24]  ; salva X0 in "eos"
+; carica un byte dall' indirizzo di memoria contenuto in X0 a W0
+	ldrb	w0, [x0]
+; vale zero? (WZR è il registro a 32 bit che contiene sempre zero)
+	cmp	w0, wzr
+; salta se non è zero (Branch Not Equal)
+	bne	.L62
+; zero byte trovato. ora calcola la differenza.
+; carica "eos" in X1
+	ldr	x1, [sp,24]
+; carica "str" in X0
+	ldr	x0, [sp,8]
+; calcola la differenza
+	sub	x0, x1, x0
+; decrementa il risultato
+	sub	w0, w0, #1
+; epilogo funzione
+	add	sp, sp, 32
+	ret

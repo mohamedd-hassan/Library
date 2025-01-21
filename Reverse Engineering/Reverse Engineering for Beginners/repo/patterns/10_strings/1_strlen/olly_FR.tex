@@ -1,0 +1,68 @@
+﻿\clearpage
+\myparagraph{MSVC \Optimizing + \olly}
+\myindex{\olly}
+
+Nous pouvons essayer cet exemple (optimisé) dans \olly. Voici la première itération:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly1.png}
+\caption{\olly: début de la première itération}
+\label{fig:strlen_olly_1}
+\end{figure}
+
+Nous voyons qu'\olly a trouvé une boucle et, par facilité, a mis ses instructions
+entre crochets.
+En cliquant sur le bouton droit sur \EAX, nous pouvons choisir \q{Follow in Dump}
+et la fenêtre de la mémoire se déplace jusqu'à la bonne adresse.
+Ici, nous voyons la chaîne \q{hello!} en mémoire.
+Il y a au moins un zéro après cette dernière et ensuite des données aléatoires.
+
+Si \olly voit un registre contenant une adresse valide, qui pointe sur une chaîne,
+il montre cette chaîne.
+
+\clearpage
+Appuyons quelques fois sur F8 (\stepover), pour aller jusqu'au début du corps de
+la boucle:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly2.png}
+\caption{\olly: début de la seconde itération}
+\label{fig:strlen_olly_2}
+\end{figure}
+
+Nous voyons qu'\EAX contient l'adresse du second caractère de la chaîne.
+
+\clearpage
+
+Nous devons appuyons un certain nombre de fois sur F8 afin de sortir de la boucle:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly3.png}
+\caption{\olly: calcul de la différence entre les pointeurs}
+\label{fig:strlen_olly_3}
+\end{figure}
+
+% FIXME:
+Nous voyons qu'\EAX contient l'adresse de l'octet à zéro situé juste après la chaîne.
+Entre temps, \EDX n'a pas changé, donc il pointe sur le début de la chaîne.
+
+La différence entre ces deux valeurs est maintenant calculée.
+
+\clearpage
+L'instruction \SUB vient juste d'être effectuée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly4.png}
+\caption{\olly: maintenant décrémenter \EAX}
+\label{fig:strlen_olly_4}
+\end{figure}
+
+La différence entre les deux pointeurs est maintenant dans le registre \EAX---7.
+Effectivement, la longueur de la chaîne \q{hello!} est 6, mais avec l'octet à zéro
+inclus---7.
+Mais \TT{strlen()} doit renvoyer le nombre de caractère non-zéro dans la chaîne.
+Donc la décrémentation est effectuée et ensuite la fonction sort.

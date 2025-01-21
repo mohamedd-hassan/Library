@@ -1,0 +1,22 @@
+﻿\subsection{ARM: \OptimizingKeilVI (\ARMMode)}
+
+À nouveau, le compilateur tire partie des instructions conditionnelles du mode ARM,
+donc le code est bien plus compact.
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{\CURPATH/Keil_ARM_O3_FR.s}
+
+\subsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+\myindex{\CompilerAnomaly}
+\label{Keil_anomaly}
+
+Il y a moins d'instructions conditionnelles en mode Thumb, donc le code est plus simple.
+
+Mais il y a des choses vraiment étranges aux offsets 0x20 et 0x1F (lignes 22 et 23).
+Pourquoi diable le compilateur Keil a-t-il fait ça?
+Honnêtement, c'est difficile de le dire.
+
+Ça doit être une bizarrerie du processus d'optimisation de Keil.
+Néanmoins, le code fonctionne correctement
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),numbers=left,style=customasmARM]{\CURPATH/Keil_thumb_O3_FR.s}
+

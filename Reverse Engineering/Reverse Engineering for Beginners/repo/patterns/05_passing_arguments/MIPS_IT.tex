@@ -1,0 +1,43 @@
+\subsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5,style=customasmMIPS]{patterns/05_passing_arguments/MIPS_O3_IDA_IT.lst}
+
+I primi quattro argomenti della funzione sono passati in quattro registri con prefisso A-.
+
+\myindex{MIPS!\Instructions!MULT}
+
+Ci sono due registri speciali in MIPS: HI e LO che durante l'esecuzione dell' istruzione \TT{MULT}, vengono riempiti con il risultato su 64-bit della moltiplicazione.
+\myindex{MIPS!\Instructions!MFLO}
+\myindex{MIPS!\Instructions!MFHI}
+
+Questi registri sono accessibili solamente usando le istruzioni \TT{MFLO} e \TT{MFHI}.
+In questo caso \TT{MFLO} prende la parte bassa del risultato della moltiplicazione e la salva in \$V0.
+Di conseguenza i 32 bit della parte alta del risultato della moltiplicazione sono scartati (il contenuto del registro HI non viene usato).
+Infatti: noi qui lavoriamo con tipi di dati \Tint a 32 bit.
+
+\myindex{MIPS!\Instructions!ADDU}
+
+Infine, \TT{ADDU} (\q{Add Unsigned}) sommano il valore del terzo argomento al risultato.
+
+\myindex{MIPS!\Instructions!ADD}
+\myindex{MIPS!\Instructions!ADDU}
+\myindex{Ada}
+\myindex{Integer overflow}
+
+Ci sono due tipi di istruzione addizione in MIPS: \TT{ADD} and \TT{ADDU}.
+La differnza non è legata al segno, ma alle eccezioni. \TT{ADD} può sollevare un' eccezione in caso di overflow, che di solito è utile\footnote{\url{http://blog.regehr.org/archives/1154}} e supportato in Ada \ac{PL}, per esempio.
+\TT{ADDU} non solleva eccezioni in caso di overlflow.
+
+Siccome \CCpp non lo supporta, nei nostri esempi vediamo \TT{ADDU} anzichè \TT{ADD}.
+
+Il risultato a 32 bit viene lasciato in \$V0.
+
+\myindex{MIPS!\Instructions!JAL}
+\myindex{MIPS!\Instructions!JALR}
+
+C'è una nuova istruzione per noi nel \main: \TT{JAL} (\q{Jump and Link}). 
+
+La differenza tra \INS{JAL} e \INS{JALR} è che l'offset relativo viene codificato nella prima istruzione, 
+mentre \INS{JALR} salta all'indirizzo assoluto salvato in un registro (\q{Jump and Link Register}).
+
+Entrambe le funzioni \ttf e \main si trovano nello stesso file oggetto, quindi l'indirizzo relativo di \ttf è conosciuto e fissato.

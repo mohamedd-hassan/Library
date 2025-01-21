@@ -1,0 +1,20 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/08_switch/2_lot/MIPS_O3_IDA_JA.lst}
+
+\myindex{MIPS!\Instructions!SLTIU}
+
+私たちの新しい命令は \INS{SLTIU} です（\q{Set on Less Than Immediate Unsigned}）。
+\myindex{MIPS!\Instructions!SLTU}
+
+\INS{SLTU}と同じですが、\q{I}は\q{immediate}を表します。
+つまり、命令自体に数値を指定する必要があります。
+
+\myindex{MIPS!\Instructions!BNEZ}
+\INS{BNEZ} は \q{Branch if Not Equal to Zero}です。
+
+コードは他の\ac{ISA}に似ています。
+\myindex{MIPS!\Instructions!SLL}
+\INS{SLL} （\q{Shift Word Left Logical}）は4を掛けます。
+
+結局のところ、MIPSは32ビットCPUなので、\emph{jumptable}のすべてのアドレスは32ビットのものです。

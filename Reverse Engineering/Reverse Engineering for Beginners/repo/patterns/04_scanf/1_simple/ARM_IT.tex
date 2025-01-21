@@ -1,0 +1,37 @@
+\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/04_scanf/1_simple/ARM_IDA.lst}
+
+\myindex{\CLanguageElements!\Pointers}
+
+Affinchè \scanf possa leggere l'input, necessita di un parametro ---puntatore ad un \Tint.
+\Tint è 32-bit, quindi servono 4 byte per memorizzarlo da qualche parte in memoria, e entra perfettamente in un registro a 32-bit.
+\myindex{IDA!var\_?}
+Uno spazio per la variabile locale \GTT{x} è allocato nello stack e \IDA
+lo ha chiamato \emph{var\_8}. Non è comunque necessario allocarlo in questo modo poichè \ac{SP} (\gls{stack pointer}) punta già a quella posizione e può essere usato direttamente.
+
+Successivamente il valore di \ac{SP} è copiato nel registro \Reg{1} e sono passati, insieme alla format-string, a \scanf.
+
+Le istruzioni \INS{PUSH/POP} si comportano diversamente in ARM rispetto a x86 (è il contrario). Sono sinonimi delle istruzioni \INS{STM/STMDB/LDM/LDMIA}.
+E l'istruzione \INS{PUSH} innanzitutto scrive un valore nello stack, \emph{e poi} sottrae 4 allo \ac{SP}.
+\INS{POP} innanzitutto aggiunge 4 allo \ac{SP}, \emph{e poi} legge un valore dallo stack
+Quindi, dopo \INS{PUSH}, lo \ac{SP} punta ad uno spazio inutilizzato nello stackn stack.
+E' usato da \scanf, e da \printf dopo.
+
+\INS{LDMIA} significa \emph{Load Multiple Registers Increment address After each transfer}.
+\INS{STMDB} significa \emph{Store Multiple Registers Decrement address Before each transfer}.
+
+\myindex{ARM!\Instructions!LDR}
+Questo valore, con l'aiuto dell'istruzione \INS{LDR} , viene poi spostato dallo stack al registro \Reg{1} per essere passato a \printf.
+
+\myparagraph{ARM64}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,numbers=left,style=customasmARM]{patterns/04_scanf/1_simple/ARM64_GCC491_O0_IT.s}
+
+Ci sono 32 byte allocati per lo stack frame, che è più' grande del necessario. Forse a causa di meccanismi di allineamento della memoria?
+La parte più interessante è quella in cui trova spazio per la variabile $x$ nello stack frame (riga 22).
+Perchè 28? Il compilatore ha in qualche modo deciso di piazzare questa variabile alla fine dello stack frame anzichè all'inizio.
+L'indirizzo è passato a \scanf, che memorizzerà il valore immesso dall'utente nella memoria a quell'indirizzo.Si tratta di un valore a 32-bit di tipo \Tint.Il valore è recuperato successivamente a riga 27 e passato a \printf.
+

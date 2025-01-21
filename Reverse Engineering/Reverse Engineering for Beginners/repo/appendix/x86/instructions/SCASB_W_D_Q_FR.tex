@@ -1,0 +1,30 @@
+\myindex{\CStandardLibrary!strlen()}
+\myindex{\CStandardLibrary!memchr()}
+\myindex{x86!\Instructions!SCASB}
+\myindex{x86!\Instructions!SCASW}
+\myindex{x86!\Instructions!SCASD}
+\myindex{x86!\Instructions!SCASQ}
+\item[SCASB/SCASW/SCASD/SCASQ] (M) compare un octet/
+un mot 16-bit/
+un mot 32-bit/
+un mot 64-bit stocké dans AX/EAX/RAX
+avec une variable dont l'adresse est dans DI/EDI/RDI.
+Met les flags comme le fait \CMP.
+
+\label{REPNE_SCASx}
+\myindex{x86!\Prefixes!REPNE}
+Cette instruction est souvent utilisée avec le préfixe REPNE: continue de scanner
+le buffer jusqu'à ce qu'une valeur particulière stockée dans AX/EAX/RAX soit trouvée.
+D'où le \q{NE} dans REPNE: continue de scanner tant que les valeurs comparées ne
+sont pas égales et s'arrête lorsqu'elles le sont.
+
+Elle est souvent utilisée comme la fonction C standard strlen(), pour déterminer
+la longueur d'une chaîne \ac{ASCIIZ}:
+
+Exemple:
+
+\lstinputlisting[style=customasmx86]{appendix/x86/instructions/SCASB_ex1_FR.asm}
+
+Si nous utilisons une valeur différente dans AX/EAX/RAX, la fonction se comporte
+comme la fonction C standard memchr(), i.e., elle trouve un octet spécifique.
+

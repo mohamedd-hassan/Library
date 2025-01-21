@@ -1,0 +1,35 @@
+\clearpage
+\subsubsection{MSVC: x86 + \olly}
+
+Spróbujmy zhackować nasz program w \olly, zmuszając go, by uznał, że funkcja \scanf wykonała się bez błędów.
+Kiedy adres zmiennej lokalnej jest przekazywany do \scanf,
+zmienna początkowo zawiera przypadkową wartość, w tym wypadku \TT{0x6E494714}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/3_checking_retval/olly_1.png}
+\caption{\olly: przekazywanie adresu zmiennej do \scanf}
+\label{fig:scanf_ex3_olly_1}
+\end{figure}
+
+\clearpage
+Kiedy wykonywana jest funkcja \scanf , w konsoli wpiszmy coś, co z pewnością nie jest liczbą, na przykład \q{asdasd}.
+\scanf kończy działanie z 0 w \EAX, co wskazuje na wystąpienie błędu.
+
+Możemy sprawdzić wartość zmiennej lokalnej na stosie i zauważyć, że się ona nie zmieniła.
+W rzeczy samej, dlaczego funkcja \scanf miałaby cokolwiek tam zapisać?
+Jej wykonanie nie spowodowało nic, poza zwróceniem zera.
+
+Spróbujmy \q{zhackować} nasz program.
+Kliknij prawym przyciskiem na \EAX,
+wśród opcji znajduje się \q{Set to 1} (\emph{ustaw na 1}).
+To jest to, czego szukamy.
+
+Mamy teraz 1 w \EAX, a więc kolejne sprawdzenie powinno się wykonać zgodnie z oczekiwaniami i
+\printf powinna wyświetlić wartość zmiennej ze stosu.
+
+Po wznowieniu wykonania programu (F9) widzimy następujący efekt w oknie konsoli:
+
+\lstinputlisting[caption=console window]{patterns/04_scanf/3_checking_retval/console.txt}
+
+1850296084 to postać dziesiętna liczby, którą widzieliśmy na stosie (\TT{0x6E494714})!

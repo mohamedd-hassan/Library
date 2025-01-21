@@ -1,0 +1,37 @@
+\subsection{Cas Pin}
+
+\myindex{Pin}
+Il est intéressant de noter que certaines fonctions du framework \ac{DBI} Pin prennent
+un nombre variable d'arguments:
+
+\begin{lstlisting}[style=customc]
+            INS_InsertPredicatedCall(
+                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
+                IARG_INST_PTR,
+                IARG_MEMORYOP_EA, memOp,
+                IARG_END);
+\end{lstlisting}
+( \TT{pinatrace.cpp} )
+
+Et voici comment la fonction \TT{INS\_InsertPredicatedCall()} est déclarée:
+
+\begin{lstlisting}[style=customc]
+extern VOID INS_InsertPredicatedCall(INS ins, IPOINT ipoint, AFUNPTR funptr, ...);
+\end{lstlisting}
+( \TT{pin\_client.PH} )
+
+Ainsi, les constantes avec un nom débutant par \TT{IARG\_} sont des sortes d'arguments
+pour la fonction, qui sont manipulés à l'intérieur de \TT{INS\_InsertPredicatedCall()}.
+Vous pouvez passer autant d'arguments que vous en avez besoin.
+Certaines commandes ont des arguments additionnels, d'autres non.
+Liste complète des arguments:
+\url{https://software.intel.com/sites/landingpage/pintool/docs/58423/Pin/html/group__INST__ARGS.html}.
+Et il faut un moyen pour détecter la fin de la liste des arguments, donc la liste
+doit être terminée par la constante \TT{IARG\_END}, sans laquelle, la fonction essayerait
+de traiter les données indéterminées dans la pile locale comme des arguments additionnels.
+
+\myindex{Python}
+Aussi, dans [\RobPikePractice] nous pouvons trouver un bel exemple de routines C/C++
+très similaires à \emph{pack/unpack}\footnote{\url{https://docs.python.org/3/library/struct.html}}
+en Python.
+

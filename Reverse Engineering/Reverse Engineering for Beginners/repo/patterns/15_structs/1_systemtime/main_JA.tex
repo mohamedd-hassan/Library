@@ -1,0 +1,71 @@
+﻿\subsection{MSVC: SYSTEMTIME example}
+\label{sec:SYSTEMTIME}
+
+\newcommand{\FNSYSTEMTIME}{\footnote{\href{http://msdn.microsoft.com/en-us/library/ms724950(VS.85).aspx}{MSDN: SYSTEMTIME structure}}}
+
+時間を表現する SYSTEMTIME\FNSYSTEMTIME{} win32構造体をとりあげましょう。
+
+このように定義されます。
+
+\begin{lstlisting}[caption=WinBase.h,style=customc]
+typedef struct _SYSTEMTIME {
+  WORD wYear;
+  WORD wMonth;
+  WORD wDayOfWeek;
+  WORD wDay;
+  WORD wHour;
+  WORD wMinute;
+  WORD wSecond;
+  WORD wMilliseconds;
+} SYSTEMTIME, *PSYSTEMTIME;
+\end{lstlisting}
+
+現在時刻を取得するCの関数を書いてみましょう。
+
+\lstinputlisting[style=customc]{patterns/15_structs/1_systemtime/systemtime.c}
+
+次の結果を得ます。(MSVC 2010)
+
+\lstinputlisting[caption=MSVC 2010 /GS-,style=customasmx86]{patterns/15_structs/1_systemtime/systemtime.asm}
+
+16バイトがローカルスタック上に構造体のために確保されていて、これはちょうど\TT{sizeof(WORD)*8}です。
+（構造体にあるWORD変数8つ分です）
+
+\newcommand{\FNMSDNGST}{\footnote{\href{http://msdn.microsoft.com/en-us/library/ms724390(VS.85).aspx}{MSDN: GetSystemTime function}}}
+
+構造体は\TT{wYear}フィールドから始まるという事実に注意してください。
+SYSTEMTIME構造体へのポインタが \TT{GetSystemTime()}\FNSYSTEMTIME に渡されますが、
+\TT{wYear}フィールドへのポインタが渡されているとも言えます。そしてこれは同じです！
+\TT{GetSystemTime()}は現在の年をWORDポインタが示すところに書き込み、それから2バイトを前方にシフト
+し、現在の月を書き込み、などなど。
+
+\input{patterns/15_structs/1_systemtime/olly_JA.tex}
+
+\subsubsection{構造体を配列で置き換える}
+
+構造体のフィールドは単に隣り合った変数で、以下のようにすることで簡単にデモンストレーションできます。
+\TT{SYSTEMTIME}構造体の表現を覚えておいて、この簡単な例をこのように書き換えることが可能です。
+
+\lstinputlisting[style=customc]{patterns/15_structs/1_systemtime/systemtime2.c}
+
+コンパイラは少し不満を言います。
+
+\begin{lstlisting}
+systemtime2.c(7) : warning C4133: 'function' : incompatible types - from 'WORD [8]' to 'LPSYSTEMTIME'
+\end{lstlisting}
+
+とはいえ、このようなコードを生成します。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2010,style=customasmx86]{patterns/15_structs/1_systemtime/systemtime2.asm}
+
+そして同じように機能します！
+
+アセンブリ形式の結果が前のコンパイルの結果と区別できないことは非常に興味深いことです。
+
+だから、このコードを見て、構造体が宣言されているか、配列なのかははっきりと言うことができません。
+
+とはいえ、普通の人は都合がよいわけではないのでこういうことはしません。
+
+また、構造体のフィールドは開発者によって変更されたり、スワップされたりすることがあります。
+
+この例は、構造体の場合とまったく同じであるため、 \olly ではこの例を学習しません。

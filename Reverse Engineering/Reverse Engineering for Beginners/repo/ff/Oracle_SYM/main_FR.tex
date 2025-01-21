@@ -1,0 +1,319 @@
+\mysection{\oracle: fichiers .SYM}
+\myindex{\oracle}
+\label{Oracle_SYM_files_example}
+
+Lorsqu'un processus d'\oracle rencontre un sorte de crash, il écrit beaucoup d'information
+dans les fichiers de trace, incluant la trace de la pile, comme ceci:
+
+\begin{lstlisting}
+----- Call Stack Trace -----
+calling              call     entry                argument values in hex      
+location             type     point                (? means dubious value)     
+-------------------- -------- -------------------- ----------------------------
+_kqvrow()                     00000000             
+_opifch2()+2729      CALLptr  00000000             23D4B914 E47F264 1F19AE2
+                                                   EB1C8A8 1
+_kpoal8()+2832       CALLrel  _opifch2()           89 5 EB1CC74
+_opiodr()+1248       CALLreg  00000000             5E 1C EB1F0A0
+_ttcpip()+1051       CALLreg  00000000             5E 1C EB1F0A0 0
+_opitsk()+1404       CALL???  00000000             C96C040 5E EB1F0A0 0 EB1ED30
+                                                   EB1F1CC 53E52E 0 EB1F1F8
+_opiino()+980        CALLrel  _opitsk()            0 0
+_opiodr()+1248       CALLreg  00000000             3C 4 EB1FBF4
+_opidrv()+1201       CALLrel  _opiodr()            3C 4 EB1FBF4 0
+_sou2o()+55          CALLrel  _opidrv()            3C 4 EB1FBF4
+_opimai_real()+124   CALLrel  _sou2o()             EB1FC04 3C 4 EB1FBF4
+_opimai()+125        CALLrel  _opimai_real()       2 EB1FC2C
+_OracleThreadStart@  CALLrel  _opimai()            2 EB1FF6C 7C88A7F4 EB1FC34 0
+4()+830                                            EB1FD04
+77E6481C             CALLreg  00000000             E41FF9C 0 0 E41FF9C 0 EB1FFC4
+00000000             CALL???  00000000             
+\end{lstlisting}
+
+Mais bien sûr, les exécutables d'\oracle doivent avoir une sorte d'information de
+débogage ou de fichiers de carte avec l'information sur les symboles incluse ou
+quelque chose comme ça.
+% TODO: better translation for map file
+
+\oracle sur Windows NT a l'information sur les symboles incluse dans des fichiers
+avec l'extension .SYM, mais le format est propriétaire. (Les fichiers texte en clair
+sont bons, mais nécessite une analyse supplémentaire, d'où un accès plus lent.)
+
+Voyons si nous pouvons comprendre son format.
+
+Nous allons choisir le plus petit fichier \TT{orawtc8.sym} qui vient avec le fichier
+\TT{orawtc8.dll} dans Oracle 8.1.7\footnote{Nous pouvons choisir une version plus
+ancienne d'\oracle intentionnellement à cause de la plus petite taille de ses modules.}.
+
+\clearpage
+Voici le fichier ouvert dans Hiew:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_SYM/whole1.png}
+\caption{Le fichier entier dans Hiew}
+\label{fig:oracle_SYM_whole1}
+\end{figure}
+
+En comparant le fichier avec d'autres fichiers .SYM, nous voyons rapidement que
+\TT{OSYM} est toujours en entête (et en fin de fichier), donc c'est peut-être la signature du fichier.
+
+Nous voyons que, en gros, le format de fichier est: OSYM + des données binaires
++ un zéro délimiteur de chaîne de texte + OSYM.
+Les chaînes sont évidemment les noms des fonctions et des variables globales.
+
+\clearpage
+Nous allons marquer les signatures OSYM et les chaînes ici:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_SYM/whole2.png}
+\caption{Signatures OSYM et chaînes de texte}
+\label{fig:oracle_SYM_whole2}
+\end{figure}
+
+Bon, voyons.
+Dans Hiew, nous allons marquer le bloc de chaînes complet (excepté les signatures
+OSYM) et les mettre dans un fichier séparé.
+Puis, nous lançons les utilitaires UNIX \emph{strings} et \emph{wc} pour compter
+les chaînes de texte:
+
+\begin{lstlisting}
+strings strings_block | wc -l
+66
+\end{lstlisting}
+
+Donc, il y a 66 chaînes de texte.
+Veuillez noter ce nombre.
+
+Nous pouvons dire, en général, comme une règle, que le nombre de \emph{quelque chose}
+est souvent stocké séparément dans des fichiers binaires.
+
+C'est en effet ainsi, nous pouvons trouver la valeur 66 (0x42) au début du fichier,
+juste après la signature OSYM:
+
+\lstinputlisting{ff/Oracle_SYM/dump1.txt}
+
+Bien sûr, 0x42 n'est pas ici un octet, mais plus probablement une velaur 32-bit
+packée en petit-boutiste, ainsi nous pouvons voir 0x42 et ensuite au moins 3 octets
+à zéro.
+
+Pourquoi croyons-nous que c'est 32-bit?
+Car les fichiers de symboles d'\oracle peuvent être plutôt gros.
+
+Le fichier oracle.sym pour l'exécutable principal oracle.exe (version 10.2.0.4)
+contient \TT{0x3A38E} (238478) symboles.
+
+Nous pouvons vérifier d'autres fichiers .SYM comme ceci et ça prouve notre supposition:
+la valeur après la signature 32-bit OSYM représente toujours le nombre de chaînes
+de texte dans le fichier.
+
+C'est une caractéristique générale de presque tous les fichiers binaires: un entête
+avec une signature ainsi que d'autres informations sur le fichier.
+
+Maintenant, examinons de plus près ce qu'est ce bloc binaire.
+
+En utilisant Hiew, nous extrayons le bloc débutant à l'offset 8 (i.e., après la valeur
+32-bit \emph{count}) se terminant au bloc de chaînes, dans un fichier binaire
+séparé.
+
+\clearpage
+Voyons le bloc binaire dans Hiew:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_SYM/binary1.png}
+\caption{Bloc binaire}
+\label{fig:oracle_SYM_binary1}
+\end{figure}
+
+Il y un motif clair dedans.
+
+\clearpage
+Nous ajoutons des lignes rouges pour diviser le bloc:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_SYM/binary2.png}
+\caption{Schéma de bloc binaire}
+\label{fig:oracle_SYM_binary2}
+\end{figure}
+
+Hiew, comme presque n'importe quel autre éditeur hexadécimal, montre 16 octets
+par ligne.
+Donc le motif est clairement visible:
+il y a 4 valeurs 32-bit par ligne.
+
+Le schéma est visible visuellement car certaines valeurs ici (jusqu'à l'adresse
+\TT{0x104} sont toujours de la forme \TT{0x1000xxxx}, commençant par 0x10 et
+des octets à zéro.
+
+D'autres valeurs (commençant à \TT{0x108}) sont de la forme \TT{0x0000xxxx},
+donc commencent toujours par deux octets à zéro.
+
+Affichons le bloc comme un tableau de valeurs 32-bit:
+
+\lstinputlisting[caption=la première colonne est l'adresse]{ff/Oracle_SYM/dump2.txt}
+
+Il y a 132 valeurs, qui vaut 66*3.
+Peut-être qu'il y a deux valeurs 32-bit pour chaque symbole, mais peut-être y
+a-t-il deux tableaux?
+Voyons
+
+Les valeurs débutant par \TT{0x1000} peuvent être une adresse.
+
+Ceci est un fichier .SYM pour une DLL après tout, et l'adresse de base par défaut
+des DLL win32 est \TT{0x10000000}, et le code débute en général en \TT{0x10001000}.
+
+Lorsque nous ouvrons le fichier orawtc8.dll dans \IDA, l'adresse de base est
+différente, mais néanmoins, la première fonction est:
+
+\begin{lstlisting}[style=customasmx86]
+.text:60351000 sub_60351000    proc near
+.text:60351000
+.text:60351000 arg_0    = dword ptr  8
+.text:60351000 arg_4    = dword ptr  0Ch
+.text:60351000 arg_8    = dword ptr  10h
+.text:60351000
+.text:60351000          push    ebp
+.text:60351001          mov     ebp, esp
+.text:60351003          mov     eax, dword_60353014
+.text:60351008          cmp     eax, 0FFFFFFFFh
+.text:6035100B          jnz     short loc_6035104F
+.text:6035100D          mov     ecx, hModule
+.text:60351013          xor     eax, eax
+.text:60351015          cmp     ecx, 0FFFFFFFFh
+.text:60351018          mov     dword_60353014, eax
+.text:6035101D          jnz     short loc_60351031
+.text:6035101F          call    sub_603510F0
+.text:60351024          mov     ecx, eax
+.text:60351026          mov     eax, dword_60353014
+.text:6035102B          mov     hModule, ecx
+.text:60351031
+.text:60351031 loc_60351031:    ; CODE XREF: sub\_60351000+1D
+.text:60351031          test    ecx, ecx
+.text:60351033          jbe     short loc_6035104F
+.text:60351035          push    offset ProcName ; "ax\_reg"
+.text:6035103A          push    ecx             ; hModule
+.text:6035103B          call    ds:GetProcAddress
+...
+\end{lstlisting}
+
+Ouah, la chaîne \q{ax\_reg} me dit quelque chose.
+
+C'est en effet la première chaîne dans le bloc de chaîne!
+Donc le nom de cette fonction semble être \q{ax\_reg}.
+
+La seconde fonction est:
+
+\begin{lstlisting}[style=customasmx86]
+.text:60351080 sub_60351080    proc near
+.text:60351080
+.text:60351080 arg_0    = dword ptr  8
+.text:60351080 arg_4    = dword ptr  0Ch
+.text:60351080
+.text:60351080          push    ebp
+.text:60351081          mov     ebp, esp
+.text:60351083          mov     eax, dword_60353018
+.text:60351088          cmp     eax, 0FFFFFFFFh
+.text:6035108B          jnz     short loc_603510CF
+.text:6035108D          mov     ecx, hModule
+.text:60351093          xor     eax, eax
+.text:60351095          cmp     ecx, 0FFFFFFFFh
+.text:60351098          mov     dword_60353018, eax
+.text:6035109D          jnz     short loc_603510B1
+.text:6035109F          call    sub_603510F0
+.text:603510A4          mov     ecx, eax
+.text:603510A6          mov     eax, dword_60353018
+.text:603510AB          mov     hModule, ecx
+.text:603510B1
+.text:603510B1 loc_603510B1:    ; CODE XREF: sub\_60351080+1D
+.text:603510B1          test    ecx, ecx
+.text:603510B3          jbe     short loc_603510CF
+.text:603510B5          push    offset aAx_unreg ; "ax\_unreg"
+.text:603510BA          push    ecx             ; hModule
+.text:603510BB          call    ds:GetProcAddress
+...
+\end{lstlisting}
+
+La chaîne \q{ax\_unreg} est aussi la seconde chaîne dans le bloc de chaîne!
+
+L'adresse de début de la seconde fonction est \TT{0x60351080}, et la seconde
+valeur dans le bloc binaire est \TT{10001080}.
+Donc ceci est l'adresse, mais pour une DLL avec l'adresse de base par défaut.
+
+Nous pouvons rapidement vérifier et être sûr que les 66 premières valeurs dans
+le tableau (i.e., la première moitié du tableau) sont simplement les adresses des
+fonctions dans la DLL, incluant quelques labels, etc.
+Bien, qu'est-ce que l'autre partie du tableau?
+Les autres 66 valeurs qui commencent par \TT{0x0000}?
+Elles semblent être dans l'intervalle \TT{[0...0x3F8]}.
+Et elles ne ressemblent pas à des champs de bits:
+la série de nombres augmente.
+
+Le dernier chiffre hexadécimal semble être aléatoire, donc, il est peu probable
+que ça soit l'adresse de quelque chose (il serait divisible par 4 ou peut-être
+8 ou 0x10 autrement).
+
+Demandons-nous: qu'est-ce que les développeurs d'\oracle pourraient avoir sauvegardé
+ici, dans ce fichier?
+
+Supposition rapide: ça pourrait être l'adresse de la chaîne de texte (nom de la
+fonction).
+
+Ça peut être vérifié rapidement, et oui, chaque nombre est simplement la position
+du premier caractère dans le bloc de chaînes.
+
+Ça y est! C'est fini.
+
+\myindex{IDA}
+Nous allons écrire un utilitaire pour convertir ces fichiers .SYM en un script
+\IDA, donc nous pourrons charger le script .idc et mettre les noms de fonction:
+
+\lstinputlisting[style=customc]{ff/Oracle_SYM/unpacker.c}
+
+Voici un exemple de comment ça fonctionne:
+
+\begin{lstlisting}[style=customc]
+#include <idc.idc>
+
+static main() {
+	MakeName(0x60351000, "_ax_reg");
+	MakeName(0x60351080, "_ax_unreg");
+	MakeName(0x603510F0, "_loaddll");
+	MakeName(0x60351150, "_wtcsrin0");
+	MakeName(0x60351160, "_wtcsrin");
+	MakeName(0x603511C0, "_wtcsrfre");
+	MakeName(0x603511D0, "_wtclkm");
+	MakeName(0x60351370, "_wtcstu");
+...
+}
+\end{lstlisting}
+
+Les fichiers d'exemple qui ont été utilisés dans cet exemple sont ici:
+\href{http://beginners.re/examples/oracle/SYM/}{beginners.re}.
+
+\clearpage
+Oh, essayons avec \oracle pour win64.
+Les adresses devraient faire 64-bit, n'est-ce pas?
+
+Le motif sur 8 octets est visible encore plus facilement ici:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/Oracle_SYM/whole64.png}
+\caption{Exemple de fichier .SYM d'\oracle pour win64}
+\label{fig:oracle_SYM_whole64}
+\end{figure}
+
+Donc oui, toutes les tables ont maintenant des éléments 64-bit, même les offsets
+de chaîne!
+
+La signature est maintenant \TT{OSYMAM64}, pour distinguer la plate-forme cible,
+apparemment.
+
+C'est fini!
+
+Voici aussi la bibliothèque qui a des fonctions pour accéder les fichiers .SYM
+d'\oracle:
+\href{https://github.com/DennisYurichev/porg/blob/master/lib/oracle_sym.c}{GitHub}.

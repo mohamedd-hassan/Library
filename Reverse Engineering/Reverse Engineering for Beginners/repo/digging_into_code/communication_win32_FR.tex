@@ -1,0 +1,147 @@
+\mysection{Communication avec le monde extérieur (win32)}
+
+Parfois, il est suffisant d'observer les entrées/sorties d'une fonction pour comprendre
+ce qu'elle fait.
+Ainsi, vous pouvez gagner du temps.
+
+Accès aux fichiers et au registre:
+pour les analyses très basiques, l'utilitaire, Process Monitor\footnote{\url{http://technet.microsoft.com/en-us/sysinternals/bb896645.aspx}}
+de SysInternals peut aider.
+
+Pour l'analyse basique des accès au réseau, Wireshark\footnote{\url{http://www.wireshark.org/}}
+peut être utile.
+
+Mais vous devrez de toutes façons regarder à l'intérieur, \\
+\\
+Les premières choses à chercher sont les fonctions des \ac{API}s de l'\ac{OS} et
+des bibliothèques standards qui sont utilisées.
+
+Si le programme est divisé en un fichier exécutable et un groupe de fichiers DLL,
+parfois le nom des fonctions dans ces DLLs peut aider.
+
+Si nous sommes intéressés par exactement ce qui peut conduire à appeler \TT{MessageBox()}
+avec un texte spécifique, nous pouvons essayer de trouver ce texte dans le segment
+de données, trouver sa référence et trouver les points depuis lesquels le contrôle
+peut être passé à l'appel à \TT{MessageBox()} qui nous intéresse.
+
+\myindex{\CStandardLibrary!rand()}
+Si nous parlons d'un jeu vidéo et que nous sommes intéressés par les évènements qui
+y sont plus ou moins aléatoires, nous pouvons essayer de trouver la fonction \rand
+ou sa remplaçante (comme l'algorithme du twister de Mersenne) et trouver les points
+depuis lesquels ces fonctions sont appelées, et plus important, comment les résultats
+sont utilisés.
+% BUG in varioref: http://tex.stackexchange.com/questions/104261/varioref-vref-or-vpageref-at-page-boundary-may-loop
+Un exemple: \myref{chap:color_lines}.
+
+Mais si ce n'est pas un jeu, et que \rand est toujours utilisé, il est intéressant
+de savoir pourquoi.
+Il a y des cas d'utilisation inattendu de \rand dans des algorithmes de compression
+de données (pour une imitation du chiffrement):
+\href{http://blog.yurichev.com/node/44}{blog.yurichev.com}.
+
+\subsection{Fonctions souvent utilisées dans l'API Windows}
+
+Ces fonctions peuvent être parmi les fonctions importées.
+Il est utile de noter que toutes les fonctions ne sont pas forcément utilisées dans
+du code écrit par le programmeur.
+Beaucoup de fonctions peuvent être appelées depuis des fonctions de bibliothèque
+et du code \ac{CRT}.
+
+Certaines fonctions peuvent avoir le suffixe \GTT{-A} pour la version ASCII et \GTT{-W}
+pour la version Unicode.
+
+\begin{itemize}
+
+\item
+Accès au registre (advapi32.dll): 
+RegEnumKeyEx, RegEnumValue, RegGetValue, RegOpenKeyEx, RegQueryValueEx.
+
+\item
+Accès au text des fichiers .ini (kernel32.dll):
+GetPrivateProfileString.
+
+\item
+Boites de dialogue (user32.dll):
+MessageBox, MessageBoxEx, CreateDialog, SetDlgItemText, GetDlgItemText.
+
+\item
+Accès aux resources (\myref{PEresources}): (user32.dll): LoadMenu.
+
+\item
+Réseau TCP/IP (ws2\_32.dll):
+WSARecv, WSASend.
+
+\item
+Accès fichier (kernel32.dll):
+CreateFile, ReadFile, ReadFileEx, WriteFile, WriteFileEx.
+
+\item
+Accès haut niveau à Internet (wininet.dll):
+WinHttpOpen.
+
+\item
+Vérifier la signature digitale d'uin fichier exécutable (wintrust.dll):
+WinVerifyTrust.
+
+\item
+La bibliothèque MSVC standard (si elle est liée dynamiquement) (msvcr*.dll):
+assert, itoa, ltoa, open, printf, read, strcmp, atol, atoi, fopen, fread, fwrite, memcmp, rand,
+strlen, strstr, strchr.
+
+\end{itemize}
+
+\subsection{Étendre la période d'essai}
+
+Les fonctions d'accès au registre sont des cibles fréquentes pour ceux qui veulent
+essayer de craquer des logiciels avec période d'essai, qui peuvent sauvegarder la
+date et l'heure dans un registre.
+
+Des autres cibles courantes sont les fonctions GetLocalTime() et GetSystemTime():
+un logiciel avec période d'essai, à chaque démarrage, doit de toutes façons vérifier
+la date et l'heure d'une certaine façon.
+
+\subsection{Supprimer la boite de dialogue nag}
+
+Une manière répandue de trouver ce qui cause l'apparition de la boite de dialogue
+nag est d'intercepter les fonctions MessageBox(), CreateDialog() et CreateWindow().
+
+\subsection{tracer: Intercepter toutes les fonctions dans un module spécifique}
+\myindex{tracer}
+
+\myindex{x86!\Instructions!INT3}
+Il y a un point d'arrêt INT3 dans \tracer, qui peut être déclenché seulement une
+fois, toutefois, il peut être mis pour toutes les fonctions dans une DLL spécifique.
+
+\begin{lstlisting}
+--one-time-INT3-bp:somedll.dll!.*
+\end{lstlisting}
+
+Ou, mettons un point d'arrêt INT3 sur toutes les fonctions avec le préfixe \TT{xml}
+dans leur nom:
+
+\begin{lstlisting}
+--one-time-INT3-bp:somedll.dll!xml.*
+\end{lstlisting}
+
+Le revers de la médaille est que de tels points d'arrêt ne sont déclenchés qu'une fois.
+Tracer montrera l'appel à une fonction, s'il se produit, mais seulement une fois.
+Un autre inconvénient---il est impossible de voir les arguments de la fonction.
+
+Néanmoins, cette fonctionnalité est très utile lorsque vous avez qu'un programme
+utilise une DLL, mais que vous ne savez pas quelles fonctions sont effectivement
+utilisées.
+Et il y a beaucoup de fonctions.
+
+\par
+\myindex{Cygwin}
+Par exemple, regardons ce qu'utilise l'utilitaire uptime de Cygwin:
+
+\begin{lstlisting}
+tracer -l:uptime.exe --one-time-INT3-bp:cygwin1.dll!.*
+\end{lstlisting}
+
+Ainsi nous pouvons voir quelles sont les fonctions de la bibliothèque cygwin1.dll
+qui sont appelées au moins une fois, et depuis où:
+
+\lstinputlisting{digging_into_code/uptime_cygwin.txt}
+

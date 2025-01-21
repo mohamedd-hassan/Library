@@ -1,0 +1,136 @@
+﻿\subsection{ベクトル化}
+
+\newcommand{\URLVEC}{\href{http://en.wikipedia.org/wiki/Vectorization_(computer_science)}{Wikipedia: vectorization}}
+
+ベクトル化\footnote{\URLVEC}は、たとえば、入力用に2つの配列を取り、1つの配列を生成するループがある場合です。
+ループ本体は入力配列から値を受け取り、何かを実行して結果を出力配列に入れます。
+%It is important that there is only a single operation applied to each element.
+ベクトル化は、いくつかの要素を同時に処理することです。
+
+\myindex{Cray}
+ベクトル化はそれほど新鮮なテクノロジではありません。この教科書の作者は、少なくとも
+1988年のCray Y-MPスーパーコンピュータラインで、その\q{ライト}バージョンのCray Y-MP EL 179を使ったことを見ました。
+\footnote{リモートから。それはスーパーコンピュータの博物館に設置されています: \url{http://www.cray-cyber.org}}.
+
+% FIXME! add assembly listing!
+例えば：
+
+\begin{lstlisting}[style=customc]
+for (i = 0; i < 1024; i++)
+{
+    C[i] = A[i]*B[i];
+}
+\end{lstlisting}
+
+このコード片は、AとBから要素を取り出し、それらを乗算して結果をCに保存します。
+
+\myindex{x86!\Instructions!PLMULLD}
+\myindex{x86!\Instructions!PLMULHW}
+\newcommand{\PMULLD}{\emph{PMULLD} (\emph{Multiply Packed Signed Dword Integers and Store Low Result})}
+\newcommand{\PMULHW}{\TT{PMULHW} (\emph{Multiply Packed Signed Integers and Store High Result})}
+
+各配列要素が32ビット \Tint の場合、Aから128ビットのXMMレジスタへ、Bから別のXMMレジスタへ、
+\PMULLD{} および \PMULHW{}を実行することで、一度に4つの64ビット\glspl{product}を取得できます。
+
+したがって、ループ本体の実行数は1024ではなく$1024/4$となり、4倍少なくなり、もちろん高速になります。
+
+\newcommand{\URLINTELVEC}{\href{http://www.intel.com/intelpress/sum_vmmx.htm}{Excerpt: Effective Automatic Vectorization}}
+
+\subsubsection{加算の例}
+
+\myindex{Intel C++}
+
+Intel C++\footnote{インテルC ++自動ベクトル化についての詳細: \URLINTELVEC}のように、
+単純な場合には自動的にベクトル化を実行できるコンパイラーもあります。
+
+これが小さな機能です。
+
+\begin{lstlisting}[style=customc]
+int f (int sz, int *ar1, int *ar2, int *ar3)
+{
+	for (int i=0; i<sz; i++)
+		ar3[i]=ar1[i]+ar2[i];
+
+	return 0;
+};
+\end{lstlisting}
+
+\myparagraph{Intel C++}
+
+それをIntel C++ 11.1.051 win32でコンパイルしましょう。
+
+\begin{verbatim}
+icl intel.cpp /QaxSSE2 /Faintel.asm /Ox
+\end{verbatim}
+
+（\IDA で）次の結果を得ました。
+
+\lstinputlisting[style=customasmx86]{patterns/19_SIMD/18_1_JA.asm}
+
+SSE2関連の命令は以下のとおりです。
+\myindex{x86!\Instructions!MOVDQA}
+\myindex{x86!\Instructions!MOVDQU}
+\myindex{x86!\Instructions!PADDD}
+\begin{itemize}
+\item
+\MOVDQU (\emph{Move Unaligned Double Quadword})---メモリから16バイトをXMMレジスタにロードします
+
+\item
+\PADDD (\emph{Add Packed Integers})---4対の32ビット数を加算し、その結果を最初のオペランドに残します。
+ちなみに、オーバーフローが発生しても例外は発生せず、フラグも設定されません。
+結果の下位32ビットだけが格納されます。 
+\PADDD のオペランドの1つがメモリ内の値のアドレスである場合、
+そのアドレスは16バイト境界に揃えられている必要があります。
+整列されていない場合は、例外が発生します。
+
+\item
+\MOVDQA (\emph{Move Aligned Double Quadword})
+はMOVDQUと同じですが、メモリ内の値のアドレスを16ビット境界に揃える必要があります。
+整列されていないと、例外が発生します。 
+\MOVDQA は \MOVDQU よりも高速に動作しますが、前述のものが必要です。
+
+\end{itemize}
+
+そのため、これらのSSE2命令は、作業するペアが4つ以上あり、
+ポインタ\TT{ar3}が16バイト境界に整列している場合にのみ実行されます。
+
+また、\TT{ar2}が16バイト境界にも揃えられている場合は、
+次のコードが実行されます。
+
+\begin{lstlisting}[style=customasmx86]
+movdqu  xmm0, xmmword ptr [ebx+edi*4] ; ar1+i*4
+paddd   xmm0, xmmword ptr [esi+edi*4] ; ar2+i*4
+movdqa  xmmword ptr [eax+edi*4], xmm0 ; ar3+i*4
+\end{lstlisting}
+
+そうでなければ、\TT{ar2}からの値は、 \MOVDQU を使用して\XMM{0}にロードされます。
+これは、位置合わせされたポインターを必要としませんが、遅くなる可能性があります。
+
+\lstinputlisting[style=customasmx86]{patterns/19_SIMD/18_1_excerpt_JA.asm}
+
+それ以外の場合は、SSE2以外のコードが実行されます。
+
+\myparagraph{GCC}
+
+\newcommand{\URLGCCVEC}{\url{http://gcc.gnu.org/projects/tree-ssa/vectorization.html}}
+
+\Othree オプションが使用され、SSE2サポートがオンになっている場合、
+GCCは単純な場合にもベクトル化することがあります\footnote{GCCベクトル化サポートについての詳細は: \URLGCCVEC}
+
+以下を得ます（GCC 4.4.1）。
+
+\lstinputlisting[style=customasmx86]{patterns/19_SIMD/18_2_gcc_O3.asm}
+
+しかし、ほぼ同じですが、Intel C++ほど細心の注意を払っていません。
+
+\subsubsection{メモリコピーの例}
+\label{vec_memcpy}
+
+簡単なmemcpy()の例をもう一度見てみましょう。
+(\myref{loop_memcpy}):
+
+\lstinputlisting[style=customc]{memcpy.c}
+
+GCC 4.9.1の最適化によるものです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 x64,style=customasmx86]{patterns/19_SIMD/memcpy_GCC49_x64_O3_JA.s}

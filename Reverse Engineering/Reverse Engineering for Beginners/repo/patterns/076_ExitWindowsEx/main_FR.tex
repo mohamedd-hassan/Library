@@ -1,0 +1,48 @@
+\mysection{Blague de l'arrêt impossible (Windows 7)}
+
+\myindex{Windows 98}
+\myindex{user32.dll}
+Je ne me rappelle pas vraiment comment j'ai découvert la fonction \verb|ExitWindowsEx()|
+dans le fichier user32.dll de Windows 98 (c'était à la fin des années 1990)
+J'ai probablement juste remarqué le nom évocateur.
+Et j'ai ensuite essayé de la \emph{bloquer} en modifiant son début par l'octet 0xC3 byte (\INS{RETN}).
+
+Le résultat était rigolo: Windows 98 ne pouvait plus être arrêté.
+Il fallait appuyer sur le bouton reset.
+
+Ces jours, j'ai essayé de faire de même dans Windows 7, qui a été créé presque
+10 ans après et qui est basé sur une base Windows NT complètement différente.
+Quand même, la fonction \verb|ExitWindowsEx()| est présente dans le fichier
+user32.dll et sert à la même chose.
+
+Premièrement, j'ai arrêté \emph{Windows File Protection} en ajoutant ceci dans la
+base de registres (sinon Windows restaurerai silencieusement les fichiers système
+modifiés):
+
+\myindex{Windows File Protection}
+\begin{lstlisting}
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+"SFCDisable"=dword:ffffff9d
+\end{lstlisting}
+
+\myindex{Hiew}
+\myindex{IDA}
+Puis, j'ai renommé \verb|c:\windows\system32\user32.dll| en \verb|user32.dll.bak|.
+J'ai trouvé l' entrée de l'export \verb|ExitWindowsEx()| en utilisant Hiew (\IDA
+peut aider de même) et y ai mis l'octet 0xC3.
+J'ai redémarré Windows 7 et maintenant on ne peut plus l'arrêter.
+Les boutons "Restart" et "Logoff" ne fonctionnent plus.
+
+Je ne sais pas si c'est rigolo aujourd'hui ou pas, mais dans le passé, à la fin
+des années 1990, mon ami a pris le fichier user32.dll patché sur une disquette
+et l'a copié sur tous les ordinateurs (à portée de main, qui fonctionnaient sous
+Windows 98 (presque tous)) de son université.
+Plus aucun ordinateur sous Windows ne pouvait être arrêté après et son professeur
+d'informatique était rouge.
+(Espérons qu'il puisse nous pardonner aujourd'hui s'il lit ceci maintenant.)
+
+Si vous faîtes ça, sauvegardez tout.
+La meilleure idée est de lancer Windows dans une machine virtuelle.
+

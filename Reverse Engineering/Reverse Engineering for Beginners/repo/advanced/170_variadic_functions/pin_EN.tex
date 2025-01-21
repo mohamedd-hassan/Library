@@ -1,0 +1,34 @@
+\subsection{Pin case}
+
+\myindex{Pin}
+It's interesting to note how some functions from Pin \ac{DBI} framework takes number of arguments:
+
+\begin{lstlisting}[style=customc]
+            INS_InsertPredicatedCall(
+                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
+                IARG_INST_PTR,
+                IARG_MEMORYOP_EA, memOp,
+                IARG_END);
+\end{lstlisting}
+( \TT{pinatrace.cpp} )
+
+And this is how \TT{INS\_InsertPredicatedCall()} function is declared:
+
+\begin{lstlisting}[style=customc]
+extern VOID INS_InsertPredicatedCall(INS ins, IPOINT ipoint, AFUNPTR funptr, ...);
+\end{lstlisting}
+( \TT{pin\_client.PH} )
+
+Hence, constants with names starting with \TT{IARG\_} are some kinds of arguments to the function,
+which are handled inside of \TT{INS\_InsertPredicatedCall()}.
+You can pass as many arguments, as you need.
+Some commands has additional argument(s), some are not.
+Full list of arguments:
+\url{https://software.intel.com/sites/landingpage/pintool/docs/58423/Pin/html/group__INST__ARGS.html}.
+And it has to be a way to detect an end of arguments list, so the list must be terminated with \TT{IARG\_END} constant,
+without which, the function will (try to) handle random noise in the local stack, treating it as additional arguments.
+
+\myindex{Python}
+Also, in [\RobPikePractice] we can find a nice example of C/C++ routines very similar to
+\emph{pack/unpack}\footnote{\url{https://docs.python.org/3/library/struct.html}} in Python.
+

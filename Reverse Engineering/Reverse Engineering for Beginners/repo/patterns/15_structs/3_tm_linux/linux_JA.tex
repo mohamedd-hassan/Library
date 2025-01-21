@@ -1,0 +1,85 @@
+﻿\subsubsection{Linux}
+
+Linuxの\TT{time.h}の\TT{tm}構造体を例にとりましょう。
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/GCC_tm.c}
+
+GCC 4.4.1でコンパイルしましょう。
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/15_structs/3_tm_linux/GCC_tm_JA.asm}
+
+どういうわけか、 \IDA はローカルスタックにローカル変数を書き込みませんでした。
+しかし、経験を積んだリバース・エンジニアなので :-) この単純な例では情報なしで実行できるかもしれません。
+
+\myindex{x86!\Instructions!LEA}
+
+\TT{lea edx, [eax+76Ch]}にも注意してください。この命令は\TT{0x76C} (1900)を \EAX の値に追加するだけですが、
+フラグは変更しません。 \LEA{}~(\myref{sec:LEA})に関する関連セクションも参照してください。
+
+\myparagraph{GDB}
+
+例をGDBにロードしてみましょう。
+\footnote{デモの目的で、\emph{date}の結果が少し修正されます。 
+もちろん、同じ秒で、GDBをすばやく実行することはできません。}
+
+\lstinputlisting[caption=GDB]{patterns/15_structs/3_tm_linux/GCC_tm_GDB.txt}
+
+私たちは簡単にスタック内の構造を見つけることができます。
+まず、\emph{time.h}でどのように定義されているのかを見てみましょう。
+
+\begin{lstlisting}[caption=time.h, label=struct_tm,style=customc]
+struct tm
+{
+  int	tm_sec;
+  int	tm_min;
+  int	tm_hour;
+  int	tm_mday;
+  int	tm_mon;
+  int	tm_year;
+  int	tm_wday;
+  int	tm_yday;
+  int	tm_isdst;
+};
+\end{lstlisting}
+
+ここでは、SYSTEMTIMEのWORDの代わりに32ビット \Tint 
+が使用されていることに注意してください。 
+したがって、各フィールドは32ビットを占有します。
+
+スタック内の構造体のフィールドは次のとおりです。
+
+\lstinputlisting{patterns/15_structs/3_tm_linux/stack.txt}
+
+またはテーブルとして。
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} 16進数 & 
+\headercolor{} 10進数 & 
+\headercolor{} フィールド名 \\
+\hline
+0x00000025 & 37 	& tm\_sec \\
+\hline
+0x0000000a & 10 	& tm\_min \\
+\hline
+0x00000012 & 18 	& tm\_hour \\	
+\hline
+0x00000002 & 2 		& tm\_mday \\	
+\hline
+0x00000005 & 5 		& tm\_mon \\	
+\hline
+0x00000072 & 114 	& tm\_year \\
+\hline
+0x00000001 & 1 		& tm\_wday \\	
+\hline
+0x00000098 & 152 	& tm\_yday \\	
+\hline
+0x00000001 & 1 		& tm\_isdst \\
+\hline
+\end{tabular}
+\end{center}
+
+SYSTEMTIMEと同じように（\myref{sec:SYSTEMTIME}）
+
+tm\_wday, tm\_yday, tm\_isdstなど、使用されていない他のフィールドも使用できます。

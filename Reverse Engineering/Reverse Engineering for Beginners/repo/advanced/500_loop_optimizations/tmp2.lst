@@ -1,0 +1,14 @@
+.text:080484D0                 public sum_of_a_v2
+.text:080484D0 sum_of_a_v2     proc near
+.text:080484D0                 xor     eax, eax
+.text:080484D2                 mov     edx, offset a
+.text:080484D7                 mov     esi, esi
+.text:080484D9                 lea     edi, [edi+0]
+.text:080484E0
+.text:080484E0 loc_80484E0:            ; \verb|CODE XREF: sum_of_a_v2+1B|
+.text:080484E0                 add     eax, [edx]
+.text:080484E2                 add     edx, 4
+.text:080484E5                 cmp     edx, offset __libc_start_main@@GLIBC_2_0
+.text:080484EB                 jnz     short loc_80484E0
+.text:080484ED                 rep retn
+.text:080484ED sum_of_a_v2     endp

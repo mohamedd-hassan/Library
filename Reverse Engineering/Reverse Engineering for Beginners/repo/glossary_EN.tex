@@ -1,0 +1,305 @@
+\newglossaryentry{tail call}
+{
+  name=tail call,
+  description={It is when the compiler (or interpreter) transforms the recursion
+  (\emph{tail recursion}) into an iteration for efficiency}
+}
+
+\newglossaryentry{endianness}
+{
+  name=endianness,
+  description={Byte order}
+}
+
+\newglossaryentry{caller}
+{
+  name=caller,
+  description={A function calling another}
+}
+
+\newglossaryentry{callee}
+{
+  name=callee,
+  description={A function being called by another}
+}
+
+\newglossaryentry{debuggee}
+{
+  name=debuggee,
+  description={A program being debugged}
+}
+
+\newglossaryentry{leaf function}
+{
+  name=leaf function,
+  description={A function which does not call any other function}
+}
+
+\newglossaryentry{link register}
+{
+  name=link register,
+  description=(RISC) {A register where the return address is usually stored.
+  This makes it possible to call leaf functions without using the stack, i.e., faster}
+}
+
+\newglossaryentry{anti-pattern}
+{
+  name=anti-pattern,
+  description={Generally considered as bad practice}
+}
+
+\newglossaryentry{stack pointer}
+{
+  name=stack pointer,
+  description={A register pointing to a place in the stack}
+}
+
+\newglossaryentry{decrement}
+{
+  name=decrement,
+  description={Decrease by 1}
+}
+
+\newglossaryentry{increment}
+{
+  name=increment,
+  description={Increase by 1}
+}
+
+\newglossaryentry{loop unwinding}
+{
+  name=loop unwinding,
+  description={It is when a compiler, instead of generating loop code for $n$ iterations, generates just $n$ copies of the
+  loop body, in order to get rid of the instructions for loop maintenance}
+}
+
+\newglossaryentry{register allocator}
+{
+  name=register allocator,
+  description=
+  {The part of the compiler that assigns CPU registers to local variables}
+}
+
+\newglossaryentry{quotient}
+{
+  name=quotient,
+  description={Division result}
+}
+
+\newglossaryentry{product}
+{
+  name=product,
+  description={Multiplication result}
+}
+
+\newglossaryentry{NOP}
+{
+  name=NOP,
+  description={\q{no operation}, idle instruction}
+}
+
+\newglossaryentry{POKE}
+{
+  name=POKE,
+  description={BASIC language instruction for writing a byte at a specific address}
+}
+
+\newglossaryentry{keygenme}
+{
+  name=keygenme,
+  description={A program which imitates software protection,
+  for which one needs to make a key/license generator}
+} % TODO clarify: A software which generate key/license value to bypass sotfware protection?
+
+\newglossaryentry{dongle}
+{
+  name=dongle,
+  description={Dongle is a small piece of hardware connected to LPT printer port (in past) or to USB}
+}
+
+\newglossaryentry{thunk function}
+{
+  name=thunk function,
+  description={Tiny function with a single role: call another function}
+}
+
+\newglossaryentry{user mode}
+{
+  name=user mode,
+  description={A restricted CPU mode in which it all application software code is executed. cf. \gls{kernel mode}}
+}
+
+\newglossaryentry{kernel mode}
+{
+  name=kernel mode,
+  description={A restrictions-free CPU mode in which the OS kernel and drivers execute. cf. \gls{user mode}}
+}
+
+\newglossaryentry{Windows NT}
+{
+  name=Windows NT,
+  description={Windows NT, 2000, XP, Vista, 7, 8, 10}
+}
+
+\newglossaryentry{atomic operation}
+{
+  name=atomic operation,
+  description={
+  \q{$\alpha{}\tau{}o\mu{}o\varsigma{}$}
+  %\q{atomic}
+  stands for \q{indivisible} in Greek, so an atomic operation is guaranteed not
+  to be interrupted by other threads}
+}
+
+% to be proofreaded (begin)
+\newglossaryentry{NaN}
+{
+  name=NaN,
+  description={not a number: 
+  	a special cases for floating point numbers, usually signaling about errors}
+}
+
+\newglossaryentry{basic block}
+{
+  name=basic block,
+  description={
+	a group of 
+	instructions that do not have jump/branch instructions, and also don't have
+	jumps inside the block from the outside.
+	In \IDA it looks just like as a list of instructions without empty lines}
+}
+
+\newglossaryentry{NEON}
+{
+  name=NEON,
+  description={\ac{AKA} \q{Advanced SIMD}---\ac{SIMD} from ARM}
+}
+
+\newglossaryentry{reverse engineering}
+{
+  name=reverse engineering,
+  description={act of understanding how the thing works, sometimes in order to clone it}
+}
+
+\newglossaryentry{compiler intrinsic}
+{
+  name=compiler intrinsic,
+  description={A function specific to a compiler which is not an usual library function.
+	The compiler generates a specific machine code instead of a call to it.
+	Often, it's a pseudofunction for a specific \ac{CPU} instruction. Read more:}
+ (\myref{sec:compiler_intrinsic})
+}
+
+\newglossaryentry{heap}
+{
+  name=heap,
+  description={usually, a big chunk of memory provided by the \ac{OS} so that applications can divide it by themselves as they wish.
+  malloc()/free() work with the heap}
+}
+
+\newglossaryentry{name mangling}
+{
+  name=name mangling,
+  description={used at least in \Cpp, where the compiler needs to encode the name of class, method and argument types in one string,
+  which will become the internal name of the function. You can read more about it here: \myref{namemangling}}
+}
+
+\newglossaryentry{xoring}
+{
+  name=xoring,
+  description={often used in the English language, which implying applying the \ac{XOR} operation}
+}
+
+\newglossaryentry{security cookie}
+{
+  name=security cookie,
+  description={A random value, different at each execution. You can read more about it here:
+  \myref{subsec:BO_protection}}
+}
+
+\newglossaryentry{tracer}
+{
+  name=tracer,
+  description={My own simple debugging tool. You can read more about it here: \myref{tracer}}
+}
+
+\newglossaryentry{GiB}
+{
+  name=GiB,
+  description={Gibibyte: $2^{30}$ or 1024 mebibytes or 1073741824 bytes}
+}
+
+\newglossaryentry{CP/M}
+{
+  name=CP/M,
+  description={Control Program for Microcomputers: a very basic disk \ac{OS} used before MS-DOS}
+}
+
+\newglossaryentry{stack frame}
+{
+  name=stack frame,
+  description={A part of the stack that contains information specific to the current function:
+  local variables, function arguments, \ac{RA}, etc.}
+}
+
+\newglossaryentry{jump offset}
+{
+  name=jump offset,
+  description={a part of the JMP or Jcc instruction's opcode, 
+  to be added to the address
+  of the next instruction, and this is how the new \ac{PC} is calculated. May be negative as well}
+}
+
+\newglossaryentry{integral type}
+{
+  name=integral data type,
+  description={usual numbers, but not a real ones. may be used for passing variables of boolean data type and enumerations}
+}
+
+\newglossaryentry{real number}
+{
+  name={real number},
+  description={numbers which may contain a dot. this is \Tfloat and \Tdouble in \CCpp}
+}
+
+\newglossaryentry{PDB}
+{
+  name=PDB,
+  description={(Win32) Debugging information file, usually just function names, but sometimes also function
+  arguments and local variables names}
+}
+
+\newglossaryentry{NTAPI}
+{
+  name=NTAPI,
+  description={\ac{API} available only in the Windows NT line.  Largely not documented by Microsoft}
+}
+
+\newglossaryentry{stdout}
+{
+  name=stdout,
+  description={standard output}
+}
+
+\newglossaryentry{word}
+{
+  name=word,
+  description={data type fitting in \ac{GPR}.
+  In the computers older than PCs, 
+  the memory size was often measured in words rather than bytes.}
+}
+
+\newglossaryentry{arithmetic mean}
+{
+  name=arithmetic mean,
+  description={a sum of all values divided by their count}
+}
+\newglossaryentry{padding}
+{
+  name=padding,
+  description={
+  \emph{Padding} in English language means to stuff a pillow with something
+  to give it a desired (bigger) form.
+  In computer science, padding means to add more bytes to a block so it will have desired size, like $2^n$ bytes.}
+}
+

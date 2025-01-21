@@ -1,0 +1,16 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+Même exemple:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/15_structs/3_tm_linux/ARM/tm_ARM_keil_thumb.asm}
+
+\myparagraph{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+\IDA reconnaît la structure \TT{tm} (car le logiciel a connaissance des arguments attendus par les 
+fonctions de la librairie telles que \TT{localtime\_r()}), 
+
+Il peut donc afficher les éléments de la structure ainsi que leurs noms.
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]{patterns/15_structs/3_tm_linux/ARM/tm_ARM_xcode_thumb.asm}

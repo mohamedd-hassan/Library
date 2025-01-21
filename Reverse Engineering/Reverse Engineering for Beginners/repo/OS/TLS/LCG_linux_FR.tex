@@ -1,0 +1,24 @@
+﻿\subsubsection{Linux}
+
+Voyons maintenant comment une variable globale conservée dans l'espace de stockage propre au thread 
+est déclarée avec GCC:
+
+\begin{lstlisting}
+__thread uint32_t rand_state=1234;
+\end{lstlisting}
+
+Il ne s'agit pas du modificateur standard \CCpp modifier, mais bien d'un modificateur spécifique à 
+GCC
+\footnote{\url{https://gcc.gnu.org/onlinedocs/gcc-3.3/gcc/C99-Thread-Local-Edits.html}}.
+
+\myindex{x86!\Registers!GS}
+
+Le sélecteur \TT{GS:} est utilisé lui aussi pour accéder au \ac{TLS}, mais d'une manière un peu 
+différente:
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1 x86,style=customasmx86]{OS/TLS/linux/rand.lst}
+
+% FIXME (to be checked) Uninitialized data is allocated in \TT{.tbss} section, initialized --- in \TT{.tdata} section.
+
+Pour en savoir plus: \DrepperTLS.
+

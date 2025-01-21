@@ -1,0 +1,92 @@
+﻿\subsubsection{ARM64}
+
+\myparagraph{GCC}
+
+ARM64環境で、GCC 4.8.1を使用してサンプルをコンパイルしましょう。
+
+\lstinputlisting[numbers=left,label=hw_ARM64_GCC,caption=\NonOptimizing GCC 4.8.1 + objdump,style=customasmARM]{patterns/01_helloworld/ARM/hw.lst}
+
+ARM64にはThumbモードとThumb-2モードはなく、ARMのみであるため、32ビット命令のみがあります。
+レジスタ数は2倍になります：\myref{ARM64_GPRs}
+64ビットレジスタは\TT{X-}プレフィックスを持ち、32ビット部分は\TT{W-}です。
+
+\myindex{ARM!\Instructions!STP}
+\TT{STP}命令（\emph{ストアペア}）は、スタック内の2つのレジスタ\RegX{29}と\RegX{30}を同時に保存します。
+
+もちろん、この命令はメモリ内の任意の場所にこのペアを保存できますが、
+ここで\ac{SP}レジスタが指定されているため、ペアはスタックに保存されます。
+
+ARM64レジスタは64ビットのレジスタで、それぞれ8バイトのサイズを持つため、2つのレジスタを保存するために16バイト必要です。
+
+オペランドの後の感嘆符(``!'')は、最初に16が\ac{SP}から減算され、
+次にスタックに書き込まれるレジスタ・ペアの値であることを意味します。
+これは\emph{事前インデックス}とも呼ばれます。\emph{事後インデックス}と\emph{事前インデックス}の違いについては、
+\myref{ARM_postindex_vs_preindex} を読んでください。
+
+したがって、より使い慣れたx86では、最初の命令は\TT{PUSH X29} と \TT{PUSH X30}のペアのアナログに過ぎません。
+\RegX{29}はARM64では\ac{FP}として、\ac{LR}では\RegX{30}として使用されているため、関数プロローグに保存され、関数エピローグで復元されます。
+
+2番目の命令は\RegX{29}（または\ac{FP}）の\ac{SP}をコピーします。
+これは、関数スタックフレームを設定するために行われます。
+
+\label{pointers_ADRP_and_ADD}
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+\TT{ADRP}命令と \ADD 命令は、最初の関数引数がこのレジスタに渡されるため、
+文字列\q{Hello!}のアドレスを\RegX{0}レジスタに入力するために使用されます。
+命令長は4バイトに制限されているため、レジスタに多数の命令を格納できる命令はありません。
+詳細は\myref{ARM_big_constants_loading}参照してください。
+したがって、いくつかの命令を利用する必要があります。最初の命令（\TT{ADRP}）は、文字列が配置されている4KiBページのアドレスを\RegX{0}に書き込み、
+2番目の命令（\ADD）は残りのアドレスをアドレスに追加するだけです。
+詳細については、\myref{ARM64_relocs}を参照してください。
+
+\TT{0x400000 + 0x648 = 0x400648}であり、このアドレスの\TT{.rodata}データセグメントにある\q{Hello!} C文字列を参照してください。
+
+\myindex{ARM!\Instructions!BL}
+
+\TT{BL}命令を使用して \puts を呼び出します。 これについては既に説明しました：\myref{puts}
+
+\MOV は\RegW{0}に0を書き込みます。 
+\RegW{0}は64ビット\RegX{0}レジスタの下位32ビットです。
+
+\input{ARM_X0_register_JA}
+
+関数の結果は\RegX{0}を介して返され、 \main は0を返します。これで、リターンされる結果がどのように準備されるのかがわかります。
+しかし、なぜ32ビットの部分を使用するのでしょうか？
+
+ARM64の \Tint データ型はx86-64の場合と同じように、互換性を高めるため、32ビットとなっています。
+
+関数が32ビット \Tint を返す場合は、\RegX{0}レジスタの下位32ビットのみを埋めなければなりません。
+
+これを確認するために、この例を少し変更して再コンパイルしましょう。 \main は64ビット値を返します：
+
+\begin{lstlisting}[caption=\main returning a value of \TT{uint64\_t} type,style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+uint64_t main()
+{
+        printf ("Hello!\n");
+        return 0;
+}
+\end{lstlisting}
+
+結果は同じですが、その行の \MOV は次のようになります：
+
+\begin{lstlisting}[caption=\NonOptimizing GCC 4.8.1 + objdump]
+  4005a4:       d2800000        mov     x0, #0x0      // #0
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!LDP}
+
+\INS{LDP} (\emph{Load Pair}) は\RegX{29}と\RegX{30}レジスタを復元します。
+
+命令の後には感嘆符はありません。これは、値が最初にスタックからロードされ、
+次に\ac{SP}が16だけ増加したことを意味します。
+これは\emph{事後インデックス}と呼ばれます。
+
+\myindex{ARM!\Instructions!RET}
+ARM64： \RET という新しい命令が登場しました。 
+これは\TT{BX LR}と同様に機能し、特別な\emph{ヒント}ビットのみが追加され、
+これが別のジャンプ命令ではなく関数からの戻りであることを\ac{CPU}に通知するので、より最適に実行できます。
+
+関数の単純さのために、GCCの最適化はまさに同じコードを生成します。

@@ -1,0 +1,150 @@
+\mysection{Blague avec le gestionnaire de tâche (Windows Vista)}
+\myindex{Windows!Windows Vista}
+
+Voyons s'il est possible de légèrement modifier le gestionnaire de tâches pour qu'il
+détecte plus de c\oe{}urs \ac{CPU}.
+
+\myindex{Windows!NTAPI}
+
+Demandons-nous d'abord, comment est-ce que le gestionnaire de tâches connait le nombre
+de c\oe{}urs?
+
+Il y a une fonction win32 \TT{GetSystemInfo()} présente dans l'espace utilisateur
+win32 qui peut nous dire ceci.
+Mais elle n'est pas importées dans \TT{taskmgr.exe}.
+
+Il y en a, toutefois, une autre dans \gls{NTAPI}, \TT{NtQuerySystemInformation()},
+qui est utilisée dans \TT{taskmgr.exe} à plusieurs endroits.
+
+Pour obtenir le nombre de c\oe{}urs,  il faut appeler cette fonction avec la constante
+\TT{SystemBasicInformation} comme premier argument (qui vaut zéro\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/desktop/ms724509(v=vs.85).aspx}{MSDN}}).
+
+Le second argument doit pointer vers le buffer qui va recevoir toute l'information.
+
+Donc nous devons trouver tous les appels à la fonction \\
+\TT{NtQuerySystemInformation(0, ?, ?, ?)}.
+Ouvrons \TT{taskmgr.exe} dans \IDA.
+\myindex{Windows!PDB}
+
+Ce qui est toujours bien avec les exécutables Microsoft, c'est que \IDA peut télécharger
+le fichier \gls{PDB} correspondant à cet exécutable et afficher les noms de toutes
+les fonctions. 
+
+Il est visible que le gestionnaire des tâches est écrit en \Cpp et certains noms
+de fonction et classes sont vraiment parlants.
+Il y a des classes CAdapter, CNetPage, CPerfPage, CProcInfo, CProcPage, CSvcPage, 
+CTaskPage, CUserPage.
+
+Il semble que chaque onglet du gestionnaire de tâches ait une classe correspondante.
+
+Regardons chaque appel et ajoutons un commentaire avec la valeur qui est passée comme
+premier argument de la fonction.
+Nous allons écrire \q{not zero} à certains endroits, car la valeur n'est clairement
+pas zéro, mais quelque chose de vraiment différent (plus à ce propos dans la seconde
+partie de ce chapitre).
+
+Et nous cherchons les zéros passés comme argument après tout.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/taskmgr/IDA_xrefs.png}
+\caption{IDA: références croisées vers NtQuerySystemInformation()}
+\end{figure}
+
+Oui, les noms parlent vraiment d'eux-même.
+
+Nous allons examiner précisément les endroits où\\
+\TT{NtQuerySystemInformation(0, ?, ?, ?)} est appelée,
+nous trouvons rapidement ce que nous cherchons dans la fonction \TT{InitPerfInfo()}:
+
+\lstinputlisting[caption=taskmgr.exe (Windows Vista),style=customasmx86]{examples/taskmgr/taskmgr.lst}
+
+\TT{g\_cProcessors} est une variable globale, et ce nom a été assigné par \IDA suivant
+le symbole \gls{PDB} chargé depuis le serveur de Microsoft.
+
+L'octet est pris de \TT{var\_C20}.
+Et \TT{var\_C58} est passée à\\
+\TT{NtQuerySystemInformation()} comme un pointeur sur le buffer de réception.
+La différence entre 0xC20 et 0xC58 est 0x38 (56).
+
+Regardons le format de la structure renvoyée, que nous pouvons trouver dans MSDN:
+
+\begin{lstlisting}[style=customc]
+typedef struct _SYSTEM_BASIC_INFORMATION {
+    BYTE Reserved1[24];
+    PVOID Reserved2[4];
+    CCHAR NumberOfProcessors;
+} SYSTEM_BASIC_INFORMATION;
+\end{lstlisting}
+
+Ceci est un système x64, donc chaque PVOID occupe 8 octets.
+
+Tous les champs réservés dans la structure occupent $24+4*8=56$ octets.
+
+Oh oui, ceci implique que \TT{var\_C20} dans la pile locale est exactement le champ
+\TT{NumberOfProcessors} de la structure \TT{SYSTEM\_BASIC\_INFORMATION}.
+
+Vérifions notre hypothèse.
+Copier \TT{taskmgr.exe} depuis \TT{C:\textbackslash{}Windows\textbackslash{}System32}
+dans un autre répertoire (ainsi le \emph{Windows Resource Protection} ne va pas essayer
+de restaurer l'ancienne version du \TT{taskmgr.exe} modifié).
+
+Ouvrons-le dans Hiew et trouvons l'endroit:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/taskmgr/hiew2.png}
+\caption{Hiew: trouver l'endroit à modifier}
+\end{figure}
+
+Remplaçons l'instruction \TT{MOVZX}  par la notre.
+Prétendons avoir un CPU 64 c\oe{}urs.
+
+Ajouter un \ac{NOP} additionnel (car notre instruction est plus courte que l'originale):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/taskmgr/hiew1.png}
+\caption{Hiew: modification effectuée}
+\end{figure}
+
+Et ça fonctionne!
+Bien sûr, les données dans les graphes ne sont pas correctes.
+
+À certains moments, le gestionnaire de tâches montre même une charge globale du CPU
+de plus de 100\%.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/taskmgr/taskmgr_64cpu_crop.png}
+\caption{Gestionnaire de tâches Windows fou}
+\end{figure}
+
+Le plus grand nombre avec lequel le gestionnaire de tâches ne plante pas est 64.
+
+Il semble que le gestionnaire de tâche de Windows Vista n'a pas été testé sur des
+ordinateurs avec un grand nombre de c\oe{}urs.
+
+Il doit y avoir une sorte de structure de données dedans. limitée à 64 c\oe{}urs
+(ou plusieurs).
+
+\subsection{Utilisation de LEA pour charger des valeurs}
+\label{TaskMgr_LEA}
+
+Parfois, \TT{LEA} est utilisée dans \TT{taskmgr.exe} au lieu de \TT{MOV} pour définir
+le premier argument de \\
+\TT{NtQuerySystemInformation()}:
+
+\lstinputlisting[caption=taskmgr.exe (Windows Vista),style=customasmx86]{examples/taskmgr/taskmgr2.lst}
+
+\myindex{x86!\Instructions!LEA}
+
+Peut-être que \ac{MSVC} fit ainsi car le code machine de \INS{LEA} est plus court
+que celui de \INS{MOV REG, 5} (il serait de 5 au lieu de 4).
+
+\INS{LEA} avec un offset dans l'intervalle $-128..127$ (l'offset occupe 1 octet dans
+l'opcode) avec des registres 32-bit est encore plus court (faute de préfixe REX )---3
+octets.
+
+Un autre exemple d'une telle chose: \myref{using_MOV_and_pack_of_LEA_to_load_values}.
+

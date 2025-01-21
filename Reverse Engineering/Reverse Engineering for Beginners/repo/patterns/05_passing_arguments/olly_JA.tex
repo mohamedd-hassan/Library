@@ -1,0 +1,26 @@
+\subsubsection{MSVC + \olly}
+\myindex{\olly}
+これを \olly で説明しましょう。 
+最初の引数（最初の引数）を使用する \ttf の最初の命令をトレースすると、
+\EBP が赤い四角でマークされた\gls{stack frame}を指していることがわかります。
+
+\gls{stack frame}の最初の要素は \EBP のセーブされた値であり、
+2番目の要素は\ac{RA}であり、3番目の要素は最初の関数の引数であり、2番目と3番目の要素です。
+
+最初の関数引数にアクセスするには、 \EBP にちょうど8（2つの32ビットワード）を追加する必要があります。
+
+\olly はこれを知っているので、 
+
+\q{RETURN from}や \q{Arg1 = \dots}などのスタック要素にコメントを追加しました。
+
+注意：関数の引数は、関数のスタックフレームのメンバーではなく、むしろ\gls{caller}関数のスタックフレームのメンバーです。
+
+したがって、 \olly は別のスタックフレームのメンバーとして \q{Arg}要素をマークしました。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/05_passing_arguments/olly.png}
+\caption{\olly: inside of \ttf{} function}
+\label{fig:passing_arguments_olly}
+\end{figure}
+

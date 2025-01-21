@@ -1,0 +1,232 @@
+\section{Cracker Minesweeper avec PIN}
+
+\newcommand{\RepoMinesweeperURL}{\RepoURL/DBI/minesweeper}
+
+Dans ce livre, j'ai expliqué comment cracker Minesweeper pour Windows XP: \myref{minesweeper_winxp}.
+
+Le Minesweeper de Windows Vista et 7 est différent: il a probablement été (r)écrit
+en C++, et l'information de la case n'est maintenant plus stockée dans un tableau
+global, mais plutôt dans des blocs du heap alloués par malloc.
+
+Ceci est un cas où nous pouvons essayer l'outil PIN DBI.
+
+\subsection{Intercepter tous les appels à rand()}
+
+Tout d'abord, puisque Minesweeper dispose les mines aléatoirement, il doit appeler
+rand() ou une fonction similaire.
+Essayons d'intercepter tous les appels à rand(): \url{\RepoMinesweeperURL/minesweeper1.cpp}.
+
+Nous pouvons maintenant le lancer:
+
+\begin{lstlisting}
+c:\pin-3.2-81205-msvc-windows\pin.exe -t minesweeper1.dll -- C:\PATH\TO\MineSweeper.exe
+\end{lstlisting}
+
+Durant le démarrage, PIN cherche tous les appels à la fonction rand() et ajoute un
+hook juste après chaque appel.
+Le hook est la fonction RandAfter() que nous avons défini: elle logue la valeur et l'adresse
+de retour.
+Voici un log que j'ai obtenu en lançant la configuration 9*9 standard (10 mines):
+ \url{\RepoMinesweeperURL/minesweeper1.out.10mines}.
+La fonction rand() a été appelée de nombreuses fois depuis différents endroits, mais
+a été appelée depuis 0x10002770d exactement 10 fois.
+J'ai changé la configuration de Minesweeper à 16*16 (40 mines) et rand() a été appelée
+40 fois depuis 0x10002770d.
+Donc oui, c'est ce que l'on cherche.
+Lorsque je charge minesweeper.exe (depuis Windows 7) dans IDA et une fois que le
+PDB est récupéré depuis le site web de Microsoft, la fonction qui appelle rand()
+en 0x10002770d est appelée Board::placeMines().
+
+\subsection{Remplacer les appels à rand() par notre function}
+
+Essayons maintenant de remplacer la fonction rand() avec notre version, qui renvoie
+toujours zéro: \url{\RepoMinesweeperURL/minesweeper2.cpp}.
+Durant le démarrage, PIN remplace tous les appels à la fonction rand() par des appels
+à notre fonction, qui écrit dans le log et renvoie zéro.
+Ok, je l'ai lancé et ai cliqué sur la case la plus en haut à gauche.
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{DBI/minesweeper/minesweeper1.png}
+%\caption{TODO}
+\end{figure}
+
+Oui, contrairement à Minesweeper de Windows XP, les mines sont placées aléatoirement
+\emph{après} que l'utilisateur ai cliqué sur une case, afin de garantir qu'il n'y
+a pas de mine sur la première case cliquée par l'utilisateur.
+Donc Minesweeper a placé les mines dans des cases autres que celle la plus en
+haut à gauche (où j'ai cliqué).
+
+Maintenant j'ai cliqué sur la case la plus en haut à droite:
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{DBI/minesweeper/minesweeper2.png}
+%\caption{TODO}
+\end{figure}
+
+Ceci peut-être une sorte de blague? Je ne sais pas.
+
+J'ai cliqué sur la 5ème case (droite du milieu) de la 1ère ligne:
+
+\begin{figure}[H]
+\centering
+\myincludegraphicsSmall{DBI/minesweeper/minesweeper3.png}
+%\caption{TODO}
+\end{figure}
+
+C'est bien, car Minesweeper peut effectuer un placement correct même avec un \ac{PRNG}
+aussi mauvais!
+
+\subsection{Regarder comment les mines sont placées}
+
+Comment pouvons-nous obtenir des informations sur où les mines sont placées?
+Le résultat de rand() semble être inutile: elle renvoie zéro à chaque fois, mais
+Minesweeper a réussi à placer les mines dans des cases différentes, quoique, alignées.
+
+Ce Minesweeper est aussi écrit dans la tradition C++, donc il n'a pas de tableau
+global.
+
+Mettons-nous dans la peau du programmeur.
+Il doit y avoir une boucle comme:
+
+\begin{lstlisting}
+for (int i; i<mines_total; i++)
+{
+	// get coordinates using rand()
+	// put a cell: in other words, modify a block allocated in heap
+};
+\end{lstlisting}
+
+Comment pouvons-nous obtenir des information sur le bloc de qui est modifié à la
+2nde étape?
+Ce que nous devons faire:
+1) suivre toutes les allocations dans la heap en interceptant malloc()/realloc()/free().
+2) suivre toutes les écritures en mémoire (lent).
+3) suivre les appels à rand().
+
+Maintenant l'algorithme:
+1) suivre tous les blocs du heap qui sont modifiés entre le 1er et le 2nd appel à
+rand() depuis 0x10002770d;
+2) à chaque fois qu'un bloc du heap est libéré, afficher son contenu.
+
+Suivre toutes les écritures en mémoire est lent, mais après le 2nd appel à rand(),
+nous n'avons plus besoin de les suivre (puisque nous avons déjà obtenu une liste
+de blocs intéressants à ce point), donc nous arrêtons.
+
+Maintenant le code: \url{\RepoMinesweeperURL/minesweeper3.cpp}.
+
+Il s'avère que seulement 4 blocs de heap sont modifiés entre les deux premiers appels
+à rand(), voici à quoi ils ressemblent:
+
+\begin{lstlisting}
+free(0x20aa6360)
+free(): we have this block in our records, size=0x28
+0x20AA6360: 36 00 00 00 4E 00 00 00-2D 00 00 00 29 00 00 00 "6...N...-...)..."
+0x20AA6370: 06 00 00 00 37 00 00 00-35 00 00 00 19 00 00 00 "....7...5......."
+0x20AA6380: 46 00 00 00 0B 00 00 00-                        "F.......        "
+
+...
+
+free(0x20af9d10)
+free(): we have this block in our records, size=0x18
+0x20AF9D10: 0A 00 00 00 0A 00 00 00-0A 00 00 00 00 00 00 00 "................"
+0x20AF9D20: 60 63 AA 20 00 00 00 00-                        "`c. ....        "
+
+...
+
+free(0x20b28b20)
+free(): we have this block in our records, size=0x140
+0x20B28B20: 02 00 00 00 03 00 00 00-04 00 00 00 05 00 00 00 "................"
+0x20B28B30: 07 00 00 00 08 00 00 00-0C 00 00 00 0D 00 00 00 "................"
+0x20B28B40: 0E 00 00 00 0F 00 00 00-10 00 00 00 11 00 00 00 "................"
+0x20B28B50: 12 00 00 00 13 00 00 00-14 00 00 00 15 00 00 00 "................"
+0x20B28B60: 16 00 00 00 17 00 00 00-18 00 00 00 1A 00 00 00 "................"
+0x20B28B70: 1B 00 00 00 1C 00 00 00-1D 00 00 00 1E 00 00 00 "................"
+0x20B28B80: 1F 00 00 00 20 00 00 00-21 00 00 00 22 00 00 00 ".... ...!..."..."
+0x20B28B90: 23 00 00 00 24 00 00 00-25 00 00 00 26 00 00 00 "#...\$...%...&..."
+0x20B28BA0: 27 00 00 00 28 00 00 00-2A 00 00 00 2B 00 00 00 "'...(...*...+..."
+0x20B28BB0: 2C 00 00 00 2E 00 00 00-2F 00 00 00 30 00 00 00 ",......./...0..."
+0x20B28BC0: 31 00 00 00 32 00 00 00-33 00 00 00 34 00 00 00 "1...2...3...4..."
+0x20B28BD0: 38 00 00 00 39 00 00 00-3A 00 00 00 3B 00 00 00 "8...9...:...;..."
+0x20B28BE0: 3C 00 00 00 3D 00 00 00-3E 00 00 00 3F 00 00 00 "<...=...>...?..."
+0x20B28BF0: 40 00 00 00 41 00 00 00-42 00 00 00 43 00 00 00 "@...A...B...C..."
+0x20B28C00: 44 00 00 00 45 00 00 00-47 00 00 00 48 00 00 00 "D...E...G...H..."
+0x20B28C10: 49 00 00 00 4A 00 00 00-4B 00 00 00 4C 00 00 00 "I...J...K...L..."
+0x20B28C20: 4D 00 00 00 4F 00 00 00-50 00 00 00 50 00 00 00 "M...O...P...P..."
+0x20B28C30: 50 00 00 00 50 00 00 00-50 00 00 00 50 00 00 00 "P...P...P...P..."
+0x20B28C40: 50 00 00 00 50 00 00 00-50 00 00 00 50 00 00 00 "P...P...P...P..."
+0x20B28C50: 50 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 "P..............."
+
+...
+
+free(0x20af9cf0)
+free(): we have this block in our records, size=0x18
+0x20AF9CF0: 43 00 00 00 50 00 00 00-10 00 00 00 20 00 74 00 "C...P....... .t."
+0x20AF9D00: 20 8B B2 20 00 00 00 00-                        " .. ....        "
+\end{lstlisting}
+
+Nous voyons facilement que les plus gros blocs (avec une taille de 0x28 et 0x140) sont
+juste des tableaux de valeurs jusqu'à $\approx$ 0x50.
+Attendez... 0x50 est 80 en représentation décimale. et 9*9=81 (configuration standard
+de Minesweeper).
+
+Après une rapide investigation, j'ai trouvé que chaque élément 32-bit est en fait
+les coordonnées d'une case.
+Une case est représentée en utilisant un seul nombre, c'est un nombre dans un tableau-2D.
+Ligne et colonne de chaque mine sont décodées comme ceci: \emph{row=n / WIDTH; col=n \% HEIGHT;}
+
+Lorsque j'ai essayé de décoder ces deux blocs les plus gros, j'ai obtenu ces
+cartes de case:
+
+\begin{lstlisting}
+try_to_dump_cells(). unique elements=0xa
+......*..
+..*......
+.......*.
+.........
+.....*...
+*.......*
+**.......
+.......*.
+......*..
+
+...
+
+try_to_dump_cells(). unique elements=0x44
+*.****.**
+...******
+*******.*
+*********
+*****.***
+.*******.
+..*******
+*******.*
+******.**
+\end{lstlisting}
+
+Il semble que le premier bloc soit juste une liste des mines placées, tandis que le
+second bloc est une liste des cases libres, mais le second semble quelque peu désynchroniser
+du premier, et une version inversée du premier ne coïncide que partiellement.
+Néanmoins, la première carte est correcte - nous pouvons jeter un coup d'\oe{}il
+dans le fichier de log alors que Minesweeper est encore chargé et presque toutes
+les cases sont cachées, et cliquer tranquillement sur les cases marquées d'un point
+ici.
+
+Il semble donc que lorsque l'utilisateur clique pour l première fois quelque part,
+Minesweeper place les 10 mines, puis détruit le bloc avec leurs liste (peut-être
+copie-t-il toutes les données dans un autre bloc avant?), donc nous pouvons les voir
+lors de l'appel à free().
+
+Un autre fait: la méthode Array<NodeType>::Add(NodeType) modifie les blocs que nous
+avons observé, et est appelée depuis de nombreux endroits, Board::placeMines() incluse.
+Mais c'est cool: je ne suis jamais allé dans les détails, tout a été résolu simplement
+en utilisant PIN.
+
+Les fichiers: \url{\RepoMinesweeperURL}.
+
+\subsection{Exercice}
+
+Essayez de comprendre comment le résultat de rand() est converti en coordonnée(s).
+Pour blaguer, faite que rand() renvoie des résultats tels que les mines
+soient placées en formant un symbole ou une figure.

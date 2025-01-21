@@ -1,0 +1,109 @@
+﻿\subsubsection{ARM: \OptimizingXcodeIV (\ARMMode)}
+
+ARMが標準化された浮動小数点サポートを得るまで、いくつかのプロセッサーメーカーは独自の命令拡張を追加しました。 
+次に、VFP（\emph{Vector Floating Point}）を標準化しました。
+
+x86との重要な違いの1つは、ARMではスタックがなく、
+レジスタだけで動作するということです。
+
+\lstinputlisting[label=ARM_leaf_example10,caption=\OptimizingXcodeIV (\ARMMode),style=customasmARM]{patterns/12_FPU/1_simple/ARM/Xcode_ARM_O3_JA.asm}
+
+\myindex{ARM!D-\registers{}}
+\myindex{ARM!S-\registers{}}
+
+そこで、ここではDの接頭辞を使用して新しいレジスタをいくつか見ていきます。
+
+これらは64ビットレジスタで、32個あり、浮動小数点数（double）とSIMD（ARMではNEONと呼ばれます）
+の両方に使用できます。
+
+32ビットの32ビットSレジスタもあり、単精度浮動小数点数
+（浮動小数点数）として使用されます。
+
+暗記するのは簡単です.Dレジスタは倍精度の数値用であり、Sレジスタは単精度の数値です。
+詳細は：\myref{ARM_VFP_registers}
+
+両方の定数（3.14と4.1）はIEEE 754形式でメモリに格納されます。
+
+\myindex{ARM!\Instructions!VLDR}
+\myindex{ARM!\Instructions!VMOV}
+\INS{VLDR}と\INS{VMOV}は、簡単に推測できるように、\INS{LDR}命令と \MOV 命令に似ていますが、
+Dレジスタで動作します。
+
+これらの命令は、Dレジスタと同様に、浮動小数点数だけでなく、
+SIMD（NEON）演算にも使用でき、これもすぐに表示されることに注意してください。
+
+引数はRレジスタを介して共通の方法で関数に渡されますが、
+倍精度の各数値のサイズは64ビットなので、各レジスタを渡すには2つのRレジスタが必要です。
+
+\INS{VMOV D17, R0, R1}は\Reg{0}と\Reg{1}から2つの32ビット値を1つの64ビット値に合成し、
+\GTT{D17}に保存します。
+
+\INS{VMOV R0, R1, D16}は逆の演算です。\GTT{D16}にあったものは、
+\Reg{0}と\Reg{1}の2つのレジスタに分割されます。
+これは、格納に64ビット必要な倍精度数が\Reg{0}と\Reg{1}に返されるためです。
+
+\myindex{ARM!\Instructions!VDIV}
+\myindex{ARM!\Instructions!VMUL}
+\myindex{ARM!\Instructions!VADD}
+\INS{VDIV}、\INS{VMUL}、\INS{VADD}はそれぞれ\gls{quotient}、\gls{product}、
+和を計算する浮動小数点数を処理する命令です。
+
+Thumb-2のコードは同じです。
+
+\subsubsection{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/1_simple/ARM/Keil_O3_thumb_JA.asm}
+
+KeilはFPUまたはNEONをサポートしていないプロセッサ用のコードを生成しました。
+
+倍精度浮動小数点数は、汎用Rレジスタを介して渡され、
+FPU命令の代わりに浮動小数点数の乗算、除算、加算をエミュレートするサービスライブラリ関数
+（\GTT{\_\_aeabi\_dmul}、 \GTT{\_\_aeabi\_ddiv}、 \GTT{\_\_aeabi\_dadd}など）が呼び出されます。
+
+もちろん、それはFPUコプロセッサよりも遅いですが、何もないよりはましです。
+
+ところで、同様のFPUエミュレートライブラリは、コプロセッサが貴重で高価で、
+高価なコンピュータにしかインストールされていなかったx86の世界で非常に人気がありました。
+
+\myindex{ARM!soft float}
+\myindex{ARM!armel}
+\myindex{ARM!armhf}
+\myindex{ARM!hard float}
+
+FPUコプロセッサエミュレーションは、ARMワールドでは\emph{ソフトフロート}または\emph{armel}（\emph{エミュレーション}）と呼ばれ、
+コプロセッサのFPU命令はハードフロートまたは\emph{armhf}と呼ばれます。
+
+\iffalse
+% TODO разобраться...
+\myindex{Raspberry Pi}
+
+For example, the Linux kernel for Raspberry Pi is compiled in two variants.
+
+In the \emph{soft float} case, arguments are passed via R-registers, and in the \emph{hard float} case---via D-registers.
+
+And that is what stops you from using armhf-libraries from armel-code or vice versa,
+and that is why all the code in Linux distributions must be compiled according to a single convention.
+\fi
+
+\subsubsection{ARM64: \Optimizing GCC (Linaro) 4.9}
+
+とってもコンパクトなコードです。
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/12_FPU/1_simple/ARM/ARM64_GCC_O3_JA.s}
+
+\subsubsection{ARM64: \NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/12_FPU/1_simple/ARM/ARM64_GCC_O0_JA.s}
+
+\NonOptimizing GCCはもっと冗長です。
+
+いくつかの明確に冗長なコード（最後の2つの\INS{FMOV}命令）を含む、不要な値のシャッフルが多くあります。 
+おそらく、GCC 4.9はまだARM64コードを生成するのに適していません。
+
+注目すべきことは、ARM64には64ビットのレジスタがあり、Dレジスタには64ビットのレジスタも含まれているということです。
+
+したがって、コンパイラはローカルスタックではなく\ac{GPR}に \Tdouble 型の値を自由に保存できます。 
+これは32ビットCPUでは不可能です。
+
+また、エクササイズとして、\INS{FMADD}のような新しい命令を導入することなく、
+この機能を手動で最適化してみることができます。

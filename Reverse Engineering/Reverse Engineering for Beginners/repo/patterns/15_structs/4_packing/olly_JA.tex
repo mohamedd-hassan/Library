@@ -1,0 +1,45 @@
+﻿\clearpage
+\myparagraph{\olly フィールドはデフォルトでパックされる}
+\myindex{\olly}
+
+\olly で我々の例を（フィールドがデフォルト（4バイト）で整列される）試してみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/4_packing/olly_packing_4.png}
+\caption{\olly: \printf が実行される前}
+\label{fig:packing_olly_4}
+\end{figure}
+
+データウィンドウに4つフィールドが見えます。
+
+しかし、ランダム値（0x30, 0x37, 0x01）はどこから来だのでしょう、最初の（a）と3番目のフィールド（c）の次でしょうか。
+
+私たちの \myref{src:struct_packing_4} のリストを見ると、最初のフィールドと3番目のフィールドが
+\Tchar だと分かります。したがって、それぞれ1と3（6行目と8行目）が書かれています。
+
+32ビットワードの残りの3バイトはメモリ内で変更されていません！ 
+したがって、ランダムなごみが残っています。
+\myindex{x86!\Instructions!MOVSX}
+
+このゴミは \printf の出力には何の影響も与えません。その値は、 \MOVSX 命令を使用して準備されるため、
+ワードではなくバイトを使用します。
+\lstref{src:struct_packing_4} (34行目と38行目)
+
+ちなみに、 \Tchar はMSVCとGCCでデフォルトでは符号ありなので、
+\MOVSX （符号拡張）命令がここで使用されます。 
+\TT{符号なしのchar}データ型または\TT{uint8\_t}がここで使用された場合、
+代わりに \MOVZX 命令が使用されます。
+
+\clearpage
+\myparagraph{\olly 1バイト境界でアラインメントされるフィールド}
+\myindex{\olly}
+
+ここでははっきりしています。4フィールドは10バイトを占め、値は並べて保存されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/4_packing/olly_packing_1.png}
+\caption{\olly: \printf が実行される前}
+\label{fig:packing_olly_1}
+\end{figure}

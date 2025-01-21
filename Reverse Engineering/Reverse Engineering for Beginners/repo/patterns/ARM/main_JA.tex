@@ -1,0 +1,19 @@
+﻿\mysection{ARM固有の詳細}
+
+\subsection{番号の前の番号記号 (\#)}
+
+Keilコンパイラ、 \IDA 、およびobjdumpは、すべての番号の前に\q{\#}番号記号を付けます。例えば：
+\lstref{Keil_number_sign}.
+
+しかしGCC 4.9がアセンブリ言語出力を生成するとき、それはしません。例えば：
+\lstref{GCC_no_number_sign}.
+
+この本のARMのリストは多少複雑です。
+
+どちらの方法が正しいのかわかりにくいです。
+おそらく、彼/彼女が働く環境で受け入れられている規則に従わなければなりません。
+
+% sections
+\input{patterns/ARM/post_pre_index_JA.tex}
+\input{patterns/ARM/big_constants_JA.tex}
+\input{patterns/ARM/relocs_JA.tex}

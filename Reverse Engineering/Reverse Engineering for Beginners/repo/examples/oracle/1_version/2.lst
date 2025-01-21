@@ -1,0 +1,49 @@
+.rodata:0800C4A0 kqfviw dd 0Bh    ; \verb|DATA XREF: kqfchk:loc_8003A6D|
+.rodata:0800C4A0                  ; kqfgbn+34
+.rodata:0800C4A4        dd offset _2__STRING_10102_0 ; \verb|"GV$WAITSTAT"|
+.rodata:0800C4A8        dd 4
+.rodata:0800C4AC        dd offset _2__STRING_10103_0 ; "NULL"
+.rodata:0800C4B0        dd 3
+.rodata:0800C4B4        dd 0
+.rodata:0800C4B8        dd 195h
+.rodata:0800C4BC        dd 4
+.rodata:0800C4C0        dd 0
+.rodata:0800C4C4        dd 0FFFFC1CBh
+.rodata:0800C4C8        dd 3
+.rodata:0800C4CC        dd 0
+.rodata:0800C4D0        dd 0Ah
+.rodata:0800C4D4        dd offset _2__STRING_10104_0 ; \verb|"V$WAITSTAT"|
+.rodata:0800C4D8        dd 4
+.rodata:0800C4DC        dd offset _2__STRING_10103_0 ; "NULL"
+.rodata:0800C4E0        dd 3
+.rodata:0800C4E4        dd 0
+.rodata:0800C4E8        dd 4Eh
+.rodata:0800C4EC        dd 3
+.rodata:0800C4F0        dd 0
+.rodata:0800C4F4        dd 0FFFFC003h
+.rodata:0800C4F8        dd 4
+.rodata:0800C4FC        dd 0
+.rodata:0800C500        dd 5
+.rodata:0800C504        dd offset _2__STRING_10105_0 ; "\verb|GV$BH"|
+.rodata:0800C508        dd 4
+.rodata:0800C50C        dd offset _2__STRING_10103_0 ; "NULL"
+.rodata:0800C510        dd 3
+.rodata:0800C514        dd 0
+.rodata:0800C518        dd 269h
+.rodata:0800C51C        dd 15h
+.rodata:0800C520        dd 0
+.rodata:0800C524        dd 0FFFFC1EDh
+.rodata:0800C528        dd 8
+.rodata:0800C52C        dd 0
+.rodata:0800C530        dd 4
+.rodata:0800C534        dd offset _2__STRING_10106_0 ; \verb|"V$BH"|
+.rodata:0800C538        dd 4
+.rodata:0800C53C        dd offset _2__STRING_10103_0 ; "NULL"
+.rodata:0800C540        dd 3
+.rodata:0800C544        dd 0
+.rodata:0800C548        dd 0F5h
+.rodata:0800C54C        dd 14h
+.rodata:0800C550        dd 0
+.rodata:0800C554        dd 0FFFFC1EEh
+.rodata:0800C558        dd 5
+.rodata:0800C55C        dd 0

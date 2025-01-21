@@ -1,0 +1,8 @@
+﻿    MOV REG, 2 ; inizializzazione
+body:
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; usa il contatore in REG, ma non modificarlo!
+    INC REG ; incrementa
+    CMP REG, 10
+    JL body

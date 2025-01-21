@@ -1,0 +1,24 @@
+﻿\subsubsection{MIPS}
+% FIXME better start at non-optimizing version?
+
+La fonction utilise beaucoup de S- registres qui doivent être préservés, c'est pourquoi
+leurs valeurs sont sauvegardées dans la prologue de la fonction et restaurées dans
+l'épilogue.
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/13_arrays/1_simple/MIPS_O3_IDA_FR.lst}
+
+Quelque chose d'intéressant: il y a deux boucles et la première n'a pas besoin de
+$i$, elle a seulement besoin de $i*2$ (augmenté de 2 à chaque itération) et aussi
+de l'adresse en mémoire (augmentée de 4 à chaque itération).
+
+Donc ici nous voyons deux variables, une (dans \$V0) augmentée de 2 à chaque fois,
+et une autre (dans \$V1) --- de 4.
+
+La seconde boucle est celle où \printf est appelée et affiche la valeur de $i$ à
+l'utilisateur, donc il y a une variable qui est incrémentée de 1 à chaque fois (dans
+\$S0) et aussi l'adresse en mémoire (dans \$S1) incrémentée de 4 à chaque fois.
+
+Cela nous rappelle l'optimisation de boucle que nous avons examiné avant: \myref{loop_iterators}.
+
+Leur but est de se passer des multiplications.
+

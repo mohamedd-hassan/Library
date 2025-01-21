@@ -1,0 +1,43 @@
+3.4 Generating a Core File on Errors
+====================================
+
+If the `error-abort' debug token has been enabled, when the library
+detects any problems with the heap memory, it will immediately attempt
+to dump a core file.  *Note Debug Tokens::.  Core files are a complete
+copy of the program and it's state and can be used by a debugger to see
+specifically what is going on when the error occurred.  *Note Using
+With a Debugger::.  By default, the low, medium, and high arguments to
+the library utility enable the `error-abort' token.  You can disable
+this feature by entering `dmalloc -m error-abort' (-m for minus) to
+remove the `error-abort' token and your program will just log errors
+and continue.  You can also use the `error-dump' token which tries to
+dump core when it sees an error but still continue running.  *Note
+Debug Tokens::.
+
+   When a program dumps core, the system writes the program and all of
+its memory to a file on disk usually named `core'.  If your program is
+called `foo' then your system may dump core as `foo.core'.  If you are
+not getting a `core' file, make sure that your program has not changed
+to a new directory meaning that it may have written the core file in a
+different location.  Also insure that your program has write privileges
+over the directory that it is in otherwise it will not be able to dump
+a core file.  Core dumps are often security problems since they contain
+all program memory so systems often block their being produced.  You
+will want to check your user and system's core dump size ulimit
+settings.
+
+   The library by default uses the `abort' function to dump core which
+may or may not work depending on your operating system.  If the
+following program does not dump core then this may be the problem.  See
+`KILL_PROCESS' definition in `settings.dist'.
+
+     main()
+     {
+       abort();
+     }
+
+   If `abort' does work then you may want to try the following setting
+in `settings.dist'.  This code tries to generate a segmentation fault
+by dereferencing a `NULL' pointer.
+
+     #define KILL_PROCESS    { int *_int_p = 0L; *_int_p = 1; }

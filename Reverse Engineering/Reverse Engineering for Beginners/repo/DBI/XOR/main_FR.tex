@@ -1,0 +1,251 @@
+\section{Utiliser PIN DBI pour intercepter les XOR}
+
+\newcommand{\RepoPinXORURL}{\RepoURL/DBI/XOR/files/}
+
+PIN d'Intel est un outil \ac{DBI}.
+Cela signifie qu'il prend un binaire compilé et y insère vos instructions, où vous
+voulez.
+
+Essayons d'intercepter toutes les instructions XOR.
+Elles sont utilisées intensément en cryptographie, et nous pouvons essayer de lancer l'archiveur
+WinRAR en mode chiffrement avec l'espoir que des instructions sont effectivement utilisées durant
+le chiffrement.
+
+Voici le code source de mon outil PIN: \url{\RepoPinXORURL/XOR_ins.cpp}.
+
+Le code est presque auto-documenté: il scanne le fichier exécutable en entrée à la recherche
+des instructions XOR/PXOR et insère un appel à notre fonction avant chaque.
+La fonction log\_info() vérifie d'abord si les opérandes sont différents (puisque
+l'instruction XOR est souvent utilisée pour effacer simplement un registre, comme
+XOR EAX, EAX), et si ils sont différents, il incrémente un compteur à cette EIP/RIP,
+afin que les statistiques soient collectées.
+
+J'ai préparé deux fichiers pour tester: test1.bin (30720 octets) et test2.bin (5547752 octets),
+je vais les compresser avec RAR avec un mot de passe et voir les différences dans
+les statistiques.
+
+Vous devez aussi désactiver \ac{ASLR}
+\footnote{\url{https://stackoverflow.com/q/9560993}},
+afin que l'outil PIN rapporte les mêmes RIPs que dans l'exécutable RAR.
+
+Maintenant, lançons-le:
+
+\begin{lstlisting}
+c:\pin-3.2-81205-msvc-windows\pin.exe -t XOR_ins.dll -- rar a -pLongPassword tmp.rar test1.bin
+c:\pin-3.2-81205-msvc-windows\pin.exe -t XOR_ins.dll -- rar a -pLongPassword tmp.rar test2.bin
+\end{lstlisting}
+
+Maintenant voici les statistiques pour test1.bin: \\
+\url{\RepoPinXORURL/XOR_ins.out.test1}.
+... et pour test2.bin: \\
+\url{\RepoPinXORURL/XOR_ins.out.test2}.
+Jusqu'ici, vous pouvez ignorer toutes les adresses autres que ip=0x1400xxxxx, qui
+sont dans d'autres DLLs.
+
+Maintenant, regardons la différence: \url{\RepoPinXORURL/XOR_ins.diff}.
+
+Certaines instructions XOR sont exécutées plus souvent pour test2.bin (qui est plus
+gros) que pour test1.bin (qui est plus petit).
+Donc elles sont clairement liées à la taille du fichier!
+
+Le premier bloc de différence est:
+
+\begin{lstlisting}
+< ip=0x140017b21 count=0xd84
+< ip=0x140017b48 count=0x81f
+< ip=0x140017b59 count=0x858
+< ip=0x140017b6a count=0xc13
+< ip=0x140017b7b count=0xefc
+< ip=0x140017b8a count=0xefd
+< ip=0x140017b92 count=0xb86
+< ip=0x140017ba1 count=0xf01
+---
+> ip=0x140017b21 count=0x9eab5
+> ip=0x140017b48 count=0x79863
+> ip=0x140017b59 count=0x862e8
+> ip=0x140017b6a count=0x99495
+> ip=0x140017b7b count=0xa891c
+> ip=0x140017b8a count=0xa89f4
+> ip=0x140017b92 count=0x8ed72
+> ip=0x140017ba1 count=0xa8a8a
+\end{lstlisting}
+
+C'est en effet une sorte de boucle à l'intérieur de RAR.EXE:
+
+\begin{lstlisting}
+.text:0000000140017B21 loc_140017B21:
+.text:0000000140017B21                 xor     r11d, [rbx]
+.text:0000000140017B24                 mov     r9d, [rbx+4]
+.text:0000000140017B28                 add     rbx, 8
+.text:0000000140017B2C                 mov     eax, r9d
+.text:0000000140017B2F                 shr     eax, 18h
+.text:0000000140017B32                 movzx   edx, al
+.text:0000000140017B35                 mov     eax, r9d
+.text:0000000140017B38                 shr     eax, 10h
+.text:0000000140017B3B                 movzx   ecx, al
+.text:0000000140017B3E                 mov     eax, r9d
+.text:0000000140017B41                 shr     eax, 8
+.text:0000000140017B44                 mov     r8d, [rsi+rdx*4]
+.text:0000000140017B48                 xor     r8d, [rsi+rcx*4+400h]
+.text:0000000140017B50                 movzx   ecx, al
+.text:0000000140017B53                 mov     eax, r11d
+.text:0000000140017B56                 shr     eax, 18h
+.text:0000000140017B59                 xor     r8d, [rsi+rcx*4+800h]
+.text:0000000140017B61                 movzx   ecx, al
+.text:0000000140017B64                 mov     eax, r11d
+.text:0000000140017B67                 shr     eax, 10h
+.text:0000000140017B6A                 xor     r8d, [rsi+rcx*4+1000h]
+.text:0000000140017B72                 movzx   ecx, al
+.text:0000000140017B75                 mov     eax, r11d
+.text:0000000140017B78                 shr     eax, 8
+.text:0000000140017B7B                 xor     r8d, [rsi+rcx*4+1400h]
+.text:0000000140017B83                 movzx   ecx, al
+.text:0000000140017B86                 movzx   eax, r9b
+.text:0000000140017B8A                 xor     r8d, [rsi+rcx*4+1800h]
+.text:0000000140017B92                 xor     r8d, [rsi+rax*4+0C00h]
+.text:0000000140017B9A                 movzx   eax, r11b
+.text:0000000140017B9E                 mov     r11d, r8d
+.text:0000000140017BA1                 xor     r11d, [rsi+rax*4+1C00h]
+.text:0000000140017BA9                 sub     rdi, 1
+.text:0000000140017BAD                 jnz     loc_140017B21
+\end{lstlisting}
+
+Que fait-elle? Aucune idée à ce stade.
+
+La suivante:
+
+\begin{lstlisting}
+< ip=0x14002c4f1 count=0x4fce
+---
+> ip=0x14002c4f1 count=0x4463be
+\end{lstlisting}
+
+0x4fce est 20430, qui est proche de la taille de test1.bin (30720 octets).
+0x4463be est 4481982, qui est proche de la taille de test2.bin (5547752 octets).
+Par égal, mais proche.
+
+Ceci est un morceau de code avec cette instruction XOR:
+
+\begin{lstlisting}
+.text:000000014002C4EA loc_14002C4EA:
+.text:000000014002C4EA                 movzx   eax, byte ptr [r8]
+.text:000000014002C4EE                 shl     ecx, 5
+.text:000000014002C4F1                 xor     ecx, eax
+.text:000000014002C4F3                 and     ecx, 7FFFh
+.text:000000014002C4F9                 cmp     [r11+rcx*4], esi
+.text:000000014002C4FD                 jb      short loc_14002C507
+.text:000000014002C4FF                 cmp     [r11+rcx*4], r10d
+.text:000000014002C503                 ja      short loc_14002C507
+.text:000000014002C505                 inc     ebx
+\end{lstlisting}
+
+Le corps de la boucle peut être écrit comme:
+
+\begin{lstlisting}
+state = input_byte ^ (state<<5) & 0x7FFF}.
+\end{lstlisting}
+
+\emph{state} est ensuite utilisé comme un index dans une table. Est-ce une sorte de \ac{CRC}?
+Je ne sais pas, mais ça pourrait être une routine effectuant une somme de contrôle.
+Ou peut-être une routine \ac{CRC} optimisée?
+Une idée?
+
+Le bloc suivant:
+
+\begin{lstlisting}
+< ip=0x14004104a count=0x367
+< ip=0x140041057 count=0x367
+---
+> ip=0x14004104a count=0x24193
+> ip=0x140041057 count=0x24193
+\end{lstlisting}
+
+\begin{lstlisting}
+.text:0000000140041039 loc_140041039:
+.text:0000000140041039                 mov     rax, r10
+.text:000000014004103C                 add     r10, 10h
+.text:0000000140041040                 cmp     byte ptr [rcx+1], 0
+.text:0000000140041044                 movdqu  xmm0, xmmword ptr [rax]
+.text:0000000140041048                 jz      short loc_14004104E
+.text:000000014004104A                 pxor    xmm0, xmm1
+.text:000000014004104E
+.text:000000014004104E loc_14004104E:
+.text:000000014004104E                 movdqu  xmm1, xmmword ptr [rcx+18h]
+.text:0000000140041053                 movsxd  r8, dword ptr [rcx+4]
+.text:0000000140041057                 pxor    xmm1, xmm0
+.text:000000014004105B                 cmp     r8d, 1
+.text:000000014004105F                 jle     short loc_14004107C
+.text:0000000140041061                 lea     rdx, [rcx+28h]
+.text:0000000140041065                 lea     r9d, [r8-1]
+.text:0000000140041069
+.text:0000000140041069 loc_140041069:
+.text:0000000140041069                 movdqu  xmm0, xmmword ptr [rdx]
+.text:000000014004106D                 lea     rdx, [rdx+10h]
+.text:0000000140041071                 aesenc  xmm1, xmm0
+.text:0000000140041076                 sub     r9, 1
+.text:000000014004107A                 jnz     short loc_140041069
+.text:000000014004107C
+\end{lstlisting}
+
+Ce morceau possède les instructions PXOR et AESENC (la dernière est une instruction
+de chiffrement \ac{AES}).
+Donc oui, nous avons trouvé une fonction de chiffrement, RAR utilise \ac{AES}.
+
+Il y a ensuite un autre gros bloc d'instructions XOR presque contigus:
+
+\begin{lstlisting}
+< ip=0x140043e10 count=0x23006
+---
+> ip=0x140043e10 count=0x23004
+499c510
+< ip=0x140043e56 count=0x22ffd
+---
+> ip=0x140043e56 count=0x23002
+\end{lstlisting}
+
+Mais le compteur n'est pas très différent pendant la compression/chiffrement de test1.bin/test2.bin.
+Qu'y a-t-il à ces adresses?
+
+\begin{lstlisting}
+.text:0000000140043E07                 xor     ecx, r9d
+.text:0000000140043E0A                 mov     r11d, eax
+.text:0000000140043E0D                 and     ecx, r10d
+.text:0000000140043E10                 xor     ecx, r8d
+.text:0000000140043E13                 rol     eax, 8
+.text:0000000140043E16                 and     eax, esi
+.text:0000000140043E18                 ror     r11d, 8
+.text:0000000140043E1C                 add     edx, 5A827999h
+.text:0000000140043E22                 ror     r10d, 2
+.text:0000000140043E26                 add     r8d, 5A827999h
+.text:0000000140043E2D                 and     r11d, r12d
+.text:0000000140043E30                 or      r11d, eax
+.text:0000000140043E33                 mov     eax, ebx
+\end{lstlisting}
+
+Googlons la constante 5A827999h... ceci ressemble à du SHA-1! mais pourquoi RAR utiliserait-il
+SHA-1 pendant le chiffrement?
+
+Voici la réponse:
+
+\begin{lstlisting}
+In comparison, WinRAR uses its own key derivation scheme that requires (password length * 2 + 11)*4096 SHA-1 transformations. That’s why it takes longer to brute-force attack encrypted WinRAR archives.
+\end{lstlisting}
+( \url{http://www.tomshardware.com/reviews/password-recovery-gpu,2945-8.html} )
+
+C'est la génération de la clef: le mot de passe entré est hashé plusieurs fois et
+le hash est utilisé comme clef \ac{AES}.
+C'est pourquoi nous voyons que le comptage de l'instruction XOR est presque inchangé
+lorsque nous passons au fichier de test plus gros.
+
+C'est tout ce qu'il faut faire, ça m'a pris quelques heures d'écrire cet outil et
+d'obtenir au moins 3 éléments: 1) c'est probablement une somme de contrôle; 2) chiffrement
+\ac{AES}; 3) calcul de somme SHA-1.
+La première fonction est encore un mystère pour moi.
+
+Cependant, ceci est impressionnant, car je ne me suis pas plongé dans le code de
+RAR (qui est propriétaire, bien sûr). Je n'ai même pas jeté un coup d'\oe{}il dans
+le code source de UnRAR (qui est disponible).
+
+Les fichiers, incluant les fichiers de test et l'exécutable RAR que j'ai utilisé (win64, 5.40): \\
+\url{\RepoPinXORURL}.
+

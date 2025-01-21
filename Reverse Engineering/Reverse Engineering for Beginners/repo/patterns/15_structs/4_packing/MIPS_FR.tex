@@ -1,0 +1,22 @@
+﻿\subsubsection{MIPS}
+\label{MIPS_structure_big_endian}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),numbers=left,style=customasmMIPS]{patterns/15_structs/4_packing/MIPS_O3_IDA_FR.lst}
+
+Les champs de la structure sont fournis dans les registres \$A0..\$A3 puis transformé dans les registres 
+\$A1..\$A3 pour l'utilisation par \printf, tandis que le 4ème champ (provenant de \$A3) est passé sur la 
+pile en utilisant l'instruction \INS{SW}.
+
+Mais à quoi servent ces deux instructions SRA (\q{Shift Word Right Arithmetic}) lors de la préparation des 
+champs \Tchar?
+
+MIPS est une architecture grand-boutien (big-endian) par défaut \myref{sec:endianness}, de même que la 
+distribution Debian Linux que nous utilisons.
+
+En conséquence, lorsqu'un octet est stocké dans un emplacement 32bits d'une structure, ils occupent les 
+bits 31..24 bits.
+
+Quand une variable \Tchar doit être étendue en une valeur sur 32 bits, elle doit tout d'abord être décalée 
+vers la droite de 24 bits.
+
+\Tchar étant un type signé, un décalage arithmétique est utilisé ici, à la place d'un décalage logique.

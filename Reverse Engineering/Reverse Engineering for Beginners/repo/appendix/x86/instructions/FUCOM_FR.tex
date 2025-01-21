@@ -1,0 +1,10 @@
+\myindex{x86!\Instructions!FUCOM}
+\myindex{x86!\Instructions!FUCOMP}
+\myindex{x86!\Instructions!FUCOMPP}
+  \item[FUCOM] ST(i): compare ST(0) et ST(i)
+  \item[FUCOM] compare ST(0) et ST(1)
+  \item[FUCOMP] compare ST(0) et ST(1); supprime un élément de la pile.
+  \item[FUCOMPP] compare ST(0) et ST(1); supprime deux éléments de la pile.
+
+  L'instruction se comporte comme FCOM, mais une exception est levée seulement si
+  un opérande est SNaN, tandis que les nombres QNaN sont traités normalement.

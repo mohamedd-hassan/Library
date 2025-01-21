@@ -1,0 +1,75 @@
+﻿f:
+                lui     $gp, (__gnu_local_gp >> 16)
+; 入力値が5未満の場合はloc\_24にジャンプ
+                sltiu   $v0, $a0, 5
+                bnez    $v0, loc_24
+                la      $gp, (__gnu_local_gp & 0xFFFF) ; 分岐遅延スロット
+; 入力値は5以上
+; "something unknown"を表示し、終了
+                lui     $a0, ($LC5 >> 16)  # "something unknown"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC5 & 0xFFFF)  # "something unknown" ; 分岐遅延スロット
+
+loc_24:                                  # CODE XREF: f+8
+; ジャンプテーブルのアドレスをロードする
+; LAは疑似命令で、実際はLUIとADDIUのペアです
+                la      $v0, off_120
+; 入力値に4をかける
+                sll     $a0, 2
+; 掛け算した値とジャンプテーブルのアドレスを足しあわせる
+                addu    $a0, $v0, $a0
+; ジャンプテーブルから要素をロードする
+                lw      $v0, 0($a0)
+                or      $at, $zero ; NOP
+; ジャンプテーブルで得たアドレスにジャンプする
+                jr      $v0
+                or      $at, $zero ; 分岐遅延スロット、NOP
+
+sub_44:                                  # DATA XREF: .rodata:0000012C
+; "three"を表示して終了
+                lui     $a0, ($LC3 >> 16)  # "three"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC3 & 0xFFFF)  # "three" ; 分岐遅延スロット
+
+sub_58:                                  # DATA XREF: .rodata:00000130
+; "four"を表示して終了
+                lui     $a0, ($LC4 >> 16)  # "four"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC4 & 0xFFFF)  # "four" ; 分岐遅延スロット
+
+sub_6C:                                  # DATA XREF: .rodata:off\_120
+; "zero"を表示して終了
+                lui     $a0, ($LC0 >> 16)  # "zero"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC0 & 0xFFFF)  # "zero" ; 分岐遅延スロット
+
+sub_80:                                  # DATA XREF: .rodata:00000124
+; "one"を表示して終了
+                lui     $a0, ($LC1 >> 16)  # "one"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC1 & 0xFFFF)  # "one" ; 分岐遅延スロット
+
+sub_94:                                  # DATA XREF: .rodata:00000128
+; "two"を表示して終了
+                lui     $a0, ($LC2 >> 16)  # "two"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; NOP
+                jr      $t9
+                la      $a0, ($LC2 & 0xFFFF)  # "two" ; 分岐遅延スロット
+
+; おそらく.rodataセクションに配置される
+off_120:        .word sub_6C
+                .word sub_80
+                .word sub_94
+                .word sub_44
+                .word sub_58

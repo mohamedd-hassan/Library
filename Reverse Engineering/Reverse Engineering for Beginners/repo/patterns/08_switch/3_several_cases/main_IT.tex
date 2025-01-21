@@ -1,0 +1,69 @@
+\subsection{Ancora più istruzioni \emph{case} in un unico blocco}
+
+Ecco un costrutto molto diffuso: molti casi in un singolo blocco:
+\lstinputlisting[style=customc]{patterns/08_switch/3_several_cases/several_cases.c}
+
+Generare un blocco per ciascun caso possibile risulta poco efficiente, perciò solitamente quello che viene fatto è generare
+ogni blocco più una sorta di smistatore (dispatcher).
+
+\subsubsection{MSVC}
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,numbers=left,style=customasmx86]{patterns/08_switch/3_several_cases/several_cases_MSVC_2010_Ox_IT.asm}
+
+Notiamo due tabelle: la prima, (\TT{\$LN10@f}), è una tabella di indici. La seconda, (\TT{\$LN11@f}), è un array di puntatori ai blocchi.
+
+Per cominciare, il valore di input è usato come indice nella tabella di indici (riga 13).
+
+Ecco una piccola legenda di valori in questa tabella:
+0 è il blocco relativo al primo \emph{case} (per i valori 1, 2, 7, 10),
+1 al secondo (per i valori 3, 4, 5),
+2 al terzo (per i valori 8, 9, 21),
+3 al quarto (per i valori 22),
+4 è relativo al blocco default.
+
+Da qui ottieniamo un indice per la seconda tabella di puntatori al codice, e vi saltiamo (riga 14).
+
+Vale anche la pena notare che non c'è alcun caso per il valore 0 in input.
+
+Per questo motivo vediamo l'istruzione \DEC a riga 10, e la tabella inizia da $a=1$, 
+non c'è bisogno di allocare un elemento nella tabella per $a=0$.
+
+Questo è un pattern molto diffuso.
+
+Perchè è economico? Perchè non è possibile avere lo stesso risultato con le tecniche viste prima 
+(\myref{switch_lot_GCC}), solo con una tabella di puntatori ai blocchi?
+La risposta sta nel fatto che gli elementi nella tabella di indici sono di 8-bit, dunque è tutto più compatto.
+
+\subsubsection{GCC}
+
+GCC 
+GCC utilizza la tecnica già vista (\myref{switch_lot_GCC}), usando solo una tabella di puntatori.
+
+\subsubsection{ARM64: \Optimizing GCC 4.9.1}
+
+Non c'è codice da eseguire se il valore in input è 0, perciò GCC prova a rendere la jump table più compatta iniziando da 1 come valore di input.
+
+GCC 4.9.1 per ARM64 usa un trucco ancora migliore.
+Riesce a codificare tutti gli offset con byte (8-bit).
+
+Ricordiamoci che tutte le istruzioni ARM64 sono lunghe 4 byte.
+
+GCC sfrutta il fatto che tutti gli offset nel nostro piccolo esempio si trovano molto vicini tra di loro.
+In questo modo la jump table consiste di singoli byte.
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 ARM64,style=customasmARM]{patterns/08_switch/3_several_cases/ARM64_GCC491_O3_IT.s}
+
+Compiliamo questo esempio in un file oggetto e apriamolo con \IDA. Questa è la jump table:
+
+\lstinputlisting[caption=jumptable in IDA,style=customasmARM]{patterns/08_switch/3_several_cases/ARM64_GCC491_O3_IDA.lst}
+
+Riassumendo, nel caso 1, 9 viene moltiplicato per 4 e aggiunto all'indirizzo della label \TT{Lrtx4}.
+Nel caso 22, 0 viene moltiplicato per 4, risultando 0. 
+
+Subito dopo la label \TT{Lrtx4} si trova label \TT{L7}, dove c'è il codice che stampa \q{22}.
+
+Non c'è alcuna jump table nel code segnment, è allocata in una sezione .rodata separata (non vi è alcun motivo particolare
+per cui sarebbe necessario metterla nella sezione del codice).
+
+Ci sono anche byte negativi (0xF7), usati per saltare indietro al codice che stampa la stringa \q{default} (a \TT{.L2}).
+

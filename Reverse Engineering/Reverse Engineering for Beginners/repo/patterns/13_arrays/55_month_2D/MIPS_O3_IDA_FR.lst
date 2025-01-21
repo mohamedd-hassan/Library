@@ -1,0 +1,38 @@
+                .globl get_mois2
+get_mois2:
+; \$a0=mois
+                sll     $v0, $a0, 3
+; \$v0 = \$a0<<3 = mois*8
+                sll     $a0, 1
+; \$a0 = \$a0<<1 = mois*2
+                addu    $a0, $v0
+; \$a0 = mois*2+mois*8 = mois*10
+; charger l'adresse de la table:
+                la      $v0, mois2
+; ajouter l'adresse de la table et l'index que nous avons calculé et sortir:
+                jr      $ra
+                addu    $v0, $a0
+
+mois2:         .ascii "janvier"<0>
+                .byte 0, 0
+aFebruary:      .ascii "fevrier"<0>
+                .byte    0
+aMarch:         .ascii "mars"<0>
+                .byte 0, 0, 0, 0
+aApril:         .ascii "avril"<0>
+                .byte 0, 0, 0, 0
+aMay:           .ascii "mai"<0>
+                .byte 0, 0, 0, 0, 0, 0
+aJune:          .ascii "juin"<0>
+                .byte 0, 0, 0, 0, 0
+aJuly:          .ascii "juillet"<0>
+                .byte 0, 0, 0, 0, 0
+aAugust:        .ascii "aout"<0>
+                .byte 0, 0, 0
+aSeptember:     .ascii "septembre"<0>
+aOctober:       .ascii "octobre"<0>
+                .byte 0, 0
+aNovember:      .ascii "novembre"<0>
+                .byte    0
+aDecember:      .ascii "decembre"<0>
+                .byte 0, 0, 0, 0, 0, 0, 0, 0, 0

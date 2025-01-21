@@ -1,0 +1,64 @@
+\subsection{CPU'ya Giriş}
+
+\ac{CPU} makine kodundan oluşan programları çalıştıran donanımdır. 
+
+\textbf{Ufak bir Sözlük:}
+
+\begin{description}
+\item[Instruction]: İlkel bir \ac{CPU} komutu.
+Basit bir örnek olarak: register (yazmaçlar) arasında değer taşıma, bellek ile çalışma, ilkel aritmetik operasyonlar verilebilir.
+Genellikle, her \ac{CPU}'nun kendine has instruction listesi vardır (\ac{ISA}).
+
+\item[Machine code]: \ac{CPU}'nun direkt olarak işleyebildiği kod.
+Her instruction genellikle bir kaç byte ile gösterilir.
+\item[Assembly language]: Programcının hayatını kolaylaştırmak için mnemonic kodlar ve bazı eklentiler (çeşitli microlar gibi) içeren bir dildir.
+\item[CPU register]: Her \ac{CPU} sabit sayıda genel amaçlı register'dan (yazmaç) oluşur (\ac{GPR}).
+x86'da $\approx 8$, x86-64'de $\approx 16$ ve ARM'da $\approx 16$ adet vardır.
+Register'ları anlamanın en kolay yolu onları belirli bir tipi olmayan geçici değişkenler olarak düşünmektir.
+Yüksek seviyeli bir \ac{PL} kullandığınızı ve yalnızca 32-bit (ya da 64-bit) değişkenler kullanabildiğinizi hayal edin.
+Buna rağmen bir çok şeyi yapabilirdiniz!
+\end{description}
+
+% TODO1 add about linker: "компоновщик" и "редактор связей" в русскоязычной лит-ре
+
+% A note on the experiments in this area (like the LISP machines http://en.wikipedia.org/wiki/Lisp_machine
+% might be useful
+Makine kodu ile bir \ac{PL} arasında neden fark olduğunu merak edebilirsiniz. Cevap insan beyninin ve \ac{CPU}'ların benzer çalışmadığında yatıyor.---%
+İnsanlar için \CCpp, Java, or Python, gibi yüksek-seviyeli \ac{PL}'leri algılamaları daha kolay olmasına karşın \ac{CPU}'ler daha alçak-seviyeli soyutlamaları algılayabiliyor.
+Muhtemelen \ac{CPU}'nun algılayabileceği yüksek-seviyeli bir dil icat etmek mümkün ama o zaman kullanılacak \ac{CPU}'ler günümüzdekilerden çok daha karmaşık olurlardı. 
+Benzer olarak insanların düşük seviyeli bir dil olan assembly'de program yazması can sıkıcı hatalar ve buglar olmadan pek mümkün değil.
+Yüksek seviyeli bir \ac{PL}'den assembly'e çevirme işlemini yapan programlara  \emph{compiler} denir.
+\footnote{Old-school Russian literatöründe bu terim \q{translator} olarak kullanılır.}.
+
+\myindex{ARM!\ARMMode}%
+\myindex{ARM!\ThumbMode}%
+\myindex{ARM!\ThumbTwoMode}%
+
+\subsubsection{Farklı \ac{ISA}'ler hakkında bir kaç söz}
+x86 \ac{ISA} daima değişken uzunluktaki instruction'lara sahipti bu yüzden 64-bit mimari geldiğinde, x64 uzantısı \ac{ISA}'yı çok fazla etkilemedi. Aslında, x86 \ac{ISA} hala daha ilk 16-bit 8086 CPU'ya ait instructionları içermekte ve bugünün işlemcilerinde bir çoğu kullanılabilir.
+ARM, sabit uzunluklu incstruction'lara sahip bir \ac{RISC} \ac{CPU}'dur ki bunun geçmişte faydaları da olmuştur.
+İlk başlarda ARM instructionları sabit olarak 4byte uzunluktaydı.%
+\footnote{
+Sabit uzunluklu instruction'ların faydası bir sonraki (veya bir önceki) instruction'ın yerinin tespiti çok daha kolay olmaktadır. Bu özellik switch() operator~(\myref{sec:SwitchARMLot})  bölümünde tartışılacak.
+}.
+Şu an bu \q{ARM mode} olarak geçiyor.
+Sonraları bunun başta sandıkları gibi tutumlu bir yöntem olmadığını anladılar.
+Aslında, en çok kullanılan \ac{CPU} instruction'ları \footnote{e.g. MOV/PUSH/CALL/Jcc} gerçek dünya uygulamalarında daha az bilgi ile kodlanabilmektedir.
+Bu yüzden her instruction'un 2 byte yer kapladığı Thumb adında yeni bir \ac{ISA} eklediler
+Şu an bu \q{Thumb mode} olarak geçiyor.
+Malesef \emph{tüm} ARM instruction'ları 2 byte ile temsil edilemiyordu bu yüzden Thumb instruction set biraz sınırlı kaldı.
+Tabi bir programda hem ARM modunun hem de Thumb modunun bir arada kullanılabileceğini belirtmek gerekir.
+ARM'ın yaratıcıları Thumb'ın genişletilebileceğini düşündüler ve ARMv7'de kullanılan Thumb-2'yi oluşturdular. 
+Thumb-2'de de 2-byte uzunluğundaki instruction'lar kullanılıyor ancak bazı instructionlar 4-byte uzunluğunda olabilmektedir.
+Thumb-2'nin ARM ve Thumb modlarının karışımı olduğu şeklinde genel bir yanlış kanı mevcut ancak bu yanlış bir algıdır.
+Yanlış kanının aksine Thumb-2 ARM moduyla yarışmak için tüm işlemcileri destekleyecek şekilde genişletildi ki Thumb-2 amacına ulaşarak \idevices uygulamaların çoğunluğu Thumb-2 instruction set ile derlendi.
+are compiled for the Thumb-2 instruction set. (Tabi hedefe ulaşmada XCode'un bunu varsayılan olarak yapmasının payı büyük)
+Sonra 64-bit geldi. Bu \ac{ISA} 4-byte instructionlara sahipti ve Thumb modun bunun için herhangi bir değişiklik yapmasına gerek yoktu.
+Ne yazık ki 64-bit \ac{ISA}'yı etkiledi ve bu şu an kullanılan üç instruction set'inin var olmasına neden oldu:instruction sets: ARM mod, Thumb mod (Thumb-2 dahil) ve ARM64.
+Bu \ac{ISA}'ler kısmen kesişirler ama bir tanesinin farklı versiyonları demektense farklı \ac{ISA}'ler oldukları söylenebilir.
+Buna rağmen biz bu kitapta üç ARM \ac{ISA} için de kod parçaları kullanacağız.
+
+\myindex{PowerPC}%
+\myindex{MIPS}%
+\myindex{Alpha AXP}%
+Ayrıca piyasada sabit uzunluklu 32-bit instruction'lara sahip başka MIPS, PowerPC ve Alpha AXP gibi bir çok \ac{RISC} \ac{ISA}'ler mevcut. 

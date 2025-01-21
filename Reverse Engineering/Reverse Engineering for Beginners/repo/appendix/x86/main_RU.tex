@@ -1,0 +1,31 @@
+\mysection{x86}
+
+\subsection{Терминология}
+
+Общее для 16-bit (8086/80286), 32-bit (80386, итд), 64-bit.
+
+\myindex{IEEE 754}
+\myindex{MS-DOS}
+\begin{description}
+	\item[byte] 8-бит. 
+		Для определения переменных и массива байт используется директива ассемблера DB.
+		Байты передаются в 8-битных частях регистров: \TT{AL/BL/CL/DL/AH/BH/CH/DH/SIL/DIL/R*L}.
+	\item[word] 16-бит. \dittoclosing директива ассемблера DW.
+		Слова передаются в 16-битных частях регистров: \\
+			\TT{AX/BX/CX/DX/SI/DI/R*W}.
+	\item[double word] (\q{dword}) 32-бит. \dittoclosing директива ассемблера DD.
+		Двойные слова передаются в регистрах (x86) или в 32-битных частях регистров (x64). 
+		В 16-битном коде, двойные слова передаются в парах 16-битных регистров.
+	\item[quad word] (\q{qword}) 64-бит. \dittoclosing директива ассемблера DQ.
+		В 32-битной среде, учетверенные слова передаются в парах 32-битных регистров.
+	\item[tbyte] (10 байт) 80-бит или 10 байт (используется для регистров IEEE 754 FPU).
+	\item[paragraph] (16 байт) --- термин был популярен в среде MS-DOS.
+\end{description}
+
+\myindex{Windows!API}
+Типы данных с той же шириной (BYTE, WORD, DWORD) точно такие же и в Windows \ac{API}.
+
+\input{appendix/x86/registers_RU} % subsection
+\input{appendix/x86/instructions_RU} % subsection
+\input{appendix/x86/npad} % subsection
+

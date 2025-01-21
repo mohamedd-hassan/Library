@@ -1,0 +1,42 @@
+\bigskip
+% a hack used here! http://tex.stackexchange.com/questions/73524/bytefield-package
+\begin{center}
+\begin{bytefield}{32}
+	\bitheader[endianness=big]{0,22,23,30,31} \\
+	\bitbox{1}{S} &
+	\bitbox{8}{%
+		\RU{экспонента}%
+		\EN{exponent}%
+		\ES{exponente}%
+		\PTBRph{}%
+		\DEph{}\PLph{}%
+		\IT{esponente}%
+		\FR{exposant}%
+		\JA{指数}
+	} &
+	\bitbox{23}{%
+		\RU{мантисса}%
+		\EN{mantissa or fraction}%
+		\ES{mantisa o fracci\'on}%
+		\PTBRph{}%
+		\DEph{}
+		\PLph{}%
+		\IT{mantissa}%
+		\FR{mantisse ou fraction}%
+		\JA{対数または比}
+	}
+\end{bytefield}
+\end{center}
+
+\begin{center}
+( S --- %
+	\RU{знак}%
+	\EN{sign}%
+	\ES{signo}%
+	\PTBRph{}%
+	\DEph{}\PLph{}%
+	\IT{segno}%
+	\FR{signe}%
+	\JA{記号}
+)
+\end{center}

@@ -1,0 +1,130 @@
+﻿% TODO: add ROL/ROR
+\subsection{\Conclusion{}}
+
+\myindex{x86!\Instructions!SHR}
+\myindex{x86!\Instructions!SHL}
+\myindex{x86!\Instructions!SAR}
+
+\CCpp のシフト演算子 \TT{$\ll$} および \TT{$\gg$} と同様に、
+x86のシフト命令は \SHR/\SHL （符号なしの値）と \SAR/\SHL （符号付きの値）です。
+
+\myindex{ARM!\Instructions!LSR}
+\myindex{ARM!\Instructions!LSL}
+\myindex{ARM!\Instructions!ASR}
+
+ARMのシフト命令は、 \LSR/\LSL （符号なし値の場合）と \ASR/\LSL （符号付き値の場合）です。
+
+シフトサフィックスをいくつかの命令
+（\q{データ処理命令}と呼ばれます）に追加することもできます。
+% FIXME: which instructions?
+
+\subsubsection{特定のビットをチェックする（コンパイル段階で知られている）}
+
+0b1000000ビット（0x40）がレジスタの値に存在するかどうかをテストします。
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet0.c}
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/14_bitfields/TEST_JNZ_JA.lst}
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/14_bitfields/TEST_JZ_JA.lst}
+
+\lstinputlisting[caption=ARM (\ARMMode),style=customasmARM]{patterns/14_bitfields/TST_BNE_JA.lst}
+
+\myindex{x86!\Instructions!AND}
+\myindex{x86!\Instructions!TEST}
+
+場合によっては、 \TEST の代わりに \AND が使用されますが、設定されるフラグは同じです。
+
+\subsubsection{特定のビットをチェックする（実行時に指定する）}
+
+これは通常、この \CCpp コードスニペットによって行われます（ $n$ ビット右にシフトし、次に最下位ビットをカットします）。
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet1.c}
+
+これは通常、x86コードで次のように実装されています。
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; REG=input\_value
+; CL=n
+SHR REG, CL
+AND REG, 1
+\end{lstlisting}
+
+または（1ビット左シフトを $n$ 回、入力値でこのビットを分離し、ゼロでないかどうかをチェックする）
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet2.c}
+
+これは通常、x86コードで次のように実装されています。
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+AND input_value, REG
+\end{lstlisting}
+
+\subsubsection{特定のビットを設定する（コンパイル時に知られている）}
+
+\begin{lstlisting}[caption=\CCpp]
+value=value|0x40;
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+OR REG, 40h
+\end{lstlisting}
+
+\begin{lstlisting}[caption=ARM (\ARMMode) and ARM64,style=customasmARM]
+ORR R0, R0, #0x40
+\end{lstlisting}
+
+\subsubsection{特定のビットを設定する（実行時に指定する）}
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet3.c}
+
+これは通常、x86コードで次のように実装されています。
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+OR input_value, REG
+\end{lstlisting}
+
+\subsubsection{明確な特定のビット（コンパイル段階で知られている）}
+
+逆の値で \AND 演算を適用するだけです：
+
+\begin{lstlisting}[caption=\CCpp,style=customc]
+value=value&(~0x40);
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+AND REG, 0FFFFFFBFh
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x64,style=customasmx86]
+AND REG, 0FFFFFFFFFFFFFFBFh
+\end{lstlisting}
+
+これは、実際には、1を除いてすべてのビットを設定しています。
+
+\myindex{ARM!\Instructions!BIC}
+
+ARMモードのARMには \BIC 命令があります。これは \NOT+\AND 命令ペアのように動作します。
+
+\begin{lstlisting}[caption=ARM (\ARMMode),style=customasmARM]
+BIC R0, R0, #0x40
+\end{lstlisting}
+
+\subsubsection{
+特定のビットをクリア（実行時に指定）}
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet4.c}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+NOT REG
+AND input_value, REG
+\end{lstlisting}

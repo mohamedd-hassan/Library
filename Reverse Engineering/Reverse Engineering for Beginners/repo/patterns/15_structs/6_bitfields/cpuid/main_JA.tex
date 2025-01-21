@@ -1,0 +1,76 @@
+﻿\subsubsection{CPUIDの例}
+
+\CCpp 言語では、各構造体フィールドの正確なビット数を定義できます。 
+メモリ空間を節約する必要がある場合に非常に便利です。 
+たとえば、 \Tbool 変数には1ビットで十分です。 
+しかし、スピードが重要なら合理的ではありません。
+% FIXME!
+% another use of this is to parse binary protocols/packets, for example
+% the definition of struct iphdr in include/linux/ip.h
+
+\newcommand{\FNCPUID}{\footnote{\href{http://en.wikipedia.org/wiki/CPUID}{wikipedia}}}
+
+\myindex{x86!\Instructions!CPUID}
+\label{cpuid}
+
+\CPUID\FNCPUID 命令の例を考えてみましょう。
+この命令は、現在のCPUとその機能に関する情報を返します。
+
+命令が実行される前に \EAX が1に設定されている場合、
+\CPUID は \EAX レジスタに情報がパックされて返ります。
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+3:0 (4 bits)& ステッピング \\
+7:4 (4 bits) & モデル \\
+11:8 (4 bits) & ファミリーy \\
+13:12 (2 bits) & プロセッサタイプ \\
+19:16 (4 bits) & 拡張モデル \\
+27:20 (8 bits) & 拡張ファミリー \\
+\hline
+\end{tabular}
+\end{center}
+
+\newcommand{\FNGCCAS}{\footnote{\href{http://www.ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html}
+{GCCアセンブラ内部の詳細}}}
+
+MSVC 2010には \CPUID マクロがありますが、GCC 4.4.1にはありません。 
+ですから組み込みアセンブラ \FNGCCAS の助けを借りてGCCのためにこの機能を自分自身で作ってみましょう。
+
+\lstinputlisting[style=customc]{patterns/15_structs/6_bitfields/cpuid/CPUID.c}
+
+\CPUID が \EAX/\EBX/\ECX/\EDX を満たすと、これらのレジスタは\TT{b[]}配列に書き込まれます。 
+次に、\TT{CPUID\_1\_EAX}構造体へのポインタを持ち、それを\TT{b[]}配列から \EAX の値に向けます。
+
+つまり、32ビットの \Tint 値を構造体として扱います。 
+次に、構造体から特定のビットを読み込みます。
+
+\myparagraph{MSVC}
+
+\Ox オプションを付けてMSVC 2008でコンパイルしてみましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2008,style=customasmx86]{patterns/15_structs/6_bitfields/cpuid/CPUID_msvc_Ox.asm}
+
+\myindex{x86!\Instructions!SHR}
+
+\TT{SHR}命令は、 \EAX 内の値を、\emph{スキップ}しなければならないビット数だけシフトします。
+例えば、\emph{右側の}ビットを無視します。
+
+\myindex{x86!\Instructions!AND}
+
+\AND 命令は、\emph{左側の}不要ビットをクリアします。言い換えれば、
+必要な \EAX レジスタのビットだけを残します。
+
+\input{patterns/15_structs/6_bitfields/cpuid/olly_JA.tex}
+
+\myparagraph{GCC}
+
+\Othree オプション付きのGCC 4.4.1を試してみましょう。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.1,style=customasmx86]{patterns/15_structs/6_bitfields/cpuid/CPUID_gcc_O3.asm}
+
+ほとんど同じです。 
+唯一注目すべきは、GCCは、 \printf の各呼び出しの前に個別に計算するのではなく、
+\TT{extended\_model\_id}と\TT{extended\_family\_id}の計算を
+どういうわけか1つのブロックに組み合わせることです。

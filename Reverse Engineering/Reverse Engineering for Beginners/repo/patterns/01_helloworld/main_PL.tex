@@ -1,0 +1,32 @@
+\mysection{\HelloWorldSectionName}
+\label{sec:helloworld}
+
+Przejdźmy do słynnego przykładu z książki [\KRBook]:
+
+\lstinputlisting[caption=Kod w \CCpp,style=customc]{patterns/01_helloworld/hw.c}
+
+\subsection{x86}
+
+\input{patterns/01_helloworld/MSVC_x86}
+\input{patterns/01_helloworld/GCC_x86}
+\input{patterns/01_helloworld/string_patching_PL}
+
+\subsection{x86-64}
+\input{patterns/01_helloworld/MSVC_x64}
+\input{patterns/01_helloworld/GCC_x64}
+\input{patterns/01_helloworld/address_patching_PL}
+
+\input{patterns/01_helloworld/ARM/main}
+\input{patterns/01_helloworld/MIPS/main}
+
+\subsection{\Conclusion{}}
+
+Główną różnicą między kodem w x86/ARM a x64/ARM64 jest to, że wskaźnik na łańcuch znaków stał się 64-bitowy.
+W rzeczy samej, współczesne \ac{CPU} stały się 64-bitowe przez niższy koszt pamięci oraz większe zapotrzebowania na nią przez współczesne aplikacje.
+Komputery mogą mieć więcej pamięci, niż można zaadresować za pomocą 32 bitów.
+W związku z tym, wszystkie wskaźniki są teraz 64-bitowe.
+
+% sections
+\input{patterns/01_helloworld/exercises}
+
+

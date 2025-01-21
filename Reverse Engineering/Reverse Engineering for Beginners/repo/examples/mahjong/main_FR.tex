@@ -1,0 +1,88 @@
+﻿\section{Blague avec le solitaire Mahjong (Windows 7)}
+
+Le solitaire Mahjong est un bon jeu, mais pouvons-nous le rendre plus difficile,
+en désactivant l'élément de menu \emph{Hint}?
+
+Dans mon Windows 7, je peux trouver Mahjong.dll et Mahjong.exe dans:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..inboxgames-shanghai_31bf3856ad364e35_6.1.7600.16385_none\| \\
+\verb|c07a51d9507d9398|.
+
+Aussi le fichier \verb|Mahjong.exe.mui| dans:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_en-us| \\
+\verb|_c430954533c66bf3|
+
+et
+
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_ru-ru| \\
+\verb|_0d51acf984cb679a|.
+
+J'utilise Windows en anglais, mais avec le support du langage russe, donc il peut
+y avoir des fichiers de ressource pour ces deux langages.
+\myindex{Resource Hacker}
+En ouvrant Mahjong.exe.mui dans Resource Hacker, nous pouvons y voir une définition
+de menu:
+
+\begin{lstlisting}[caption=Ressource de menu de Mahjong.exe.mui]
+103 MENU
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+{
+  POPUP "&Game"
+  {
+    MENUITEM "&New Game\tF2",  40000
+    MENUITEM SEPARATOR
+    MENUITEM "&Undo\tCtrl+Z",  40001
+    MENUITEM "&Hint\tH",  40002
+    MENUITEM SEPARATOR
+    MENUITEM "&Statistics\tF4",  40003
+    MENUITEM "&Options\tF5",  40004
+    MENUITEM "Change &Appearance\tF7",  40005
+    MENUITEM SEPARATOR
+    MENUITEM "E&xit",  40006
+  }
+  POPUP "&Help"
+  {
+    MENUITEM "&View Help\tF1",  40015
+    MENUITEM "&About Mahjong Titans",  40016
+    MENUITEM SEPARATOR
+    MENUITEM "Get &More Games Online",  40020
+  }
+}
+\end{lstlisting}
+
+Le sous-menu \emph{Hint} a le code 40002.
+Maintenant, j'ouvre Mahjong.exe dans IDA et trouve la valeur 40002.
+
+(J'écris ceci en novembre 2019. Il semble qu'IDA ne puisse pas obtenir les PDBs
+depuis les serveurs de Microsoft. Peut-être que Windows 7 n'est plus supporté?
+En tout cas, je ne peux pas obtenir les noms de fonction...)
+
+% TODO translate listing to French
+\lstinputlisting[style=customasmx86,caption=Mahjong.exe]{examples/mahjong/1_EN.lst}
+
+Ce morceau de code active ou désactive l'élément de menu \emph{Hint}.
+
+\myindex{Windows!EnableMenuItem}
+Et d'après MSDN\footnote{\url{https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enablemenuitem}}:
+
+\verb$MF_DISABLED | MF_GRAYED = 3$ et \verb|MF_ENABLED = 0|.
+
+Je pense que cette fonction active ou désactive plusieurs élément de menu (\emph{Hint},
+\emph{Undo}, etc), suivant la valeur dans \verb|arg_0|.
+Car au début, lorsqu'un utilisateur choisi le type de solitaire \verb|Hint| et
+\verb|Undo| sont désactivés.
+Ils sont activés lorsque le jeu a commencé.
+
+Je modifie le fichier Mahjong.exe en 0x01020637, en remplaçant l'octet 0x75 avec
+0xEB, rendant ce saut \INS{JNZ} toujours pris.
+Pratiquement, ceci va toujours appeler \verb|EnableMenuItem(..., ..., 3)|.
+Maintenant le sous-menu \emph{Hint} est toujours désactivé.
+
+Aussi, de manière ou d'une autre, \verb|EnableMenuItem()| est appelé deux fois,
+pour \verb|hMenu| et pour \verb|hmenu|.
+Peut-être que le programme a deux menus, et peut-être les échange-t-il?
+
+À titre d'exercice, essayez de désactiver l'élément de menu \emph{Undo}, pour rendre
+le jeu encore plus difficile.

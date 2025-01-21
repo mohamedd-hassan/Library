@@ -1,0 +1,45 @@
+% TBT \subsection{Overlapping const strings}
+\subsection{GCC---un'altra cosa}
+\label{use_parts_of_C_strings}
+
+Il fatto che una stringa C \emph{anonima} abbia tipo \emph{const} (\myref{string_is_const_char}),
+e che le stringhe C allocate in in segmenti costanti siano garantite come immutabili, ha una conseguenza interessante:
+il compilatore può utilizzare una parte specifica della stringa.
+
+Proviamo questo esempio:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int f1()
+{
+	printf ("world\n");
+}
+
+int f2()
+{
+	printf ("hello world\n");
+}
+
+int main()
+{
+	f1();
+	f2();
+}
+\end{lstlisting}
+
+Compilatori \CCpp{} comuni (incluso MSVC) allocano due stringhe, ma vediamo cosa fa GCC 4.8.1:
+
+\lstinputlisting[caption=GCC 4.8.1 + IDA,style=customasmx86]{\CURPATH/two_strings.asm}
+
+Infatti: quando stampiamo la stringa \q{hello world}
+queste due parole sono memorizzate in posizioni adiacenti in memoria e \puts chiamata dalla funzione \GTT{f2()}
+non sa che questa stringa è divisa.
+In effett, non è veramente divisa; è separata solo \emph{virtualmente}, in questo listato.
+
+Quando \puts viene chiamato da \GTT{f1()}, usa la stringa \q{world} più un byte zero. \puts che è presente qualcosa prima di questa stringa!
+
+Questo trucchetto furbo viene utilizzato perlomeno da GCC e può salvare un po' di memoria.
+Questo è simile allo \emph{string interning}.
+
+Un ulteriore esempio correlato è questo: \myref{strstr_example}.

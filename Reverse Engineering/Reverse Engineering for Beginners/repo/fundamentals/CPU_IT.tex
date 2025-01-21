@@ -1,0 +1,21 @@
+﻿\mysection{CPU}
+
+\subsection{Branch predictors}
+\label{branch_predictors}
+
+Alcuni compilatori più recenti provano a non utilizzare le istruzioni di salto condizionato.
+Questo avviene poiché il branch predictor non è sempre perfetto quindi il compilatore prova ad evitare l'uso di salti condizionali se è possibile.
+Gli esempi possono essere trovati in questi libri: \myref{subsec:jcc_ARM}, \myref{chap:cond}, \myref{subsec:popcnt}.
+
+
+\myindex{x86!\Instructions!CMOVcc}
+\myindex{ARM!\Instructions!ADRcc}
+I processori ARM e x86 forniscono alcune istruzioni condizionali nel loro instruction set (ADRcc nel caso di ARM e CMOVcc nel caso di x86).
+
+\subsection{Data dependencies}
+
+Le attuali CPU sono in grado di eseguire istruzioni simultaneamente (\ac{OOE}), a patto che i risultati di un'istruzione in un gruppo non influenzino l'esecuzione delle altre.
+Per questo il compilatore prova ad utilizzare istruzioni che influenzino al minimo lo stato della CPU.
+
+\myindex{ARM!\Instructions!LEA}
+Questo è il motivo per cui l'istruzione \LEA è così popolare, poiché non modifica i flag della CPU a differenza di altre istruzioni aritmetiche.

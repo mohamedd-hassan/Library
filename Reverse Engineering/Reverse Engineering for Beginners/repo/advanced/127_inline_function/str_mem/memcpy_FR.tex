@@ -1,0 +1,60 @@
+\subsubsection{memcpy()}
+\myindex{\CStandardLibrary!memcpy()}
+
+\myparagraph{Petits blocs}
+\label{copying_short_blocks}
+
+\myindex{x86!\Instructions!MOV}
+
+La routine pour copier des blocs courts est souvent implémentée comme une séquence
+d'instructions \MOV.
+
+\lstinputlisting[caption=exemple memcpy(),style=customc]{\CURPATH/str_mem/memcpy_7.c}
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{\CURPATH/str_mem/memcpy_7_MSVC_2010_Ox.asm}
+
+\lstinputlisting[caption=GCC 4.8.1 \Optimizing,style=customasmx86]{\CURPATH/str_mem/memcpy_7_GCC_O3.s}
+
+C'est effectué en général ainsi: des blocs de 4-octets sont d'abord copiés, puis
+un mot de 16-bit (si nécessaire) et enfin un dernier octet (si nécessaire).
+
+Les structures sont aussi copiées en utilisant
+\MOV: \myref{short_struct_copying_using_MOV}.
+
+\myparagraph{Longs blocs}
+
+Les compilateurs se comportent différemment dans ce cas.
+
+\lstinputlisting[caption=memcpy() exemple,style=customc]{\CURPATH/str_mem/memcpy.c}
+
+\myindex{x86!\Instructions!MOVSD}
+
+Pour copier 128 octets, MSVC utilise une seule instruction \TT{MOVSD} (car 128 est
+divisible par 4):
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{\CURPATH/str_mem/memcpy_128_MSVC_2010_Ox.asm}
+
+Lors de la copie de 123 octets, 30 mots de 32-bit sont tout d'abord copiés en utilisant
+\TT{MOVSD} (ce qui fait 120 octets), puis 2 octets sont copiés en utilisant \TT{MOVSW},
+puis un autre octet en utilisant \TT{MOVSB}.
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{\CURPATH/str_mem/memcpy_123_MSVC_2010_Ox.asm}
+
+
+GCC utilise une grosse fonction universelle, qui fonctionne pour n'importe quelle
+taille de bloc:
+
+\lstinputlisting[caption=GCC 4.8.1 \Optimizing,style=customasmx86]{\CURPATH/str_mem/memcpy_GCC.s}
+
+
+Les fonctions de copie de mémoire universelles fonctionnent en général comme suit:
+calculer combien de mots de 32-bit peuvent être copiés, puis les copier en utilisant
+\TT{MOVSD}, et enfin copier les octets restants.
+
+\myindex{SIMD}
+
+Des fonctions de copie plus avancées et complexes utilisent les instructions \ac{SIMD}
+et prennent aussi en compte l'alignement de la mémoire.
+
+Voici un exemple de fonction strlen() SIMD: \myref{SIMD_strlen}.
+

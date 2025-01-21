@@ -1,0 +1,41 @@
+\mysection{Еще одна heisenbug-а}
+\label{GlobalArraysOverflowHeisenbug}
+
+Иногда, переполнение массива (или буфера) может привести к \emph{ошибке заборного столба (fencepost error)}:
+
+\lstinputlisting[style=customc]{advanced/750_heisenbug/1.c}
+
+Вот что выводится в моем случае (неоптимизирующий GCC 5.4 x86 на Linux):
+
+\begin{lstlisting}
+important_var1=1
+important_var2=456
+important_var3=3
+important_var4=4
+important_var5=5
+\end{lstlisting}
+
+Как бывает, \TT{important\_var2} может быть расположена компилятором сразу за \TT{array1[]}:
+
+\begin{lstlisting}[caption=objdump -x]
+0804a040 g     O .bss   00000200              array1
+...
+0804a240 g     O .bss   00000004              important_var2
+0804a244 g     O .bss   00000004              important_var4
+...
+0804a248 g     O .bss   00000004              important_var1
+0804a24c g     O .bss   00000004              important_var3
+0804a250 g     O .bss   00000004              important_var5
+\end{lstlisting}
+
+Другой компилятор может расположить переменные в другом порядке, и другая переменная затрется.
+\myindex{Heisenbug}
+Это также \emph{heisenbug}-а (\myref{heisenbug}) --- ошибка может появится или может оставаться незамеченной в зависимости
+от версии компилятора и флагов оптимизации.
+
+\myindex{Valgrind}
+Если все переменные и массивы расположены в локальном стеке, защита стека может сработать, а может и нет.
+Хотя, Valgrind может находить такие ошибки.
+
+Еще один пример в этой книге (игра Angband): \myref{Angband}.
+

@@ -1,0 +1,11 @@
+\myindex{x86!\Instructions!ADC}
+\myindex{x86!\Flags!CF}
+  \item[ADC] (\emph{add with carry})
+  ajoute des valeurs, \glslink{increment}{incrémente} le résultat si le flag CF est
+  mis. ADC est souvent utilisé pour ajouter des grandes valeurs, par exemple, pour
+  ajouter deux valeurs 64-bit dans un environnement 32-bit en utilisant deux
+  instructions, ADD et ADC. Par exemple:
+
+\lstinputlisting[style=customasmx86]{appendix/x86/instructions/ADC_example_FR.lst}
+
+Un autre exemple: \myref{sec:64bit_in_32_env}.

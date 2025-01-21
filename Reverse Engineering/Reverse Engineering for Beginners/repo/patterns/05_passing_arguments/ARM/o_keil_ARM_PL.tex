@@ -1,0 +1,14 @@
+﻿\subsubsection{\OptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[label=ARM_leaf_example1,style=customasmARM]
+.text:00000098             f
+.text:00000098 91 20 20 E0       MLA     R0, R1, R0, R2
+.text:0000009C 1E FF 2F E1       BX      LR
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!MLA}
+
+Widać funkcję \ttf skompilowaną za pomocą kompilatora Keil w trybie z pełną optymalizacją (\Othree).
+
+Instrukcja \MOV została usunięta. Teraz \TT{MLA} używa wszystkich rejestrów z argumentami i zapisuje wynik do \Reg{0},
+dokładnie tam, skąd funkcja wywołująca tę wartość odczyta.

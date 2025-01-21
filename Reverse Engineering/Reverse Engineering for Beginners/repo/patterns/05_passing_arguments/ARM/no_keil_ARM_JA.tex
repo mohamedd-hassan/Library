@@ -1,0 +1,35 @@
+\subsubsection{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/05_passing_arguments/ARM/tmp1.asm}
+
+\main 関数は他の2つの関数を呼び出し、3つの値が最初の関数に渡されます（\ttf）。
+
+前述のように、ARMでは最初の4つの値が通常最初の4つのレジスタ（\Reg{0}-\Reg{3}）に渡されます。
+
+\ttf 関数は、最初の3つのレジスタ（\Reg{0}-\Reg{2}）を引数として使用します。
+
+\myindex{ARM!\Instructions!MLA}
+\TT{MLA}（\emph{Multiply Accumulate}）
+命令は最初の2つのオペランド（\Reg{3}と\Reg{1}）を乗算し、3番目のオペランド（\Reg{2}）を積に加算し、
+その結果をゼロ関数（\Reg{0}）に格納します。
+
+\myindex{Fused multiply–add}
+一度に乗算と加算を同時に行うの（\emph{Fused multiply?add}）は非常に便利な操作です。
+ところで、SIMD\footnote{\href{https://en.wikipedia.org/wiki/FMA_instruction_set}{wikipedia}}
+にFMA命令が登場する前に、x86にそのような命令はありませんでした。
+
+最初の\TT{MOV R3, R0}命令は
+明らかに冗長です（ここでは単一の\TT{MLA}命令を代わりに使用できます）。
+これは最適化されないコンパイルであるため、コンパイラは最適化していません。
+
+\myindex{ARM!Mode switching}
+\myindex{ARM!\Instructions!BX}
+
+\TT{BX}命令は、制御を \ac{LR}レジスタに格納されているアドレスに戻し、
+必要に応じてプロセッサモードをThumbからARMに、またはその逆に切り替えます。
+これは、関数 \ttf がどのような種類のコード（ARMまたはThumb）から認識されていないため、必要な場合があります。
+したがって、Thumbコードから呼び出された場合、
+\TT{BX}は呼び出し元の関数に制御を戻すだけでなく、
+プロセッサーモードをThumbに切り替えます。 
+ARMコード(\InSqBrackets{\ARMSevenRef A2.3.2})から関数が呼び出されているかどうかを切り替えます。
+% look for "BXWritePC()" in manual

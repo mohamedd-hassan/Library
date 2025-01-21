@@ -1,0 +1,130 @@
+﻿\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+次の結果を得ます。(MSVC 2010)
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/14_bitfields/2_set_reset/set_reset_msvc.asm}
+
+\myindex{x86!\Instructions!OR}
+
+\OR 命令は、他の1ビットを無視して1ビットをレジスタに設定します。
+
+\myindex{x86!\Instructions!AND}
+
+\AND は1ビットをリセットします。  \AND は1を除くすべてのビットをコピーするだけであると言えます。 
+実際、2番目の \AND オペランドでは、保存する必要があるビットのみが設定され、
+コピーしたくないビットは設定されません（ビットマスクでは0）。 
+これは、ロジックを覚えるのが簡単な方法です。
+
+\clearpage
+\mysubparagraph{\olly}
+
+\olly でこの例を試してみましょう。
+
+まず、使用する定数のバイナリ形式を見てみましょう。
+
+\TT{0x200} (0b0000000000000000000{\color{red}1}000000000) （すなわち、10番目のビット（1から数えて））
+
+Inverted \TT{0x200} is \TT{0xFFFFFDFF} (0b1111111111111111111{\color{red}0}111111111).
+
+\TT{0x4000} (0b00000000000000{\color{red}1}00000000000000) （すなわち、15番目のビット）
+
+入力値は \TT{0x12340678} (0b10010001101000000011001111000)。
+どのようにロードされるか見ていきます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/2_set_reset/olly1.png}
+\caption{\olly: 値が \ECX にロード}
+\label{fig:set_reset_olly1}
+\end{figure}
+
+\clearpage
+\OR が実行される。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/2_set_reset/olly2.png}
+\caption{\olly: \OR が実行}
+\label{fig:set_reset_olly2}
+\end{figure}
+
+15番目のビットがセット。 \TT{0x1234{\color{red}4}678} 
+(0b10010001101000{\color{red}1}00011001111000).
+
+\clearpage
+値がリロードされる（コンパイラが最適化モードではないから）。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/2_set_reset/olly3.png}
+\caption{\olly: 値が \EDX にリロード}
+\label{fig:set_reset_olly3}
+\end{figure}
+
+\clearpage
+\AND が実行される。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/14_bitfields/2_set_reset/olly4.png}
+\caption{\olly: \AND が実行}
+\label{fig:set_reset_olly4}
+\end{figure}
+
+10番目のビットがクリアされる。（または、言い換えると、10番目を除いてすべてのビットが残りました）そして、最終的な値は
+\TT{0x12344{\color{red}4}78} (0b1001000110100010001{\color{red}0}001111000)です。
+
+\myparagraph{\Optimizing MSVC}
+
+MSVCで最適化を有効に（\Ox）してコンパイルすると、コードはもっと短くなります。
+
+\lstinputlisting[caption=\Optimizing MSVC,style=customasmx86]{patterns/14_bitfields/2_set_reset/set_reset_msvc_Ox.asm}
+
+\myparagraph{\NonOptimizing GCC}
+
+最適化なしのGCC 4.4.1を試してみましょう。
+
+\lstinputlisting[caption=\NonOptimizing GCC,style=customasmx86]{patterns/14_bitfields/2_set_reset/set_reset_gcc.asm}
+
+冗長なコードが見られますが、非最適化MSVC版より短くなります。
+
+最適化 \Othree を有効にしてGCCを試してみましょう。
+
+\myparagraph{\Optimizing GCC}
+
+\lstinputlisting[caption=\Optimizing GCC,style=customasmx86]{patterns/14_bitfields/2_set_reset/set_reset_gcc_O3.asm}
+
+短くなります。
+より短いです。コンパイラが \AH レジスタを介して \EAX レジスタの部分で動作することは注目に値します。これは、8番目のビットから15番目のビットまでの \EAX レジスタの部分です。
+
+\RegTableOne{RAX}{EAX}{AX}{AH}{AL}
+
+\myindex{Intel!8086}
+\myindex{Intel!80386}
+注意：16ビットCPU 8086アキュムレータは \AX と命名され、8ビットの2つのレジスタで構成されていました。
+\AL （下位バイト）および \AH （上位バイト）です。
+80386ではほとんどすべてのレジスタが32ビットに拡張されて、アキュムレータの名前は \EAX でしたが、
+互換性のために
+\emph{古い部分}には \AX/\AH/\AL としてアクセスすることができます。
+
+すべてのx86 CPUは16ビットの8086 CPUの後継バージョンなので、\emph{古い}16ビットのオペコードは
+新しい32ビットのものよりも短くなります。 
+だから、\INS{or ah, 40h}命令は3バイトしか占有しません。
+ここでは\INS{or eax, 04000h}を発行する方が論理的ですが、
+それは5または6バイトです。
+（最初のオペランドのレジスタが \EAX でない場合）
+
+\myparagraph{\Optimizing GCC and regparm}
+
+\Othree 最適化フラグをオンにして\TT{regparm=3}に設定するとさらに短くなります。
+
+\lstinputlisting[caption=\Optimizing GCC,style=customasmx86]{patterns/14_bitfields/2_set_reset/set_reset_gcc_O3_regparm3.asm}
+
+\myindex{Inline code}
+
+実際、最初の引数はすでに \EAX にロードされているので、インプレースで処理することは可能です。 
+関数プロローグ（\INS{push ebp / mov ebp,esp}）とエピローグ（\INS{pop ebp}）は
+ここでは簡単に省略することができますが、GCCはおそらくこのようなコードサイズの最適化を行うには不十分であることに注意してください。 
+しかし、このような短い関数は\emph{インライン関数}より優れています。(\myref{inline_code})

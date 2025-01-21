@@ -1,0 +1,71 @@
+\subsubsection{Encapsulation}
+
+L'encapsulation consiste à cacher les données dans des sections \emph{private} de la
+classe, e.g. de n'autoriser leurs accès que depuis les méthodes de la classe.
+
+Toutefois, y a-t-il des repères dans le code à propos du fait que certains champs
+sont privé et d'autres---non?
+
+Non, il n'y a pas de tels repères.
+
+Essayons avec ce simple exemple:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes2_0.cpp}
+
+Compilons-le à nouveau dans MSVC 2008 avec les options \Ox et \Obzero puis regardons
+le code de la méthode \TT{box::dump()}:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/classes/classes2_1.asm}
+
+Voici l'agencement mémoire de la classe:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \tableheader{} \\
+\hline
+  +0x0 & int color \\
+\hline
+  +0x4 & int width \\
+\hline
+  +0x8 & int height \\
+\hline
+  +0xC & int depth \\
+\hline
+\end{tabular}
+\end{center}
+
+Tous les champs sont privés et ne peuvent être accédés depuis une autre fonction,
+mais connaissant cette disposition, pouvons-nous créer le code qui modifie ces champs?
+
+Pour faire ceci, nous ajoutons la fonction \TT{hack\_oop\_encapsulation()}, qui ne
+compilerait pas si elle ressemblait à ceci:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes2_2_FR.cpp}
+
+Néanmoins, si nous castons le type \emph{box} sur un \emph{pointeur sur un tableau de int},
+que nous modifions le tableau de \Tint{}-s que nous avons, nous pourrions réussir.
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes2_3.cpp}
+
+Le code de cette fonction est très simple---on peut dire que la fonction prend un
+pointeur sur un tableau de \Tint{}-s en entrée et écrit \emph{123} dans le second \Tint{}:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/classes/classes2_5.asm}
+
+Regardons comment ça fonctionne:
+
+\lstinputlisting[style=customc]{\CURPATH/classes/classes2_4.cpp}
+
+Lançons-le:
+
+\begin{lstlisting}
+this is a box. color=1, width=10, height=20, depth=30
+this is a box. color=1, width=123, height=20, depth=30
+\end{lstlisting}
+
+Nous voyons que l'encapsulation est juste une protection des champs de la classe
+lors de l'étape de compilation.
+
+Le compilateur \Cpp n'autorise pas la génération de code qui modifie directement
+les champs protégés, néanmoins, il est possible de le faire avec l'aide de \emph{dirty hacks}.

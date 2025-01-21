@@ -1,0 +1,20 @@
+\subsection{Fall-through}
+
+Un altro uso diffuso dell'operatore \TT{switch()} è il cosiddetto \q{fallthrough}.
+Ecco un semplice esempio \footnote{Preso da \url{https://github.com/azonalon/prgraas/blob/master/prog1lib/lecture_examples/is_whitespace.c}}:
+
+\lstinputlisting[numbers=left,style=customc]{patterns/08_switch/4_fallthrough/fallthrough1.c}
+
+Uno leggermente più difficile, dal kernel di Linux \footnote{Preso da \url{https://github.com/torvalds/linux/blob/master/drivers/media/dvb-frontends/lgdt3306a.c}}:
+
+\lstinputlisting[numbers=left,style=customc]{patterns/08_switch/4_fallthrough/fallthrough2.c}
+
+\lstinputlisting[caption=Optimizing GCC 5.4.0 x86,numbers=left,style=customasmx86]{patterns/08_switch/4_fallthrough/fallthrough2.s}
+
+Possiamo arrivare alla label \TT{.L5} se all'input della funzione viene dato il valore 3250.
+Ma si può anche giungere allo stesso punto da un altro percorso:
+notiamo che non ci sono jump tra la chiamata a \printf e la label \TT{.L5}.
+
+Questo spiega facilmente perchè i costrutti con \emph{switch()} sono spesso fonte di bug:
+è sufficiente dimenticare un \emph{break} per trasformare il costrutto \emph{switch()} in un \emph{fallthrough} , in cui vengono eseguiti
+più blocchi invece di uno solo.

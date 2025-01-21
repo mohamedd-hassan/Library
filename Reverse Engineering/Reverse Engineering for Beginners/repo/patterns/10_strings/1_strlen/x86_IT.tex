@@ -1,0 +1,130 @@
+\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+Compiliamolo:
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_1_msvc_IT.asm}
+
+\myindex{x86!\Instructions!MOVSX}
+\myindex{x86!\Instructions!TEST}
+
+Qui, abbiamo due nuove istruzioni: \MOVSX e \TEST.
+
+\label{MOVSX}
+
+La prima---\MOVSX---prende un byte da un indirizzo in memoria e salva il valore in un registro a 32-bit. 
+\MOVSX sta per \emph{MOV with Sign-Extend}. 
+\MOVSX imposta i restanti bit, dal 8 al 31, 
+a 1 se il byte sorgente è \emph{negativo} o a 0 se \emph{positivo}.
+
+Vediamo il perchè.
+
+Di default, il tipo \Tchar è con segno in MSVC e GCC. Se abbiamo due valori, uno dei quali è \Tchar 
+mentre l' altro è \Tint, (anche \Tint è con segno), se il primo valore contiene -2 (codificato come \TT{0xFE}) 
+e copiamo il byte nel contenitore \Tint, sarebbe \TT{0x000000FE} e ciò 
+dal punto di vista di un \Tint con segno è 254, non -2. Negli interi con segno, -2 è codificato come \TT{0xFFFFFFFE}. 
+Quindi se vogliamo trasferire \TT{0xFE} da una variabile di tipo \Tchar a \Tint, 
+dobbiamo identficare il suo segno estenderlo. Questo è ciò che fa \MOVSX.
+
+E difficile dire se il compilatore necessiti di salvare una varibile \Tchar in \EDX, potrebbe prendere solo la parte a 8-bit di un registro 
+(per esempio \DL). Apparentemente, il \gls{register allocator} del compilatore funziona così.
+
+\myindex{ARM!\Instructions!TEST}
+
+Dopodichè vediamo \TT{TEST EDX, EDX}. 
+Maggiori dettagli riguardo all' istruzione \TEST nella sezione dei campi di bit~(\myref{sec:bitfields}).
+In questo caso, questa istruzione controlla solamente se il valore in \EDX è pari a 0.
+
+\myparagraph{\NonOptimizing GCC}
+
+Proviamo GCC 4.4.1:
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_3_gcc.asm}
+
+\label{movzx}
+\myindex{x86!\Instructions!MOVZX}
+
+Il risultato è quasi lo stesso di MSVC, ma qui possiamo notare \MOVZX al posto di \MOVSX. 
+\MOVZX sta per \emph{MOV with Zero-Extend}. 
+Questa istruzione copia un valore a 8 o 16 bit in un registro a 32-bit e imposta i restanti bit a 0. 
+Infatti, questa istruzione è conveniente solo perchè ci permette di rimpiazzare questa coppia di istruzioni:\\
+\TT{xor eax, eax / mov al, [...]}.
+
+D' altronde, è ovvio che il compilatore possa produrre questo codice:\\
+\TT{mov al, byte ptr [eax] / test al, al}---è quasi lo stesso, tuttavia, 
+i bit più alti del registro \EAX conterranno rumore casuale. 
+Ma supponiamo sia un ostacolo del compilatore---non potrebbe più produrre codice leggibile. 
+Parlando francamente, il compilatore non è obbligato ad emettere codice del tutto comprensibile (agli umani).
+
+\myindex{x86!\Instructions!SETcc}
+
+La prossima nuova istruzione è \SETNZ. 
+In questo caso, se \AL non contiene zero, \TT{test al, al} 
+imposta la flag \ZF a 0, ma \SETNZ, se \TT{ZF==0} (\emph{NZ} sta per \emph{not zero}) imposta \AL a 1.
+Parlando con un liguaggio naturale, \emph{se \AL non è zero, salta a loc\_80483F0}. 
+Il compilatore emette molto codice rindondante, ma non dimentichiamo che le ottimizzazioni sono spente.
+
+\myparagraph{\Optimizing MSVC}
+\label{strlen_MSVC_Ox}
+
+Ora compiliamo il tutto in MSVC 2012, con le ottimizzazioni attivate (\Ox):
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 /Ob0,style=customasmx86]{patterns/10_strings/1_strlen/10_2_IT.asm}
+
+Ora è tutto più semplice.
+Inutile dire che il compilatore può usare i registri con tale efficienza 
+solo in piccole funzioni con poche variabili locali.
+
+\myindex{x86!\Instructions!INC}
+\myindex{x86!\Instructions!DEC}
+\INC/\DEC---sono le istruzioni \gls{increment}/\gls{decrement}, in altre parole: aggiunge o sottrae 1 a/da una variable.
+
+\input{patterns/10_strings/1_strlen/olly_IT.tex}
+
+\myparagraph{\Optimizing GCC}
+
+Vediamo GCC 4.4.1 con le ottimizzazioni attivate (\Othree key):
+
+\lstinputlisting[style=customasmx86]{patterns/10_strings/1_strlen/10_3_gcc_O3.asm}
+ 
+Qui GCC è quasi lo stesso di MSVC, eccetto per la presenza di \MOVZX.
+Tuttavia, in questo caso \MOVZX può essere rimpiazzato con\\
+\TT{mov dl, byte ptr [eax]}.
+
+Forse è più semplice per il generatore di codice di GCC \emph{ricordare} 
+che l' intero registro \EDX a 32-bit 
+è stato allocato per una variabile \Tchar e quindi è sicuro che i bit più alti 
+non contengono rumore in nessun momento.
+
+\label{strlen_NOT_ADD}
+\myindex{x86!\Instructions!NOT}
+\myindex{x86!\Instructions!XOR}
+
+Dopodichè vediamo una nuova istruzione---\NOT. Questa istruzione inverte tutti i bit nell' operando. \\
+Possiamo dire che è sinonimo dell' istruzione \TT{XOR ECX, 0ffffffffh}. 
+\NOT e il seguente \ADD calcolano la differenza di puntatori e sottraggono 1, solamente in maniera diversa. 
+All' inizio \ECX, dove è salvato il puntatore a \emph{str}, viene invertito e gli viene sottratto 1.
+
+In altre parole, alla fine della funzione, appena prima del corpo del ciclo, vengono eseguite queste istruzioni:
+
+\begin{lstlisting}[style=customc]
+ecx=str;
+eax=eos;
+ecx=(-ecx)-1; 
+eax=eax+ecx
+return eax
+\end{lstlisting}
+
+\dots~che effettivamente è equivalente a:
+
+\begin{lstlisting}[style=customc]
+ecx=str;
+eax=eos;
+eax=eax-ecx;
+eax=eax-1;
+return eax
+\end{lstlisting}
+
+Perchè GCC ha deciso che è meglio così? Difficile da dire.
+Ma forse entrambe le varianti hanno efficenza equivalente.

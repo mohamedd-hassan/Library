@@ -1,0 +1,34 @@
+\subsubsection{ARM + \NonOptimizingXcodeIV (\ThumbTwoMode)}
+\label{FPU_passing_floats_ARM}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/2_passing_floats/Xcode_thumb_O0.asm}
+
+Comme nous l'avons déjà mentionné, les pointeurs sur des nombres flottants 64-bit
+sont passés dans une paire de R-registres.
+
+Ce code est un peu redondant (probablement car l'optimisation est désactivée),
+puisqu'il est possible de charger les valeurs directement dans les R-registres sans
+toucher les D-registres.
+
+Donc, comme nous le voyons, la fonction \GTT{\_pow} reçoit son premier argument dans
+\Reg{0} et \Reg{1}, et le second dans \Reg{2} et \Reg{3}.
+La fonction laisse son résultat dans \Reg{0} et \Reg{1}.
+Le résultat de \GTT{\_pow} est déplacé dans \GTT{D16}, puis dans la paire \Reg{1}
+et \Reg{2}, d'où \printf prend le nombre résultant.
+
+\subsubsection{ARM + \NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/2_passing_floats/Keil_ARM_O0.asm}
+
+Les D-registres ne sont pas utilisés ici, juste des paires de R-registres.
+
+\subsubsection{ARM64 + GCC (Linaro) 4.9 \Optimizing}
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 \Optimizing,style=customasmARM]{patterns/12_FPU/2_passing_floats/ARM64_FR.s}
+
+Les constantes sont chargées dans \RegD{0} et \RegD{1}: \TT{pow()} les prend d'ici.
+Le résultat sera dans \RegD{0} après l'exécution de \TT{pow()}.
+Il est passé à  \printf sans aucune modification ni déplacement, car \printf
+prend ces arguments de \glslink{integral type}{type intégral} et pointeurs depuis
+des X-registres, et les arguments en virgule flottante depuis des D-registres.
+

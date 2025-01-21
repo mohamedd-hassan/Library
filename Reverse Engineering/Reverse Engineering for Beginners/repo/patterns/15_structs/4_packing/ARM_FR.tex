@@ -1,0 +1,38 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/15_structs/4_packing/packing_Keil_thumb.asm}
+
+Rappelons-nous que c'est une structure qui est passée ici et non pas un pointeur vers une structure. Comme 
+les 4 premiers arguments d'une fonction sont passés dans les registres sur les processeurs ARM, les champs 
+de la structure sont passés dans les registres \TT{R0-R3}.
+
+\myindex{ARM!\Instructions!LDRB}
+\myindex{x86!\Instructions!MOVSX}
+\TT{LDRB} charge un octet présent en mémoire et l'étend sur 32bits en prenant en compte son signe. Cette 
+opération est similaire à celle effectuée par \MOVSX dans les architectures x86. Elle est utilisée ici pour 
+charger les champs $a$ et $c$ de la structure.
+
+\myindex{Epilogue de fonction}
+
+Un autre détail que nous remarquons aisément est que la fonction ne s'achève pas sur un épilogue qui lui est 
+propre. A la place, il y a un saut vers l'épilogue d'une autre fonction! Qui plus est celui d'une fonction 
+très différente sans aucun lien avec la nôtre. Cependant elle possède exactement le même épilogue, 
+probablement parce qu'elle accepte utilise elle aussi 5 variables locales ($5*4=0x14$).
+
+De plus elle est située à une adresse proche.
+
+En réalité, peut importe l'épilogue qui est utilisé du moment que le fonctionnement est celui attendu.
+
+Il semble donc que le compilateur Keil décide de réutiliser à des fins d'économie un fragment d'une autre 
+fonction. Notre épilogue aurait nécessité 4 octets. L'instruction de saut n'en utilise que 2.
+
+\myparagraph{ARM + \OptimizingXcodeIV (\ThumbTwoMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]{patterns/15_structs/4_packing/packing_Xcode_thumb_EN.asm}
+
+\myindex{ARM!\Instructions!SXTB}
+\myindex{x86!\Instructions!MOVSX}
+\TT{SXTB} (\emph{Signed Extend Byte}) est similaire à \MOVSX pour les architectures x86.
+Pour le reste---c'est identique.

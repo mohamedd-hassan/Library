@@ -1,0 +1,37 @@
+* Compiling on Ubuntu (checked)
+
+1) Get these packages:
+
+texlive
+texlive-xetex
+texlive-generic-extra
+texlive-generic-recommended
+texlive-science
+texlive-fonts-extra
+
+2) For all versions (Russian, English):
+   make all
+
+   For English-only version:
+   make RE4B-EN
+
+   For Russian-only version:
+   make RE4B-RU
+
+* Compiling on Mac OS X 10.8 (unchecked)
+
+1) Get MacTeX: https://www.tug.org/mactex/
+
+2) Run make as it has been described before.
+
+* Windows (checked years ago...)
+
+Install TeXlive and use Cygwin.
+
+* To build Japanese version ...
+
+... put gloss-japanese.ldf to the current directory.
+Download from https://github.com/reutenauer/polyglossia/pull/162/files
+
+This Ubuntu package is also to be installed: fonts-ipafont-gothic
+

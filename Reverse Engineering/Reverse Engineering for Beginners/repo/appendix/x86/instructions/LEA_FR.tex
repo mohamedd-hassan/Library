@@ -1,0 +1,59 @@
+\myindex{x86!\Instructions!LEA}
+\item[LEA] (\emph{Load Effective Address}) forme une adresse
+
+\label{sec:LEA}
+
+\newcommand{\URLAM}{\href{http://en.wikipedia.org/wiki/Addressing_mode}{Wikipédia}}
+
+Cette instruction n'a pas été conçue pour sommer des valeurs et/ou les multiplier,
+mais pour former une adresse, e.g., pour calculer l'adresse d'un élément d'un tableau
+en ajoutant l'adresse du tableau, l'index de l'élément multiplié par la taille de
+l'élément\footnote{Voir aussi: \URLAM}.
+\par
+Donc, la différence entre \MOV et \LEA est que \MOV forme une adresse mémoire et
+charge une valeur depuis la mémoire ou l'y stocke, alors que \LEA forme simplement une adresse.
+\par
+Mais néanmoins, elle peut être utilisée pour tout autre calcul.
+\par
+\LEA est pratique car le calcul qu'elle effectue n'altère pas les flags du \ac{CPU}.
+Ceci peut être très important pour les processeurs \ac{OOE} (afin de créer moins de dépendances).
+À part ça, au moins à partir du Pentium, l'instruction \LEA est exécutée en 1 cycle.
+
+\begin{lstlisting}[style=customc]
+int f(int a, int b)
+{
+	return a*8+b;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=MSVC 2010 \Optimizing,style=customasmx86]
+_a$ = 8		; size = 4
+_b$ = 12	; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _b$[esp-4]
+	mov	ecx, DWORD PTR _a$[esp-4]
+	lea	eax, DWORD PTR [eax+ecx*8]
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+\myindex{Intel C++}
+Intel C++ utilise encore plus LEA:
+
+\begin{lstlisting}[style=customc]
+int f1(int a)
+{
+	return a*13;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Intel C++ 2011,style=customasmx86]
+_f1	PROC NEAR
+        mov       ecx, DWORD PTR [4+esp]      ; ecx = a
+	lea       edx, DWORD PTR [ecx+ecx*8]  ; edx = a*9
+	lea       eax, DWORD PTR [edx+ecx*4]  ; eax = a*9 + a*4 = a*13
+        ret
+\end{lstlisting}
+
+Ces deux instructions sont plus rapide qu'un IMUL.
+

@@ -1,0 +1,38 @@
+\mysection{Exemple de calcul de CRC32}
+\myindex{CRC32}
+\label{sec:CRC32}
+
+\newcommand{\URLCRCSRC}{\url{http://burtleburtle.net/bob/c/crc.c}}
+
+C'est une technique très répandue de calcul de hachage basée sur une table
+CRC32\footnote{Le code source provient d'ici: \URLCRCSRC}.
+
+\lstinputlisting[style=customc]{\CURPATH/CRC.c}
+
+\myindex{\CLanguageElements!for}
+
+Nous sommes seulement intéressés par la fonction \TT{crc()}.
+À propos, faîtes attention aux deux déclarations d'initialisation dans la boucle
+\TT{for()}: \TT{hash=len, i=0}.
+Le standard \CCpp permet ceci, bien sûr.
+Le code généré contiendra deux opérations dans la partie d'initialisation de la boucle,
+au lieu d'une.
+
+Compilons-le dans MSVC avec l'optimisation (\Ox).
+Dans un soucis de concision, seule la fonction \TT{crc()} est listée ici, avec mes
+commentaires.
+
+\lstinputlisting[style=customasmx86]{\CURPATH/CRC_2_FR.asm}
+
+Essayons la même chose dans GCC 4.4.1 avec l'option \Othree:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/CRC_gcc_O3_FR.asm}
+
+\myindex{x86!\Instructions!NOP}
+\myindex{x86!\Instructions!LEA}
+
+% \vref bug, please ignore "\\"...
+GCC a aligné le début de la boucle sur une limite de 8-octet en ajoutant \NOP et
+\TT{lea esi, [esi+0]} (qui est aussi une opération sans effet).\\
+\\
+Vous pouvez en lire plus à ce sujet dans la section npad~(\myref{sec:npad}).

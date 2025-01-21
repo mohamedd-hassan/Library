@@ -1,0 +1,13 @@
+\mysection{Una Funzione Vuota: redux}
+
+Torniamo all'esempio della funzione vuota \myref{empty_func}.
+Ora che conosciamo il prologo e l'epilogo delle funzioni,
+questa è una funzione vuota \myref{lst:empty_func} compilata con GCC non ottimizzato:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/016_empty_redux/1.s}
+
+E' \INS{RET}, ma il prologo e l'epilogo della funzione, probabilmente, non sono state ottimizzate e sono state lasciate cosi.
+\INS{NOP} Sembrerebbe un'altro artefatto del compilatore.
+In ogni caso, l'unica istruzione effettiva qui è \INS{RET}.
+Tutte le altre istruzioni possono essere rimosse (oppure ottimizzate).
+

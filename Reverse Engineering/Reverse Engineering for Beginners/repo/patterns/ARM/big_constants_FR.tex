@@ -1,0 +1,141 @@
+﻿\subsection{Charger une constante dans un registre}
+\label{ARM_big_constants}
+
+\subsubsection{ARM 32-bit}
+\label{ARM_big_constants_loading}
+
+Comme nous le savons déjà, toutes les instructions ont une taille de 4 octets en
+mode ARM et de 2 octets en mode Thumb.
+
+Mais comment peut-on charger une valeur 32-bit dans un registre, s'il n'est pas possible
+de l'encoder dans une instruction?
+
+Essayons:
+
+\begin{lstlisting}[style=customc]
+unsigned int f()
+{
+	return 0x12345678;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.6.3 -O3 \ARMMode,style=customasmARM]
+f:
+        ldr     r0, .L2
+        bx      lr
+.L2:
+        .word   305419896 ; 0x12345678
+\end{lstlisting}
+
+Donc, la valeur \TT{0x12345678} est simplement stockée à part en mémoire et chargée
+si besoin.
+
+Mais il est possible de se débarrasser de l'accès supplémentaire en mémoire.
+
+\begin{lstlisting}[caption=GCC 4.6.3 -O3 -march{=}armv7-a (\ARMMode),style=customasmARM]
+movw    r0, #22136      ; 0x5678
+movt    r0, #4660       ; 0x1234
+bx      lr
+\end{lstlisting}
+
+Nous voyons que la valeur est chargée dans le registre par parties, la partie basse
+en premier (en utilisant \INS{MOVW}), puis la partie haute (en utilisant \INS{MOVT}).
+
+Ceci implique que 2 instructions sont nécessaires en mode ARM pour charger une valeur
+32-bit dans un registre.
+
+Ce n'est pas un problème, car en fait il n'y pas beaucoup de constantes dans du code
+réel (excepté pour 0 et 1).
+
+Est-ce que ça signifie que la version à deux instructions est plus lente que celle
+à une instruction?
+
+C'est discutable. Le plus souvent, les processeurs ARM modernes sont capable de détecter
+de telle séquences et les exécutent rapidement.
+
+D'un autre côté, \IDA est capable de détecter ce genre de patterns dans le code et
+désassemble cette fonction comme:
+
+\begin{lstlisting}[style=customasmARM]
+MOV    R0, 0x12345678
+BX     LR
+\end{lstlisting}
+
+\subsubsection{ARM64}
+
+\begin{lstlisting}[style=customc]
+uint64_t f()
+{
+	return 0x12345678ABCDEF01;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3,style=customasmARM]
+mov	x0, 61185   ; 0xef01
+movk	x0, 0xabcd, lsl 16
+movk	x0, 0x5678, lsl 32
+movk	x0, 0x1234, lsl 48
+ret
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!MOVK}
+\TT{MOVK} signifie \q{MOV Keep} (déplacer garder), i.e., elle écrit une valeur
+16-bit dans le registre, sans affecter le reste des bits.
+\myindex{ARM!Optional operators!LSL}
+Le suffixe \TT{LSL} signifie décaler la valeur à gauche de 16, 32 et 48 bits à chaque
+étape. Le décalage est fait avant le chargement.
+
+Ceci implique que 4 instructions sont nécessaires pour charger une valeur de 64-bit
+dans un registre.
+
+\myparagraph{Charger un nombre à virgule flottante dans un registre}
+
+Il est possible de stocker un nombre à virgule flottante dans un D-registre en utilisant
+une seule instruction.
+
+Par exemple:
+
+\begin{lstlisting}[style=customc]
+double a()
+{
+	return 1.5;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3 + objdump,style=customasmARM]
+0000000000000000 <a>:
+   0:   1e6f1000        fmov    d0, #1.500000000000000000e+000
+   4:   d65f03c0        ret
+\end{lstlisting}
+
+Le nombre $1.5$ a en effet été encodé dans une instruction 32-bit.
+Mais comment?
+\myindex{ARM!\Instructions!FMOV}
+
+En ARM64, il y a 8 bits dans l'instruction \TT{FMOV} pour encoder certains nombres
+à virgule flottante.
+
+L'algorithme est appelé \TT{VFPExpandImm()} en \ARMSixFourRefURL.
+\myindex{minifloat}
+Ceci est aussi appelé \emph{minifloat}\footnote{\href{http://en.wikipedia.org/wiki/Minifloat}{Wikipédia}}
+(mini flottant).
+
+Nous pouvons essayer différentes valeurs. Le compilateur est capable d'encoder $30.0$
+et $31.0$, mais il ne peut pas encoder $32.0$, car 8 octets doivent être alloués
+pour ce nombre au format IEEE 754:
+
+\begin{lstlisting}[style=customc]
+double a()
+{
+	return 32;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=GCC 4.9.1 -O3,style=customasmARM]
+a:
+	ldr	d0, .LC0
+	ret
+.LC0:
+	.word	0
+	.word	1077936128
+\end{lstlisting}

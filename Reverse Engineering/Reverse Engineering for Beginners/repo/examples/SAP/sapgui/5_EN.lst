@@ -1,0 +1,19 @@
+.text:64409D58                 cmp     [esi+3Dh], bl   ; ESI is pointer to CDwsGui object
+.text:64409D5B                 lea     ecx, [esi+2B8h]
+.text:64409D61                 setz    al
+.text:64409D64                 push    eax ; arg\_10 of CConnectionContext::CreateNetwork
+.text:64409D65                 push    dword ptr [esi+64h]
+
+; demangled name: const char* ATL::CSimpleStringT::operator PCXSTR 
+.text:64409D68                 call    ds:mfc90_910
+.text:64409D68                                         ; no arguments
+.text:64409D6E                 push    eax
+.text:64409D6F                 lea     ecx, [esi+2BCh]
+
+; demangled name: const char* ATL::CSimpleStringT::operator PCXSTR 
+.text:64409D75                 call    ds:mfc90_910
+.text:64409D75                                         ; no arguments
+.text:64409D7B                 push    eax
+.text:64409D7C                 push    esi
+.text:64409D7D                 lea     ecx, [esi+8]
+.text:64409D80                 call    CConnectionContext__CreateNetwork

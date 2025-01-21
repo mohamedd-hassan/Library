@@ -1,0 +1,15 @@
+00000000: B9D007   mov    cx,007D0 ; limiter la sortie à 2000 caractères
+00000003: 31C0     xor    ax,ax    ; commande pour le chip timer
+00000005: E643     out    043,al
+00000007: E440     in     al,040   ; lire 8-bit du timer
+00000009: D1E8     shr    ax,1     ; mettre le second bit dans le flag CF
+0000000B: D1E8     shr    ax,1
+0000000D: B05C     mov    al,05C   ; préparer \verb|'\'|
+0000000F: 7202     jc     000000013
+00000011: B02F     mov    al,02F   ; préparer '/'
+; output character to screen
+00000013: B40E     mov    ah,00E
+00000015: CD10     int    010
+00000017: E2EA     loop   000000003
+; exit to DOS
+00000019: CD20     int    020

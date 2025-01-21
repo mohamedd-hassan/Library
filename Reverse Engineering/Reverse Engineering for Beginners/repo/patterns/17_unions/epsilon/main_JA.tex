@@ -1,0 +1,57 @@
+﻿\subsection{計算機イプシロンを計算する}
+
+計算機イプシロンは、\ac{FPU}が使用できる最小の値です。 
+浮動小数点数に割り当てられるビットが多いほど、計算機イプシロンは小さくなります。
+\Tfloat では $2^{-23} \approx 1.19e-07$ で、 \Tdouble では $2^{-52} \approx 2.22e-16$ です。
+\href{https://en.wikipedia.org/wiki/Arithmetic_underflow}{Wikipediaの記事} も参照してください。
+
+興味深いことに、計算機イプシロンを計算するのはとても簡単です。
+
+\lstinputlisting[style=customc]{patterns/17_unions/epsilon/float.c}
+
+ここで行うことは、IEEE 754形式の数の小数部分を整数として扱い、それに1を加えることです。
+結果の浮動小数点数は $starting\_value+machine\_epsilon$ に等しいので、
+測定するために（浮動小数点演算を使用して）開始値を減算する必要があります。
+1ビットが単精度（\Tfloat）にどのように反映されるかを測定します。
+\emph{共用体}は、ここでは通常の整数としてIEEE 754形式の数にアクセスする方法として機能します。 
+1を加えることは実際には数の\emph{小数}部分に1を加えますが、言うまでもなく、
+オーバーフローは可能であり、指数部分に1を加えることになります。
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/17_unions/epsilon/float_MSVC_2010_Ox_JA.asm}
+
+2番目の\INS{FST}命令は冗長です。入力値を同じ場所に格納する必要はありません
+（コンパイラは、ローカルスタックの入力引数と同じ位置に $v$ 変数を割り当てることにしました）。
+それは通常の整数の変数なので、\INS{INC}でインクリメントされます。 
+その後、32ビットのIEEE 754形式の数としてFPUにロードされ、\INS{FSUBR}が残りのジョブを実行し、
+結果の値が\TT{ST0}に格納されます。 
+最後の\INS{FSTP}/\INS{FLD}命令ペアは冗長ですが、コンパイラは最適化しませんでした。
+
+\subsubsection{ARM64}
+
+例を64ビットに拡張してみましょう。
+
+\lstinputlisting[label=machine_epsilon_double_c,style=customc]{patterns/17_unions/epsilon/double.c}
+
+ARM64にはFPUのDレジスタに数値を加算する命令がないため、
+入力値（\TT{D0}に入力されたもの）が最初に\ac{GPR}にコピーされ、
+インクリメントされ、FPUレジスタの\TT{D1}にコピーされてから減算が行われます。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 ARM64,style=customasmARM]{patterns/17_unions/epsilon/double_GCC49_ARM64_O3_JA.s}
+
+SIMD命令を使用してx64用にコンパイルされたこの例も参照してください：\myref{machine_epsilon_x64_and_SIMD}
+
+\subsubsection{MIPS}
+
+\myindex{MIPS!\Instructions!MTC1}
+
+ここでの新しい命令は\INS{MTC1}（\q{Move To Coprocessor 1}）です。\ac{GPR}からFPUのレジスタへデータを転送するだけです。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/17_unions/epsilon/MIPS_O3_IDA.lst}
+
+\subsubsection{\Conclusion}
+
+誰かがこのトリックを実際のコードで必要とするかどうかはわかりにくいですが、
+この本で何度も述べたように、この例は
+IEEE 754形式と \CCpp の\emph{共用体}を説明するのに役立ちます。

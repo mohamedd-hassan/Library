@@ -1,0 +1,20 @@
+.text:00541081 first_loop1_begin:
+.text:00541081    xor     esi, esi      ; ESI est le compteur de la boucle 2
+.text:00541083
+.text:00541083 first_loop2_begin:
+.text:00541083    push    ebp           ; arg\_0
+.text:00541084    push    esi           ; compteur de la boucle 1
+.text:00541085    push    edi           ; compteur de la boucle 2
+.text:00541086    call    get_bit
+.text:0054108B    add     esp, 0Ch
+.text:0054108E    mov     [ebx+esi], al ; stoker dans le tableau interne
+.text:00541091    inc     esi           ; incrémenter le compteur de la boucle 1
+.text:00541092    cmp     esi, 8
+.text:00541095    jl      short first_loop2_begin
+.text:00541097    inc     edi           ; incrémenter le compteur de la boucle 2
+
+; incrémenter le pointeur sur le tableau interne de 8 à chaque itération
+.text:00541098    add     ebx, 8
+.text:0054109B    cmp     edi, 8
+.text:0054109E    jl      short first_loop1_begin
+

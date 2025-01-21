@@ -1,0 +1,41 @@
+\subsection{\Example{} \#6}
+
+\lstinputlisting[style=customc]{\CURPATH/ex6.c}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/ex6.lst}
+
+\myindex{\CStandardLibrary!time()}
+\myindex{\CStandardLibrary!localtime()}
+
+Le temps UNIX est une valeur 32-bit, donc il est renvoyé dans la paire de registres
+\TT{DX:AX} et est stocké dans deux variables locales 16-bit.
+Puis, un pointeur sur la paire est passé à la fonction \TT{localtime()}.
+La fonction \TT{localtime()} a une structure \TT{struct tm} allouée quelque part
+dans les entrailles de la bibliothèque C, donc seul un pointeur est renvoyé.
+
+À propos, ceci implique aussi que la fonction ne peut pas être appelée tant que le
+résultat n'a pas été utilisé.
+
+Pour les fonctions \TT{time()} et \TT{localtime()}, une convention d'appel Watcom
+est utilisée ici:
+les quatre premiers arguments sont passés dans les registres \TT{AX}, \TT{DX}, \TT{BX}
+et \TT{CX}, et le reste des arguments par la pile.
+
+Les fonctions utilisant cette convention sont aussi marquées par un souligné à la
+fin de leur nom.
+
+\TT{sprintf()} n'utilise pas la convention d'appel \TT{PASCAL}, ni la Watcom,\\ % varioref bug
+donc les arguments sont passés de la manière \emph{cdecl} normale (\myref{cdecl}).
+
+\subsubsection{Variables globales}
+
+Ceci est le même exemple, mais cette fois les variables sont globales:
+
+\lstinputlisting[style=customc]{\CURPATH/ex6_global.c}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/ex6_global.lst}
+
+\TT{t} ne va pas être utilisée, mais le compilateur a généré le code qui stocke
+la valeur.
+
+Car il n'est pas sûr, peut-être que la valeur sera utilisée dans un autre module.

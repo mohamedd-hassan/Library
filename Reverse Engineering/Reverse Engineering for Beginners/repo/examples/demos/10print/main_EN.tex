@@ -1,0 +1,101 @@
+\subsection{10 PRINT CHR\$(205.5+RND(1)); : GOTO 10}
+
+All examples here are MS-DOS .COM files.
+%FIXME1 -> about .COM files
+
+\myindex{MS-DOS}
+In [Nick Montfort et al, \emph{10 PRINT CHR\$(205.5+RND(1)); : GOTO 10}, (The MIT Press:2012)]
+\footnote{\AlsoAvailableAs \url{http://trope-tank.mit.edu/10_PRINT_121114.pdf}}
+
+we can read about one of the most simple possible random maze generators.
+
+It just prints a slash or backslash characters randomly and endlessly, resulting in something like this:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{examples/demos/10print/10print.png}
+\end{figure}
+
+There are a few known implementations for 16-bit x86.
+
+\subsubsection{Trixter's 42 byte version}
+
+\newcommand{\FNURLTRIXTER}{\footnote{\url{http://trixter.oldskool.org/2012/12/17/maze-generation-in-thirteen-bytes/}}}
+
+The listing was taken from his website\FNURLTRIXTER, 
+but the comments are mine.
+
+\lstinputlisting[style=customasmx86]{examples/demos/10print/10print_42_EN.lst}
+
+\myindex{Intel!8253}
+The pseudo-random value here is in fact the time 
+that has passed from the system's boot, taken from the 8253 time chip, the value increases by one 18.2 times per second.
+
+By writing zero to port \TT{43h}, 
+we send the command \q{select counter 0}, 
+"counter latch", 
+"binary counter" (not a \ac{BCD} value).
+
+\myindex{x86!\Instructions!POPF}
+The interrupts are enabled back with the \TT{POPF} instruction, which restores the \TT{IF} flag as well.
+
+\myindex{x86!\Instructions!IN}
+It is not possible to 
+use the \TT{IN} instruction with registers other than \TT{AL}, 
+hence the shuffling.
+
+\subsubsection{
+My attempt to reduce Trixter's version: 27 bytes}
+
+We can say that since we use the timer not 
+to get a precise time value, but a pseudo-random one, we do not need
+to spend time (and code) to disable the interrupts.
+
+Another thing we can say is that we need only one bit from the low 8-bit part, so let's read only it.
+
+We can reduced the code slightly and we've got 27 bytes:
+
+\lstinputlisting[style=customasmx86]{examples/demos/10print/10print_27_EN.lst}
+
+\subsubsection{
+Taking random memory garbage as a source of randomness}
+
+Since it is MS-DOS, there is no memory protection at all, we can read from whatever address we want.
+\myindex{x86!\Instructions!LODSB}
+Even more than that: a simple \TT{LODSB} 
+instruction reads a byte from the \TT{DS:SI} address, but it's not a problem
+if the registers' values are not set up, let it read 1) random bytes; 2) from a random place in memory!
+
+It is suggested in Trixter's webpage\FNURLTRIXTER 
+to use \TT{LODSB} without any setup.
+
+\myindex{x86!\Instructions!SCASB}
+It is also suggested that the \TT{SCASB} 
+instruction can be used instead, because it sets a flag according to the byte it reads.
+
+Another idea to minimize the code is to use the \TT{INT 29h} DOS syscall, which just prints the character stored in the \TT{AL} register.
+
+That is what Peter Ferrie did
+\footnote{\url{http://pferrie.host22.com/misc/10print.htm}}:
+
+\lstinputlisting[caption=Peter Ferrie: 10 bytes,style=customasmx86]{examples/demos/10print/ferrie_10_EN.lst}
+
+So it is possible to get rid of conditional jumps at all.
+The \ac{ASCII} code of backslash (\q{\textbackslash{}}) 
+is \TT{0x5C} and \TT{0x2F} for slash (\q{/}).
+So we have to convert one (pseudo-random) bit in the \TT{CF} flag to a value of \TT{0x5C} or \TT{0x2F}.
+
+This is done easily: by \TT{AND}-ing all bits in \TT{AL} (where all 8 bits are set or cleared) with \TT{0x2D} we have just 0 or \TT{0x2D}.
+
+By adding \TT{0x2F} to this value, we get \TT{0x5C} or \TT{0x2F}.
+
+Then we just output it to the screen.
+
+\subsubsection{\Conclusion{}}
+
+\myindex{DOSBox}
+It is also worth mentioning that the result may 
+be different in DOSBox, \gls{Windows NT} and even MS-DOS, 
+
+due to different
+conditions: the timer chip can be emulated differently and the initial register contents may be different as well.

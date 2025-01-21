@@ -1,0 +1,69 @@
+﻿\mysection{SIMD}
+
+\label{SIMD_x86}
+\ac{SIMD} は頭字語です：\emph{Single Instruction, Multiple Data}
+
+名前の通り、複数のデータを1つの命令で処理します。
+
+\ac{FPU}と同様に、\ac{CPU}サブシステムはx86内では独立したプロセッサのように見えます。
+
+\myindex{x86!MMX}
+
+SIMDはx86でMMXとして始まりました。 8つの新しい64ビットレジスタが登場しました：MM0-MM7
+
+各MMXレジスタは、2つの32ビット値、4つの16ビット値、または8バイトを保持できます。
+たとえば、MMXレジスタに2つの値を追加することで、8つの8ビット値（バイト）を同時に追加することができます。
+
+簡単な例として、画像を2次元配列として表現するグラフィックエディタがあります。
+ユーザが画像の明るさを変更すると、エディタは各ピクセル値に係数を加減する必要があります。
+簡潔にするために、画像がグレースケールで各ピクセルが1つの8ビットバイトで定義されているとしたら、
+8ピクセルの明るさを同時に変更することが可能です。
+
+ところで、これが\emph{飽和}命令がSIMDに存在する理由です。
+
+ユーザがグラフィックエディタで明るさを変更するとき、オーバーフローとアンダーフローは望ましくないので、
+最大値に達すると何も加算しないという追加命令がSIMDにあります。
+
+MMXが登場したとき、これらのレジスタは実際にはFPUのレジスタにありました。 
+FPUまたはMMXを同時に使用することは可能でした。 Intelはトランジスタを節約したと思うかもしれませんが、
+実際にはそのような共生の理由はより単純なものでした。追加のCPUレジスタを意識しない\ac{OS}は
+コンテキストスイッチでそれらを保存せず、FPUレジスタを保存します。
+したがって、MMX機能を利用したMMX対応CPU + 古い\ac{OS} + プロセスは依然として機能します。
+
+\myindex{x86!SSE}
+\myindex{x86!SSE2}
+SSEはSIMDレジスタを128ビットに拡張したもので、現在はFPUとは別のものです。
+
+\myindex{x86!AVX}
+AVXは256ビットにした他の拡張です。
+
+実用的な用途はどうでしょうか。
+
+もちろん、これはメモリコピールーチン（\TT{memcpy}）、メモリ比較（\TT{memcmp}）などです。
+
+\myindex{DES}
+
+もう1つの例：DES暗号化アルゴリズムは64ビットブロックと56ビットキーを受け取り、ブロックを暗号化して64ビットの結果を生成します。 
+DESアルゴリズムは、ワイヤおよびAND/OR/NOTゲートを有する非常に大きな電子回路と見なすことができます。
+
+\label{bitslicedes}
+\newcommand{\URLBS}{\url{http://www.darkside.com.au/bitslice/}}
+
+Bitslice DES\footnote{\URLBS}は、ブロックとキーのグループを同時に処理するというアイデアです。
+たとえば、x86の\emph{符号なし整数}型の変数は最大32ビットを保持できるため、
+64個+56個の\emph{符号なし整数}型の変数を使用して、32個のブロックキーペアの中間結果を同時に格納できます。
+
+\myindex{\oracle}
+There is an utility to brute-force \oracle passwords/hashes (ones based on DES),
+using slightly modified bitslice DES algorithm for SSE2 and AVX---now it is possible to encrypt 128 
+or 256 block-keys pairs simultaneously.
+SSE2およびAVX用にわずかに修正されたbitslice DESアルゴリズムを使用して、
+Oracle RDBMSのパスワード/ハッシュ（DESに基づくもの）をブルートフォースするユーティリティがあります。
+128または256のブロックキーペアを暗号化することが可能です。
+
+\url{http://conus.info/utils/ops_SIMD/}
+
+% sections
+\input{patterns/19_SIMD/vectorization_JA.tex}
+\input{patterns/19_SIMD/strlen_JA.tex}
+

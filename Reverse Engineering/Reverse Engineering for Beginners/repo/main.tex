@@ -1,0 +1,364 @@
+\documentclass[a4paper,oneside]{book}
+
+% http://www.tex.ac.uk/FAQ-noroom.html
+\usepackage{etex}
+
+\usepackage[table,usenames,dvipsnames]{xcolor}
+
+\usepackage{fontspec}
+% fonts
+%\setmonofont{DroidSansMono}
+%\setmainfont[Ligatures=TeX]{PT Sans}
+%\setmainfont{DroidSans}
+\setmainfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+\usepackage{polyglossia}
+\usepackage{ucharclasses}
+\usepackage{csquotes}
+
+\ifdefined\ENGLISH
+%\wlog{main ENGLISH defined OK}
+\setmainlanguage{english}
+\setotherlanguage{russian}
+\fi
+
+\ifdefined\RUSSIAN
+\setmainlanguage{russian}
+%\newfontfamily\cyrillicfont{LiberationSans}
+%\newfontfamily\cyrillicfonttt{LiberationMono}
+%\newfontfamily\cyrillicfontsf{lmsans10-regular.otf}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\GERMAN
+%\wlog{main GERMAN defined OK}
+\setmainlanguage{german}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\SPANISH
+\setmainlanguage{spanish}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\ITALIAN
+\setmainlanguage{italian}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\BRAZILIAN
+\setmainlanguage{portuges}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\POLISH
+\setmainlanguage{polish}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\DUTCH
+\setmainlanguage{dutch}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\TURKISH
+\setmainlanguage{turkish}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\THAI
+\setmainlanguage{thai}
+%\usepackage[thai]{babel}
+%\usepackage{fonts-tlwg}
+\setmainfont[Script=Thai]{TH SarabunPSK}
+\newfontfamily{\thaifont}[Script=Thai]{TH SarabunPSK}
+\let\thaifonttt\ttfamily
+\setotherlanguage{english}
+\fi
+
+\ifdefined\FRENCH
+%\setmainlanguage[autospacing=false]{french}
+\setmainlanguage{french}
+\setotherlanguage{english}
+\fi
+
+\ifdefined\JAPANESE
+\usepackage{xeCJK}
+\xeCJKallowbreakbetweenpuncts
+\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\setCJKmainfont{IPAGothic}
+\setCJKsansfont{IPAGothic}
+\setCJKmonofont{IPAGothic}
+\DeclareQuoteStyle{japanese}
+  {「}
+  {」}
+  {『}
+  {』}
+\setquotestyle{japanese}
+\setmainlanguage{japanese}
+\setotherlanguage{english}
+\fi
+
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\usepackage{listings}
+%\usepackage{ulem} % used for \sout{}...
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{makeidx}
+\usepackage[cm]{fullpage}
+%\usepackage{color}
+\usepackage{fancyvrb}
+\usepackage{xspace}
+\usepackage{tabularx}
+\usepackage{framed}
+\usepackage{parskip}
+\usepackage{epigraph}
+\usepackage{ccicons}
+\usepackage[nottoc]{tocbibind}
+\usepackage{longtable}
+\usepackage[footnote,printonlyused,withpage]{acronym}
+\usepackage[]{bookmark,hyperref} % must be last
+\usepackage[official]{eurosym}
+\usepackage[usestackEOL]{stackengine}
+
+% ************** myref
+% http://tex.stackexchange.com/questions/228286/how-to-mix-ref-and-pageref#228292
+\ifdefined\RUSSIAN
+\newcommand{\myref}[1]{%
+  \ref{#1}
+  (стр.~\pageref{#1})%
+  }
+% FIXME: I wasn't able to force varioref to output russian text...
+\else
+\usepackage{varioref}
+\newcommand{\myref}[1]{\vref{#1}}
+\fi
+% ************** myref
+
+\usepackage{glossaries}
+\usepackage{tikz}
+%\usepackage{fixltx2e}
+\usepackage{bytefield}
+
+\usepackage{amsmath}
+\usepackage{MnSymbol}
+\undef\mathdollar
+
+\usepackage{float}
+
+\usepackage{shorttoc}
+\usetikzlibrary{calc,positioning,chains,arrows}
+\usepackage{geometry}
+
+%--------------------
+% to prevent clashing of numbers and titles in TOC:
+% https://tex.stackexchange.com/a/64124
+\usepackage{tocloft}% http://ctan.org/pkg/tocloft
+\makeatletter
+\renewcommand{\numberline}[1]{%
+  \@cftbsnum #1\@cftasnum~\@cftasnumb%
+}
+\makeatother
+%--------------------
+
+\newcommand{\footnoteref}[1]{\textsuperscript{\ref{#1}}}
+
+%\definecolor{lstbgcolor}{rgb}{0.94,0.94,0.94}
+
+% I don't know why this voodoo works, but without all-caps, it can't find LIGHT-GRAY color. WTF?
+% see also: https://tex.stackexchange.com/questions/64298/error-with-xcolor-package
+\definecolor{light-gray}{gray}{0.87}
+\definecolor{LIGHT-GRAY}{gray}{0.87}
+\definecolor{RED}{rgb}{1,0,0}
+\makeindex
+
+\input{macros}
+\EN{\input{macro_lang_EN}}
+\RU{\input{macro_lang_RU}}
+\FR{\input{macro_lang_FR}}
+\DE{\input{macro_lang_DE}}
+\JA{\input{macro_lang_JP}}
+\IT{\input{macro_lang_IT}}
+\PL{\input{macro_lang_PL}}
+\ES{\input{macro_lang_ES}}
+\NL{\input{macro_lang_NL}}
+\TR{\input{macro_lang_TR}}
+\PTBR{\input{macro_lang_PTBR}}
+
+\ifdefined\UAL
+\newcommand{\TitleMain}{\TitleUAL}
+\newcommand{\TitleAux}{\TitleRE}
+\else
+\newcommand{\TitleMain}{\TitleRE}
+\newcommand{\TitleAux}{\TitleUAL}
+\fi
+
+\newcommand{\CURPATH}{DUMMY}
+
+\EN{\input{glossary_EN}}
+\RU{\input{glossary_RU}}
+\FR{\input{glossary_FR}}
+\DE{\input{glossary_DE}}
+\IT{\input{glossary_IT}}
+\JA{\input{glossary_JA}}
+\PL{\input{glossary_PL}}
+
+\makeglossaries
+
+\hypersetup{
+    colorlinks=true,
+    allcolors=blue,
+    pdfauthor={\AUTHOR},
+    pdftitle={\TitleMain}
+    }
+
+%\ifdefined\RUSSIAN
+\newcommand{\LstStyle}{\ttfamily\small}
+%\else
+%\newcommand{\LstStyle}{\ttfamily}
+%\fi
+
+% inspired by http://prismjs.com/
+\definecolor{digits}{RGB}{0,0,0}
+\definecolor{bg}{RGB}{255,255,255}
+%\definecolor{bg}{RGB}{255,252,250}
+\definecolor{col1}{RGB}{154,20,150}
+\definecolor{col2}{RGB}{112,128,144}
+\definecolor{col3}{RGB}{10,120,180}
+\definecolor{col4}{RGB}{106,164,108}
+
+\lstset{
+    %backgroundcolor=\color{lstbgcolor},
+    %backgroundcolor=\color{light-gray},
+    backgroundcolor=\color{bg},
+    basicstyle=\LstStyle,
+    breaklines=true,
+    %prebreak=\raisebox{0ex}[0ex][0ex]{->},
+    %postbreak=\raisebox{0ex}[0ex][0ex]{->},
+    prebreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\rhookswarrow}},
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\rcurvearrowse\space}},
+    frame=single,
+    columns=fullflexible,keepspaces,
+    escapeinside=§§,
+    inputencoding=utf8
+}
+
+\input{syntax_color}
+
+\ifdefined\RUSSIAN
+\renewcommand\lstlistingname{Листинг}
+\renewcommand\lstlistlistingname{Листинг}
+\fi
+
+\DeclareMathSizes{12}{30}{16}{12}%
+
+% see also:
+% http://tex.stackexchange.com/questions/129225/how-can-i-get-get-makeindex-to-ignore-capital-letters
+% http://tex.stackexchange.com/questions/18336/correct-sorting-of-index-entries-containing-macros
+\def\myindex#1{\expandafter\index\expandafter{#1}}
+
+\begin{document}
+
+% fancyhdr =============================================================================================================================
+\pagestyle{fancy}
+\setlength{\headheight}{13pt}
+% https://tex.stackexchange.com/questions/10043/page-number-position
+\fancyhf{}
+\fancyhead[R]{\thepage} % suppress chapter name, add page number (upper right corner)
+
+\ifdefined\ENGLISH
+%\cfoot{\small Please become my patron, so I can spend more time writing this: \href{http://link.yurichev.com/17400?\today p.\thepage}{patreon.com}. Thanks!\normalsize}
+\cfoot{\small If you noticed a typo, error or have any suggestions, do not hesitate to drop me a note: \EMAILPRI{}.
+Thanks!\normalsize}
+% https://tex.stackexchange.com/questions/13406/how-to-add-a-horizontal-line-above-the-footer-with-fancyhdr
+\renewcommand{\footrulewidth}{0.4pt}
+\fi
+
+\ifdefined\RUSSIAN
+\cfoot{\small Если вы заметили опечатку, ошибку или имеете какие-то либо соображения, пожелания, пожалуйста, напишите мне: \EMAILPRI{}.
+Спасибо!\normalsize}
+% https://tex.stackexchange.com/questions/13406/how-to-add-a-horizontal-line-above-the-footer-with-fancyhdr
+\renewcommand{\footrulewidth}{0.4pt}
+\fi
+
+% ======================================================================================================================================
+
+\VerbatimFootnotes
+
+\frontmatter
+
+%\RU{\input{1st_page_RU}}
+%\EN{\input{1st_page_EN}}
+%\DE{\input{1st_page_DE}}
+%\ES{\input{1st_page_ES}}
+%\CN{\input{1st_page_CN}}
+
+\iffalse
+\RU{\input{dedication_RU}}
+\EN{\input{dedication_EN}}
+\FR{\input{dedication_FR}}
+\JA{\input{dedication_JA}}
+\DE{\input{dedication_DE}}
+\IT{\input{dedication_IT}}
+\PL{\input{dedication_PL}}
+\fi
+
+\input{page_after_cover}
+\input{call_for_translators}
+
+\shorttoc{%
+    \RU{Краткое оглавление}%
+    \EN{Abridged contents}%
+    \ES{Contenidos abreviados}%
+    \PTBRph{}%
+    \DE{Inhaltsverzeichnis (gekürzt)}%
+    \PL{Skrócony spis treści}%
+    \IT{Sommario}%
+    \THAph{}\NLph{}%
+    \FR{Contenus abrégés}%
+    \JA{簡略版}
+    \TR{İçindekiler}
+}{0}
+
+\tableofcontents
+\cleardoublepage
+
+\cleardoublepage
+\input{preface}
+
+\mainmatter
+
+\input{parts}
+
+\EN{\input{appendix/appendix}}
+\RU{\input{appendix/appendix}}
+\DE{\input{appendix/appendix}}
+\FR{\input{appendix/appendix}}
+\IT{\input{appendix/appendix}}
+\input{acronyms}
+
+\bookmarksetup{startatroot}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{%
+    \RU{Глоссарий}%
+    \EN{Glossary}%
+    \ES{Glosario}%
+    \PTBRph{}%
+    \DE{Glossar}%
+    \PL{Słownik terminów}%
+    \IT{Glossario}%
+    \THAph{}\NLph{}%
+    \FR{Glossaire}%
+    \JA{用語}
+    \TR{Bolum}
+}
+\printglossaries
+
+\clearpage
+\phantomsection
+\printindex
+
+\end{document}

@@ -1,0 +1,31 @@
+﻿\subsection{\StructurePackingSectionName}
+\label{structure_packing}
+
+L'arrangement des champs au sein d'une structure est un élément très important.
+
+Prenons un exemple simple:
+
+\lstinputlisting[style=customc]{patterns/15_structs/4_packing/packing.c}
+
+Nous avons deux champs de type \Tchar (occupant chacun un octet) et deux autres~---de type \Tint (comportant 4 octets chacun).
+
+% subsections:
+\input{patterns/15_structs/4_packing/x86_FR}
+\input{patterns/15_structs/4_packing/ARM_FR}
+\input{patterns/15_structs/4_packing/MIPS_FR}
+
+\subsubsection{Un dernier mot}
+
+Passer une structure comme argument d'une fonction (plutôt que de passer un pointeur sur cette structure) 
+revient à passer chaque champ de la structure individuellement.
+
+Si les champs de la structure utilisent l'alignement par défaut, la fonction f() peut être réécrite ainsi:
+
+\begin{lstlisting}[style=customc]
+void f(char a, int b, char c, int d)
+{
+    printf ("a=%d; b=%d; c=%d; d=%d\n", a, b, c, d);
+};
+\end{lstlisting}
+
+Le code généré par le compilateur sera le même.

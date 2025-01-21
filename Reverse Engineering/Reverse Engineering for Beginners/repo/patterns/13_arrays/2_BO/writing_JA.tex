@@ -1,0 +1,134 @@
+﻿\subsubsection{配列境界を越えて書きこむ}
+
+私たちはスタックからいくつかの値を\emph{不正に}読んでいますが、何かを書くことができたらどうなるでしょうか？
+
+こういう風になります。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/2_BO/w.c}
+
+\myparagraph{MSVC}
+
+そしてこうなります。
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2008,style=customasmx86]{patterns/13_arrays/2_BO/w_JA.asm}
+
+コンパイルしたプログラムは起動後にクラッシュします。当然です。どこでクラッシュするか正確にみてみましょう。
+
+\clearpage
+\myindex{\olly}
+
+\olly でロードし、30要素が書かれるまでトレースしてみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_w1.png}
+\caption{\olly: EBPの値をリストアした後}
+\label{fig:array_BO_olly_w1}
+\end{figure}
+
+\clearpage
+関数が終了するまでトレースします。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_w2.png}
+\caption{\olly: 
+\TT{EIP} がリストアされるが、 \olly は0x15でディスアセンブルできない}
+\label{fig:array_BO_olly_w2}
+\end{figure}
+
+レジスタをよく見てください。
+
+\EIP は0x15です。コードでは不正なアドレスではありません。少なくともwin32のコードとしては！
+我々の意志に反しています。
+\EBP レジスタが0x14を、\ECX と \EDX が0x1Dを含んでいるということが面白いです。
+
+スタックレイアウトをもう少し勉強しましょう。
+
+制御フローが \TT{\main} を通ったあと、 \EBP レジスタの値はスタックに保存されます。
+それから、84バイトが配列と $i$ 用に確保されます。
+それは\TT{(20+1)*sizeof(int)}です。
+\ESP は ローカルスタックの \TT{\_i} 変数を指し、次の\TT{PUSH something}の実行の
+後で、\emph{何か}が次の\TT{\_i}に現れます。
+
+これが、制御が \main にあるときのスタックレイアウトです。
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \TT{ESP}    & 4バイトが $i$ 変数に確保される \\
+\hline
+  \TT{ESP+4}  & 80バイトが \TT{a[20]} 配列に確保される \\
+\hline
+  \TT{ESP+84} & \EBP の値を保存 \\
+\hline
+  \TT{ESP+88} & リターンアドレス \\
+\hline
+\end{tabular}
+\end{center}
+
+\TT{a[19]=something} 文は配列の境界である最後の \Tint を書き込みます（今は境界内です！）。
+
+\TT{a[20]=something} 文は \EBP の値が保存された場所に \emph{何か}を書き込みます。
+
+クラッシュ時のレジスタの状態を見てください。我々の場合、
+20番目の要素に20が書かれています。
+関数の最後で、関数エピローグがオリジナルの \EBP 値をリストアします。
+（10進数の20は16進数で\TT{0x14}です）。
+そして、 \RET が実行されます。これは\TT{POP EIP}命令と同じ効果です。
+
+\RET 命令はスタックからリターンアドレスを取って（これは\ac{CRT}の中のアドレスで、
+\main を呼び出したアドレスです）、
+21が保存されます（16進数で\TT{0x15}）。
+CPUはアドレス\TT{0x15}をトラップしますが、
+実行可能なコードがここにないので、例外が発生します。
+
+\myindex{\BufferOverflow}
+
+ようこそ！ \emph{バッファオーバーフロー} です。\footnote{\href{http://en.wikipedia.org/wiki/Stack_buffer_overflow}{wikipedia}}
+
+\Tint 配列を文字列（ \Tchar 配列）で置換するには、意図的に長い文字列を作成し、
+それをプログラムに渡し、関数に渡し、文字列の長さをチェックせず、より短いバッファにコピーし、
+そこにジャンプするアドレスをプログラムに指し示すことで可能になります。
+実際にはそんなに簡単ではありませんが、それが現実にどのように現れたかが重要です。
+古典的な記事は： \AlephOne
+
+\myparagraph{GCC}
+
+GCC 4.4.1 で同じコードを試してみましょう。次を得ます。
+
+\lstinputlisting[style=customasmx86]{patterns/13_arrays/2_BO/w_gcc.asm}
+
+Linuxで動かすと\TT{Segmentation fault}が発生します。
+
+\myindex{GDB}
+
+GDBデバッガで動かすと、このようになります。
+
+\begin{lstlisting}
+(gdb) r
+Starting program: /home/dennis/RE/1 
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00000016 in ?? ()
+(gdb) info registers
+eax            0x0	0
+ecx            0xd2f96388	-755407992
+edx            0x1d	29
+ebx            0x26eff4	2551796
+esp            0xbffff4b0	0xbffff4b0
+ebp            0x15	0x15
+esi            0x0	0
+edi            0x0	0
+eip            0x16	0x16
+eflags         0x10202	[ IF RF ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb) 
+\end{lstlisting}
+
+レジスタ値はwin32の例とは少し異なりますし、スタックレイアウトも少し違います。

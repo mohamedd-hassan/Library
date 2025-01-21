@@ -1,0 +1,30 @@
+\mysection{Una funzione quasi vuota}
+\label{Boolector}
+\myindex{Boolector}
+\myindex{x86!\Instructions!JMP}
+
+Questo è un vero pezzo di codice che ho trovato in  Boolector\footnote{\url{https://boolector.github.io/}}:
+
+\lstinputlisting[style=customc]{patterns/025_almost_empty/boolectormain.c}
+
+Perchè qualcuno dovrebbe farlo?
+Non lo so, ma la mia ipotesi migliore è che \verb|boolector_main()| potrebbe essere compilata in qualche sorta di DLL o libreria dinamica,
+ed essere chiamata da una suite di test.
+Sicuramente, una suite di test può preparare variabili \verb|argc/argv| come farebbe \ac{CRT}.
+
+E' abbastanza interessante come viene compilato:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O0.s}
+
+Questo è OK, prologo, non necessario (non ottimizzato) scambio dei due argomenti \INS{CALL}, epilogo, \INS{RET}.
+Ma guardiamo la versione ottimizzata:
+
+\lstinputlisting[caption=\Optimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O3.s}
+
+Così semplice che: stack/registri non vengono toccati e \verb|boolector_main()| ha gli stessi argomenti settati.
+Quindi tutto ciò che dobbiamo fare è passare l'esecuzione ad un altro indirizzo.
+
+Questo è molto simile alla \gls{thunk function}.
+
+Vedremo qualcosa di più avanzato dopo: \myref{ARM_B_to_printf}, \myref{JMP_instead_of_RET}.
+

@@ -1,0 +1,127 @@
+\mysection{Déplombage de logiciel}
+\myindex{\SoftwareCracking}
+
+La grande majorité des logiciels peuvent être déplombés comme ça --- en cherchant
+l'endroit où la protection est vérifiée, un dongle (\myref{dongles}), une clef de
+licence, un numéro de série, etc.
+
+Souvent, ça ressemble à ça:
+
+\begin{lstlisting}[style=customasmx86]
+...
+call check_protection
+jz   all_OK
+call message_box_protection_missing
+call exit
+all_OK:
+; proceed
+...
+\end{lstlisting}
+
+Donc, si vous voyez un patch (ou ``crack''), qui déplombe un logiciel, et que ce
+patch remplace un ou des octets 0x74/0x75 (JZ/JNZ) par 0xEB (JMP), c'est ça.
+
+Le processus de déplombage de logiciel revient à une recherche de ce \INS{JMP}.
+
+\myhrule{}
+
+Il y a aussi les cas où le logiciel vérifie la protection de temps à autre, ceci
+peut être un dongle, ou un serveur de licence qui peut être interrogé depuis Internet.
+Dans ce cas, vous devez chercher une fonction qui vérifie la protection.
+Puis, la modifier, pour y mettre \TT{xor eax, eax / retn}, ou \TT{mov eax, 1 / retn}.
+
+Il est important de comprendre qu'après avoir patché le début d'une fonction,
+souvent, il y a des octets résiduels qui suivent ces deux instructions.
+Ces restes consistent en une partie d'une instruction et les instructions suivantes.
+
+Ceci est un cas réel.
+Le début de la fonction que nous voulons \emph{remplacer} par \TT{return 1;}
+
+\begin{lstlisting}[style=customasmx86,caption=Before]
+8BFF                           mov         edi,edi
+55                             push        ebp
+8BEC                           mov         ebp,esp
+81EC68080000                   sub         esp,000000868
+A110C00001                     mov         eax,[00100C010]
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86,caption=After]
+B801000000                     mov         eax,1
+C3                             retn
+EC                             in          al,dx
+68080000A1                     push        0A1000008
+10C0                           adc         al,al
+0001                           add         [ecx],al
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+Quelques instructions incorrectes apparaissent --- \INS{IN}, \INS{PUSH}, \INS{ADC}, \INS{ADD},
+après lesquelles, le désassembleur Hiew (que j'ai utilisé) s'est synchronisé et
+a continué de désassembler le reste.
+
+Ceci n'est pas important --- toutes ces instructions qui suivent \INS{RETN} ne
+seront jamais exécutées, à moins qu'un saut direct se produise quelque part, et
+ça ne sera pas possible en général.
+
+\myhrule{}
+
+Il peut aussi y avoir une variable globale booléenne, un flag indiquant si le
+logiciel est enregistré ou non.
+
+\begin{lstlisting}[style=customasmx86]
+init_etc proc
+...
+call check_protection_or_license_file
+mov  is_demo, eax
+...
+retn
+init_etc endp
+
+...
+
+save_file proc
+...
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK1
+
+call message_box_it_is_a_demo_no_saving_allowed
+retn
+
+:all_OK1
+; continuer en sauvant le fichier
+
+...
+
+save_proc endp
+
+somewhere_else proc
+
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK
+
+; contrôler si le programme fonctionne depuis 15 minutes
+; sortir si c'est le cas
+; ou montrer un écran fixe
+
+:all_OK2
+; continuer
+
+somewhere_else endp
+\end{lstlisting}
+
+Le début de la fonction \verb|check_protection_or_license_file()| peut être patché,
+afin qu'elle renvoie toujours 1, ou, si c'est mieux pour une raison quelconques,
+toutes les instructions \INS{JZ}/\INS{JNZ} peuvent être patchées de même
+
+Plus sur le patching: \ref{patching}.

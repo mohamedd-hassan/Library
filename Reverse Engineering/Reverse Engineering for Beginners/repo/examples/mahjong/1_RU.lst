@@ -1,0 +1,31 @@
+﻿.text:010205C8 6A 03              push    3
+.text:010205CA 85 FF              test    edi, edi
+.text:010205CC 5B                 pop     ebx
+
+...
+
+.text:01020625 57                 push    edi    ; uIDEnableItem
+.text:01020626 FF 35 C8 97 08 01  push    hmenu  ; hMenu
+.text:0102062C FF D6              call    esi    ; EnableMenuItem
+.text:0102062E 83 7D 08 01        cmp     [ebp+arg_0], 1
+.text:01020632 BF 42 9C 00 00     mov     edi, 40002
+.text:01020637 75 18              jnz     short loc_1020651 ; переход должен быть всегда
+.text:01020639 6A 00              push    0      ; uEnable
+.text:0102063B 57                 push    edi    ; uIDEnableItem
+.text:0102063C FF 35 B4 8B 08 01  push    hMenu  ; hMenu
+.text:01020642 FF D6              call    esi    ; EnableMenuItem
+.text:01020644 6A 00              push    0      ; uEnable
+.text:01020646 57                 push    edi    ; uIDEnableItem
+.text:01020647 FF 35 C8 97 08 01  push    hmenu  ; hMenu
+.text:0102064D FF D6              call    esi    ; EnableMenuItem
+.text:0102064F EB 1A              jmp     short loc_102066B
+.text:01020651
+.text:01020651                   loc_1020651:    ; CODE XREF: sub\_1020581+B6
+.text:01020651 53                 push    ebx    ; 3
+.text:01020652 57                 push    edi    ; uIDEnableItem
+.text:01020653 FF 35 B4 8B 08 01  push    hMenu  ; hMenu
+.text:01020659 FF D6              call    esi    ; EnableMenuItem
+.text:0102065B 53                 push    ebx    ; 3
+.text:0102065C 57                 push    edi    ; uIDEnableItem
+.text:0102065D FF 35 C8 97 08 01  push    hmenu  ; hMenu
+.text:01020663 FF D6              call    esi    ; EnableMenuItem

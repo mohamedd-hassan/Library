@@ -1,0 +1,140 @@
+% TODO proof-reading
+\subsubsection{Tableau de chaînes pré-initialisé}
+\label{Java_2D_array_month}
+
+\begin{lstlisting}[style=customjava]
+class Month
+{
+	public static String[] months =
+	{
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December"
+	};
+
+	public String get_month (int i)
+	{
+		return months[i];
+	};
+}
+\end{lstlisting}
+
+La fonction \TT{get\_month()} est simple:
+
+\begin{lstlisting}
+  public java.lang.String get_month(int);
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=2, args_size=2
+         0: getstatic     #2         // Field months:[Ljava/lang/String;
+         3: iload_1
+         4: aaload
+         5: areturn
+\end{lstlisting}
+
+\TT{aaload} opère sur un tableau de \emph{références}.
+
+Les String Java sont des objets, donc les instructions \emph{a} sont utilisées pour
+opérer dessus.
+
+\TT{areturn} renvoie une \emph{référence} sur un objet \TT{String}.
+
+Comment est initialisé le tableau \TT{months[]}?
+
+\begin{lstlisting}
+  static {};
+    flags: ACC_STATIC
+    Code:
+      stack=4, locals=0, args_size=0
+         0: bipush        12
+         2: anewarray     #3         // class java/lang/String
+         5: dup
+         6: iconst_0
+         7: ldc           #4         // String January
+         9: aastore
+        10: dup
+        11: iconst_1
+        12: ldc           #5         // String February
+        14: aastore
+        15: dup
+        16: iconst_2
+        17: ldc           #6         // String March
+        19: aastore
+        20: dup
+        21: iconst_3
+        22: ldc           #7         // String April
+        24: aastore
+        25: dup
+        26: iconst_4
+        27: ldc           #8         // String May
+        29: aastore
+        30: dup
+        31: iconst_5
+        32: ldc           #9         // String June
+        34: aastore
+        35: dup
+        36: bipush        6
+        38: ldc           #10        // String July
+        40: aastore
+        41: dup
+        42: bipush        7
+        44: ldc           #11        // String August
+        46: aastore
+        47: dup
+        48: bipush        8
+        50: ldc           #12        // String September
+        52: aastore
+        53: dup
+        54: bipush        9
+        56: ldc           #13        // String October
+        58: aastore
+        59: dup
+        60: bipush        10
+        62: ldc           #14        // String November
+        64: aastore
+        65: dup
+        66: bipush        11
+        68: ldc           #15        // String December
+        70: aastore
+        71: putstatic     #2         // Field months:[Ljava/lang/String;
+        74: return
+\end{lstlisting}
+
+\TT{anewarray} crée un nouveau tableau de \emph{références} (d'où le préfixe \emph{a}).
+
+Le type de l'objet est défini dans l'opérande de \TT{anewarray}, dans la chaîne \q{java/lang/String}.
+
+L'instruction \TT{bipush 12} avant \TT{anewarray} défini la taille du tableau.
+
+Nous voyons une instruction nouvelle pour nous ici: \TT{dup}.
+
+\myindex{Forth}
+C'est une instruction standard dans les ordinateurs à pile (langage de programmation
+Forth inclus) qui duplique simplement la valeur du \ac{TOS}.
+
+\myindex{x86!\Instructions!FDUP}
+À propos, le FPU 80x87 est aussi un ordinateur à pile et possède une instruction
+similaire -- \INS{FDUP}.
+
+Elle est utilisée ici pour dupliquer la \emph{référence} sur un tableau, car l'instruction
+\TT{aastore} supprime de la pile la \emph{référence} sur le tableau, mais le \TT{aastore}
+en aura à nouveau besoin.
+
+Le compilateur Java conclu qui est meilleur de générer un \TT{dup} plutôt que de générer
+une instruction \TT{getstatic} avant chaque opération de stockage (i.e., 11 fois).
+
+\TT{aastore} pousse une \emph{référence} (sur la chaîne) dans le tableau à un index
+qui est pris du \ac{TOS}.
+
+Finalement, \TT{putstatic} met une \emph{référence} sur le tableau nouvellement
+créé dans le second champ de notre objet, i.e., le champ \emph{months}.
+

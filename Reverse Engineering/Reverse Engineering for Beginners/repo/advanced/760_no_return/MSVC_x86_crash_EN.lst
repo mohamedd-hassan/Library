@@ -1,0 +1,29 @@
+_rt$ = -4
+_R$ = 8	
+_G$ = 12
+_B$ = 16
+_create_color PROC
+	push	ebp
+	mov	ebp, esp
+	push	ecx
+	push	12
+	call	_malloc
+; EAX = pointer to buffer
+	add	esp, 4
+	mov	DWORD PTR _rt$[ebp], eax
+	mov	eax, DWORD PTR _rt$[ebp]
+	mov	ecx, DWORD PTR _R$[ebp]
+	mov	DWORD PTR [eax], ecx
+	mov	edx, DWORD PTR _rt$[ebp]
+	mov	eax, DWORD PTR _G$[ebp]
+; EAX is set to G argument:
+	mov	DWORD PTR [edx+4], eax
+	mov	ecx, DWORD PTR _rt$[ebp]
+	mov	edx, DWORD PTR _B$[ebp]
+	mov	DWORD PTR [ecx+8], edx
+	mov	esp, ebp
+	pop	ebp
+; EAX = G at this point:
+	ret	0
+_create_color ENDP
+

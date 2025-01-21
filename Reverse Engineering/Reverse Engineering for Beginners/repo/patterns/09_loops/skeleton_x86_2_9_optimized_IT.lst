@@ -1,0 +1,10 @@
+    mov [counter], 2 ; inizializzazione
+    jmp check
+body:
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; utilizza la variabile contatore nello stack locale
+    add [counter], 1 ; incrementa
+check:
+    cmp [counter], 9
+    jle body

@@ -1,0 +1,122 @@
+\mysection{Software cracking}
+\myindex{\SoftwareCracking}
+
+The vast majority of software can be cracked like that --- by searching the very place where protection is checked, a dongle
+(\myref{dongles}), license key, serial number, etc.
+
+Often, it looks like:
+
+\begin{lstlisting}[style=customasmx86]
+...
+call check_protection
+jz   all_OK
+call message_box_protection_missing
+call exit
+all_OK:
+; proceed
+...
+\end{lstlisting}
+
+So if you see a patch (or ``crack''), that cracks a software, and that patch replaces 0x74/0x75 (JZ/JNZ) byte(s) by 0xEB (JMP),
+this is it.
+
+The process of software cracking comes down to a search of that \INS{JMP}.
+
+\myhrule{}
+
+There are also a cases, when a software checks protection from time to time, this can be a dongle, or a license server
+can be queried through the Internet.
+Then you have to look for a function that checks protection.
+Then to patch it, to put there \TT{xor eax, eax / retn}, or \TT{mov eax, 1 / retn}.
+
+It's important to understand that after patching of function beginning, usually, a garbage follows these two instructions.
+The garbage consists of part of one instruction and the several next instructions.
+
+This is a real case.
+The beginning of a function which we want to \emph{replace} by \TT{return 1;}
+
+\begin{lstlisting}[style=customasmx86,caption=Before]
+8BFF                           mov         edi,edi
+55                             push        ebp
+8BEC                           mov         ebp,esp
+81EC68080000                   sub         esp,000000868
+A110C00001                     mov         eax,[00100C010]
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+\begin{lstlisting}[style=customasmx86,caption=After]
+B801000000                     mov         eax,1
+C3                             retn
+EC                             in          al,dx
+68080000A1                     push        0A1000008
+10C0                           adc         al,al
+0001                           add         [ecx],al
+33C5                           xor         eax,ebp
+8945FC                         mov         [ebp][-4],eax
+53                             push        ebx
+8B5D08                         mov         ebx,[ebp][8]
+...
+\end{lstlisting}
+
+Several incorrect instructions appears --- \INS{IN}, \INS{PUSH}, \INS{ADC}, \INS{ADD},
+after which, Hiew disassembler (which I just used) synchronized and continued to disassemble all the rest.
+
+This is not important --- all these instructions followed \INS{RETN} will never be executed,
+unless a direct jump would occur from some place, and that wouldn't be possible in general case.
+
+\myhrule{}
+
+Also, a global boolean variable can be present, having a flag, was the software registered or not.
+
+\begin{lstlisting}[style=customasmx86]
+init_etc proc
+...
+call check_protection_or_license_file
+mov  is_demo, eax
+...
+retn
+init_etc endp
+
+...
+
+save_file proc
+...
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK1
+
+call message_box_it_is_a_demo_no_saving_allowed
+retn
+
+:all_OK1
+; continue saving file
+
+...
+
+save_proc endp
+
+somewhere_else proc
+
+mov  eax, is_demo
+cmp  eax, 1
+jz   all_OK
+
+; check if we run for 15 minutes
+; exit if it is so
+; or show nagging screen
+
+:all_OK2
+; continue
+
+somewhere_else endp
+\end{lstlisting}
+
+A beginning of the \verb|check_protection_or_license_file()| function could be patched, so that it will always return 1,
+or, if this is better by some reason, all \INS{JZ}/\INS{JNZ} instructions can be patched as well.
+
+More about patching: \ref{patching}.
+

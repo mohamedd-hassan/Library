@@ -1,0 +1,118 @@
+﻿\myparagraph{ARM 32-bit}
+
+\mysubparagraph{\NonOptimizingXcodeIV (\ARMMode)}
+
+\lstinputlisting[caption=\NonOptimizingXcodeIV (\ARMMode),label=ARM_leaf_example7,style=customasmARM]{patterns/10_strings/1_strlen/ARM/xcode_ARM_O0_FR.asm}
+
+LLVM sans optimisation génère beaucoup trop de code, toutefois, ici nous pouvons
+voir comment la fonction travaille avec les variables locales.
+Il y a seulement deux variables locales dans notre fonction: \emph{eos} et \emph{str}.
+Dans ce listing, généré par \IDA, nous avons renommé manuellement \emph{var\_8} et
+\emph{var\_4} en \emph{eos} et \emph{str}.
+
+La première instruction sauve simplement les valeurs d'entrée dans \emph{str} et \emph{eos}.
+
+Le corps de la boucle démarre au label \emph{loc\_2CB8}.
+
+Les trois première instructions du corps de la boucle (\TT{LDR}, \ADD, \TT{STR})
+chargent la valeur de \emph{eos} dans \Reg{0}.
+Puis la valeur est \glslink{increment}{incrémentée} et sauvée dans \emph{eos}, qui
+se trouve sur la pile.
+
+\myindex{ARM!\Instructions!LDRSB}
+L'instruction suivante, \TT{LDRSB R0, [R0]} (\q{Load Register Signed Byte}), charge
+un octet depuis la mémoire à l'adresse stockée dans \Reg{R0} et étend le signe à
+32-bit\footnote{Le compilateur Keil considère le type \Tchar comme signé, tout
+comme MSVC et GCC.}.
+\myindex{x86!\Instructions!MOVSX}
+Ceci est similaire à l'instruction \MOVSX en x86.
+
+Le compilateur traite cet octet comme signé, puisque le type \Tchar est signé selon
+la norme C.
+Il a déjà été écrit à propos de cela~(\myref{MOVSX}) dans cette section, en relation
+avec le x86.
+
+\myindex{Intel!8086}
+\myindex{Intel!8080}
+\myindex{ARM}
+
+Il est à noter qu'il est impossible en ARM d'utiliser séparément la partie 8- ou
+16-bit d'un registre 32-bit complet, comme c'est le cas en x86.
+
+Apparemment, c'est parce que le x86 à une énorme histoire de rétro-compatibilité
+avec ses ancêtres, jusqu'au 8086 16-bit et même 8080 8-bit, mais ARM a été développé
+à partir de zéro comme un processeur RISC 32-bit.
+
+Par conséquent, pour manipuler des octets séparés en ARM, on doit tout de même utiliser
+des registres 32-bit.
+
+Donc, \TT{LDRSB} charge des octets depuis la chaîne vers \Reg{0}, un par un.
+Les instructions suivantes, \CMP et \ac{BEQ} vérifient si l'octet chargé est 0.
+Si il n'est pas à 0, le contrôle passe au début du corps de la boucle.
+Et si c'est 0, la boucle est terminée.
+
+À la fin de la fonction, la différence entre \emph{eos} et \emph{str} est calculée,
+1 en est soustrait, et la valeur résultante est renvoyée via \Reg{0}.
+
+N.B. Les registres n'ont pas été sauvés dans cette fonction.
+\myindex{ARM!\Registers!scratch registers}
+
+C'est parce que dans la convention d'appel ARM, les registres \Reg{0}-\Reg{3} sont
+des \q{registres scratch}, destinés à passer les arguments, et il n'est pas requis
+de restaurer leur valeur en sortant de la fonction, puisque  la fonction appelante
+ne va plus les utiliser.
+Par conséquent, ils peuvent être utilisés comme bien nous semble.
+
+Il n'y a pas d'autres registres utilisés ici, c'est pourquoi nous n'avons rien à
+sauvegarder sur la pile.
+
+Ainsi, le contrôle peut être rendu à la fonction appelante par un simple saut (\TT{BX}),
+à l'adresse contenue dans le registre \ac{LR}.
+
+\mysubparagraph{\OptimizingXcodeIV (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ThumbMode),style=customasmARM]{patterns/10_strings/1_strlen/ARM/xcode_thumb_O3.asm}
+
+Comme le conclut LLVM avec l'optimisation, \emph{eos} et \emph{str} n'ont pas besoin
+d'espace dans la pile, et peuvent toujours être stockés dans les registres.
+
+Avant le début du corps de la boucle, \emph{str} est toujours dans \Reg{0}, et
+\emph{eos}---dans \Reg{1}.
+
+\myindex{ARM!\Instructions!LDRB.W}
+L'instruction \TT{LDRB.W R2, [R1],\#1} charge, dans \Reg{2}, un octet de la mémoire
+à l'adresse stockée dans \Reg{1}, en étendant le signe à une valeur 32-bit, mais
+pas seulement cela.
+\TT{\#1} à la fin de l'instruction indique un \q{Adressage post-indexé} (\q{Post-indexed addressing}),
+qui signifie que 1 doit être ajouté à \Reg{1} après avoir chargé l'octet.
+Pour en lire plus à ce propos: \myref{ARM_postindex_vs_preindex}.
+
+Ensuite vous pouvez voir \CMP et \ac{BNE} dans le corps de la boucle, ces instructions
+continuent de boucler jusqu'à ce que 0 soit trouvé dans la chaîne.
+
+\myindex{ARM!\Instructions!MVNS}
+\myindex{x86!\Instructions!NOT}
+Les instructions \TT{MVNS}\footnote{MoVe Not} (inverse tous les bits, comme \NOT
+en x86) et \ADD calculent $eos - str - 1$.
+~(\myref{strlen_NOT_ADD}).
+En fait, ces deux instructions calculent $R0 = ~str + eos$, qui est effectivement
+équivalent à ce qui est dans le code source, et la raison de ceci à déjà été expliquée
+ici ~(\myref{strlen_NOT_ADD}).
+
+Apparemment, LLVM, tout comme GCC, conclu que ce code peut être plus court (ou plus
+rapide).
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),label=ARM_leaf_example6,style=customasmARM]{patterns/10_strings/1_strlen/ARM/Keil_ARM_O3.asm}
+
+\myindex{ARM!\Instructions!SUBEQ}
+
+Presque la même chose que ce que nous avions vu avant, à l'exception que l'expression
+$str - eos - 1$ peut être calculée non pas à la fin de la fonction, mais dans le
+corps de la boucle.
+Le suffixe \TT{-EQ}, comme nous devrions nous en souvenir, implique que l'instruction
+ne s'exécute que si les opérandes de la dernière instruction \CMP qui a été exécutée
+avant étaient égaux.
+Ainsi, si \Reg{0} contient 0, les deux instructions \TT{SUBEQ} sont exécutées et
+le résultat est laissé dans le registre \Reg{0}.

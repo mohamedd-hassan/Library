@@ -1,0 +1,84 @@
+\subsection{Exemple de générateur de nombres pseudo-aléatoires}
+\label{FPU_PRNG}
+
+Si nous avons besoin de nombres aléatoires à virgule flottante entre 0 et 1, le plus
+simple est d'utiliser un \ac{PRNG} comme le Twister de Mersenne.
+Il produit une valeur aléatoire non signée sur 32-bit (en d'autres mots, il produit
+une valeur 32-bit aléatoire).
+Puis, nous pouvons transformer cette valeur en \Tfloat et le diviser par \GTT{RAND\_MAX}
+(\GTT{0xFFFFFFFF} dans notre cas)---nous obtenons une valeur dans l'intervalle 0..1.
+
+Mais nous savons que la division est lente.
+Aussi, nous aimerions utiliser le moins d'opérations FPU possible.
+Peut-on se passer de la division?
+
+\myindex{IEEE 754}
+
+Rappelons-nous en quoi consiste un nombre en virgule flottante: un bit de signe,
+un significande et un exposant.
+Nous n'avons qu'à stocker des bits aléatoires dans toute le significande pour obtenir
+un nombre réel aléatoire!
+
+L'exposant ne peut pas être zéro (le nombre flottant est dénormalisé dans ce cas),
+donc nous stockons 0b01111111 dans l'exposant---ce qui signifie que l'exposant est
+1.
+Ensuite nous remplissons le significande avec des bits aléatoires, mettons le signe à
+0 (ce qui indique un nombre positif) et voilà.
+Les nombres générés sont entre 1 et 2, donc nous devons soustraire 1.
+
+\newcommand{\URLXOR}{\href{http://xor0110.wordpress.com/2010/09/24/how-to-generate-floating-point-random-numbers-efficiently/}{URL}}
+
+Un générateur congruentiel linéaire de nombres aléatoire très simple est utilisé dans
+mon exemple\footnote{l'idée a été prise de: \URLXOR}, il produit des nombres 32-bit.
+Le \ac{PRNG} est initialisé avec le temps courant au format UNIX timestamp.
+
+Ici, nous représentons un type \Tfloat comme une \emph{union}---c'est la construction \CCpp qui nous
+permet d'interpréter un bloc de mémoire sous différents types.
+Dans notre cas, nous pouvons créer une variable de type \emph{union} et y accéder comme
+si c'est un \Tfloat ou un \emph{uint32\_t}.
+On peut dire que c'est juste un hack. Un sale.
+
+% WTF?
+
+Le code du \ac{PRNG} entier est le même que celui que nous avons déjà considéré: \myref{LCG_simple}.
+Donc la forme compilée du code est omise.
+
+\lstinputlisting[style=customc]{patterns/17_unions/FPU_PRNG/FPU_PRNG_FR.cpp}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{patterns/17_unions/FPU_PRNG/MSVC2010_Ox_Ob0_FR.asm}
+
+Les noms de fonctions sont étranges ici car cet exemple a été compilé en tant que
+C++ et ceci est la modification des noms en C++, nous en parlerons plus loin: \myref{namemangling}.
+Si nous compilons ceci avec MSVC 2012, il utilise des instructions SIMD pour le FPU,
+pour en savoir plus: \myref{FPU_PRNG_SIMD}.
+
+\iffalse
+A BUG HERE
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing,style=customasmMIPS]{patterns/17_unions/FPU_PRNG/MIPS_O3_IDA_FR.lst}
+
+Il y a aussi une instruction \INS{LUI} inutile, ajoutée pour quelque étrange raison.
+Nous avons déjà considéré cet artefact plus tôt: \myref{MIPS_FPU_LUI}.
+\fi
+
+\subsubsection{ARM (\ARMMode)}
+
+\lstinputlisting[caption=GCC 4.6.3 \Optimizing (IDA),style=customasmARM]{patterns/17_unions/FPU_PRNG/raspberry_GCC_O3_IDA_FR.lst}
+
+\myindex{objdump}
+\myindex{binutils}
+\myindex{IDA}
+
+Nous allons faire un dump avec objdump et nous allons voir que les instructions FPU
+ont un nom différent que dans \IDA.
+Apparemment, les développeurs de IDA et binutils ont utilisés des manuels différents?
+Peut-être qu'il serait bon de connaître les deux variantes de noms des instructions.
+
+\lstinputlisting[caption=GCC 4.6.3 \Optimizing (objdump),style=customasmARM]{patterns/17_unions/FPU_PRNG/raspberry_GCC_O3_objdump.lst}
+
+Les instructions en 0x5c dans \TT{float\_rand()} et en 0x38 dans \main sont du bruit
+(pseudo-)aléatoire.
+

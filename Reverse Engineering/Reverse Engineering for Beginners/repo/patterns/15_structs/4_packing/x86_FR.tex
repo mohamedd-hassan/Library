@@ -1,0 +1,74 @@
+﻿\subsubsection{x86}
+
+Le résultat de la compilation est:
+
+\lstinputlisting[caption=MSVC 2012 /GS- /Ob0,label=src:struct_packing_4,numbers=left,style=customasmx86]{patterns/15_structs/4_packing/packing_FR.asm}
+
+Nous passons la structure comme un tout, mais en réalité nous pouvons constater que la structure est copiée 
+dans un espace temporaire. De l'espace est réservé pour cela ligne 10 et les 4 champs sont copiées par les 
+lignes de 12 \ldots\ 19), puis le pointeur sur l'espace temporaire est passé à la fonction.
+
+La structure est recopiée au cas où la fonction \ttf{} viendrait à en modifier le contenu. Si cela arrive, 
+la copie de la structure qui existe dans \main restera inchangée.
+
+Nous pourrions également utiliser des pointeurs \CCpp. Le résulta demeurerait le même, sans qu'il soit 
+nécessaire de procéder à la copie.
+
+Nous observons que l'adresse de chaque champ est alignée sur un multiple de 4  octets. C'est pourquoi chaque 
+\Tchar occupe 4 octets (de même qu'un \Tint). Pourquoi en est-il ainsi? La réponse se situe au niveau de la 
+CPU. Il est plus facile et performant pour elle d'accéder la mémoire et de gérer le cache de données en 
+utilisant des adresses alignées.
+
+En revanche ce n'est pas très économique en terme d'espace.
+
+Tentons maintenant une compilation avec l'option (\TT{/Zp1}) (\emph{/Zp[n] indique qu'il faut compresser les 
+structures en utilisant des frontières tous les n octets}).
+
+\lstinputlisting[caption=MSVC 2012 /GS- /Zp1,label=src:struct_packing_1,numbers=left,style=customasmx86]{patterns/15_structs/4_packing/packing_msvc_Zp1_FR.asm}
+
+La structure n'occupe plus que 10 octets et chaque valeur de type \Tchar n'occupe plus qu'un octet. Quelles 
+sont les conséquences ? Nous économisons de la place au prix d'un accès à ces champs moins rapide que ne 
+pourrait le faire la CPU.
+
+\label{short_struct_copying_using_MOV}
+
+La structure est également copiée dans \main. Cette opération ne s'effectue pas champ par champ mais par 
+blocs en utilisant trois instructions \MOV. Et pourquoi pas 4 ?
+
+Tout simplement parce que le compilateur a décidé qu'il était préférable d'effectuer la copie en utilisant 
+3 paires d'instructions \MOV plutôt que de copier deux mots de 32 bits puis 2 fois un octet ce qui aurait 
+nécessité 4 paires d'instructions \MOV.
+
+Ce type d'implémentation de la copie qui repose sur les instructions \MOV plutôt que sur l'appel à la 
+fonction \TT{memcpy()} est très répandu. La raison en est que pour de petits blocs, cette approche est 
+plus rapide qu'un appel à \TT{memcpy()}: \myref{copying_short_blocks}.
+
+Comme vous pouvez le deviner, si la structure est utilisée dans de nombreux fichiers sources et objets, ils 
+doivent tous être compilés avec la même convention de compactage de la structure.
+
+Au delà de l'option MSVC \TT{/Zp} qui permet de définir l'alignement des champs des structures, il existe 
+également l'option du compilateur \TT{\#pragma pack} qui peut être utilisée directement dans le code source.
+Elle est supportée aussi bien par MSVC\FNURLMSDNZP que pars GCC\FNURLGCCPC{}.
+
+Revenons à la structure \TT{SYSTEMTIME} qui contient des champs de 16 bits. Comment notre compilateur sait-il 
+les aligner sur des frontières de 1 octet ?
+
+Le fichier \TT{WinNT.h} contient ces instructions:
+
+\begin{lstlisting}[caption=WinNT.h,style=customc]
+#include "pshpack1.h"
+\end{lstlisting}
+
+et celles-ci:
+
+\begin{lstlisting}[caption=WinNT.h,style=customc]
+#include "pshpack4.h"                   // L'alignement sur 4 octets est la valeur par défaut
+\end{lstlisting}
+
+Le fichier PshPack1.h ressemble à ceci:
+
+\lstinputlisting[caption=PshPack1.h,style=customc]{patterns/15_structs/4_packing/tmp1.c}
+
+Ces instructions indiquent au compilateur comment compresser les structures définies après \TT{\#pragma pack}.
+
+\input{patterns/15_structs/4_packing/olly_FR.tex}

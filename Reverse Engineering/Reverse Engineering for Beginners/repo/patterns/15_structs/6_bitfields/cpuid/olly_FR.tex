@@ -1,0 +1,46 @@
+﻿\clearpage
+\myparagraph{MSVC + \olly}
+\myindex{\olly}
+
+Chargeons notre exemple dans \olly et voyons quelles valeurs sont présentes dans EAX/EBX/ECX/EDX après 
+exécution de l'instruction CPUID: 
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/6_bitfields/cpuid/olly.png}
+\caption{\olly: Après exécution de CPUID}
+\label{fig:cpuid_olly_1}
+\end{figure}
+
+La valeur de EAX est \TT{0x000206A7} (ma \ac{CPU} est un Intel Xeon E3-1220).\\
+Cette valeur exprimée en binaire vaut $0b0000 0000 0000 0010 0000 0110 1010 0111$.
+
+Voici la manière dont les bits sont répartis sur les différents champs:
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} champ &
+\headercolor{} format binaire &
+\headercolor{} format décimal \\
+\hline
+reserved2		& 0000 & 0 \\
+\hline
+extended\_family\_id	& 00000000 & 0 \\
+\hline
+extended\_model\_id	& 0010 & 2 \\
+\hline
+reserved1		& 00 & 0 \\
+\hline
+processor\_id		& 00 & 0 \\
+\hline
+family\_id		& 0110 & 6 \\
+\hline
+model			& 1010 & 10 \\
+\hline
+stepping		& 0111 & 7 \\
+\hline
+\end{tabular}
+\end{center}
+
+\lstinputlisting[caption=Console output]{patterns/15_structs/6_bitfields/cpuid/console.txt}

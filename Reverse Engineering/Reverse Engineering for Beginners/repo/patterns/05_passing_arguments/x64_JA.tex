@@ -1,0 +1,69 @@
+\subsection{x64}
+
+\myindex{x86-64}
+
+この話はx86-64では少し違っています。関数の引数（最初の4つまたは最初の6つ）
+はレジスタに渡されます。つまり、\gls{callee}はレジスタからレジスタを読み込みます。
+
+\subsubsection{MSVC}
+
+\Optimizing MSVC:
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/05_passing_arguments/x64_MSVC_Ox_JA.asm}
+
+見てわかるように、コンパクトな関数 \ttf はすべての引数をレジスタから取ります。
+
+ここでの \LEA 命令は加算に使用され、
+明らかにコンパイラは \TT{ADD} よりも速いと考えました。
+\myindex{x86!\Instructions!LEA}
+
+\LEA は、第1および第3の \ttf 引数を準備するために \main 関数でも使用されます。
+コンパイラは、 \MOV 命令を使用してレジスタに値をロードする通常の方法よりも速く動作すると判断する必要があります。
+
+非最適化MSVCの出力を見てみましょう。
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/05_passing_arguments/x64_MSVC_IDA_JA.asm}
+
+レジスタからの3つの引数は何らかの理由でスタックに保存されるため、ややこしいことになっています。
+
+\myindex{Shadow space}
+\label{shadow_space}
+これは "シャドウスペース"と呼ばれます。
+\footnote{\href{http://msdn.microsoft.com/en-us/library/zthk2dkh(v=vs.80).aspx}{MSDN}}
+すべてのWin64は、そこにある4つのレジスタ値をすべて保存することができます（必須ではありません）。
+これは2つの理由で行われます。
+1）入力引数にレジスタ全体（または4つのレジスタ）を割り当てるのはあまりにも贅沢なので、スタック経由でアクセスされます。 
+2）デバッガはブレークで関数の引数をどこに見つけるか常に認識しています。
+\footnote{\href{http://msdn.microsoft.com/en-us/library/ew5tede7(v=VS.90).aspx}{MSDN}}
+
+だから、大規模な関数の中には、実行中にそれらを使用したい場合、入力引数を \q{シャドウスペース}に保存することができますが、
+私たちのような小さな関数ではそうでないかもしれません。
+
+スタックに\q{シャドウスペース}を割り当てるのは\gls{caller}の責任です。
+
+\subsubsection{GCC}
+
+\Optimizing GCCはまあまあわかりやすいコードを生成します。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/x64_GCC_O3_JA.s}
+
+\NonOptimizing GCC:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/x64_GCC_JA.s}
+
+\myindex{Shadow space}
+
+System V *NIX (\SysVABI)には\q{シャドースペース}の要件はありませんが、 \gls{callee}は
+レジスタが不足している場合には引数をどこかに保存します。
+
+\subsubsection{GCC: intの代わりのuint64\_t}
+
+私たちの例は32ビットintで動作するため、32ビットのレジスタが使用されています（\TT{E-}が前に付いています）。 
+
+64ビット値を使用するためには少し変更する必要があります。
+
+\lstinputlisting[style=customc]{patterns/05_passing_arguments/ex64.c}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/ex64_GCC_O3_IDA_JA.asm}
+
+コードは同じですが、今回は\emph{フルサイズ}のレジスタ（\TT{R-}が前に付いています）が使用されています。

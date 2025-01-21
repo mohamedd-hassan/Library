@@ -1,0 +1,99 @@
+﻿\clearpage
+\myparagraph{MSVC + \olly}
+\myindex{\olly}
+
+2組の32ビットワードは、スタック内で赤色でマークされます。
+各ペアはIEEE 754形式の倍数で、 \main から渡されます。
+
+最初の \FLD がスタックからどのように値（$1.2$）をロードし、それを\ST{0}に入れるかを確認します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly1.png}
+\caption{\olly: 最初の \FLD が実行された}
+\label{fig:FPU_simple_olly_1}
+\end{figure}
+
+64ビットIEEE 754浮動小数点から80ビット（FPU内部で使用される）への避けられない変換エラーのため、
+ここでは1.299に近い1.1999\ldots が見られます。
+
+\EIP は次の命令（\FDIV）を指すようになり、メモリから倍精度浮動小数点数（定数）がロードされます。
+便宜上、 \olly は3.14を示します。
+
+\clearpage
+さらにトレースしましょう。 
+\FDIV が実行されましたが、\ST{0}に0.382\ldots
+（\gls{quotient}）が含まれています。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly2.png}
+\caption{\olly: \FDIV が実行された}
+\label{fig:FPU_simple_olly_2}
+\end{figure}
+
+\clearpage
+3番目のステップ：次の \FLD が実行され、
+\ST{0}に3.4をロードします（ここでは、およそ3.39999\ldots の値が確認できます）。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly3.png}
+\caption{\olly: 2回目の \FLD が実行された}
+\label{fig:FPU_simple_olly_3}
+\end{figure}
+
+同時に、\gls{quotient}は\ST{1}に\emph{プッシュ}されます。
+今、 \EIP は次の命令 \FMUL を指しています。
+これは、 \olly が示すメモリから定数4.1をロードします。
+
+\clearpage
+次： \FMUL が実行されたので、\gls{product}は\ST{0}になります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly4.png}
+\caption{\olly: \FMUL が実行された}
+\label{fig:FPU_simple_olly_4}
+\end{figure}
+
+\clearpage
+次に、 \FADDP が実行され、加算結果が\ST{0}になり、\ST{1}がクリアされます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/1_simple/olly5.png}
+\caption{\olly: \FADDP が実行された}
+\label{fig:FPU_simple_olly_5}
+\end{figure}
+
+関数はその値を\ST{0}に戻すため、結果は\ST{0}に残ります。
+
+\main は後でこの値をレジスタから取得します。
+
+13.93\ldots 値は現在\ST{7}に位置しています。
+どうしてでしょうか？
+
+\label{FPU_is_rather_circular_buffer}
+
+この本の中で少し前に読んだことがあるように、\ac{FPU}レジスタはスタックです。\myref{FPU_is_stack}
+しかしこれは単純化されています。
+
+説明したように\emph{ハードウェアで}実装されているとしたら、
+プッシュとポップ中に7つのレジスタのすべての内容を隣接するレジスタに移動（またはコピー）する必要があります。
+
+現実には、\ac{FPU}は8つのレジスタと、現在の\q{トップ・オブ・スタック}であるレジスタ番号を含む
+ポインタ（\GTT{TOP}と呼ばれる）とを持ちます。
+
+値がスタックにプッシュされると、\GTT{TOP}は次に使用可能なレジスタをポイントし、
+そのレジスタに値が書き込まれます。
+
+値がポップされると、プロシージャは元に戻されますが、解放されたレジスタはクリアされません
+（クリアされる可能性がありますが、パフォーマンスが低下する可能性があります）。
+それがここにある理由です。
+
+\FADDP はスタックに合計を保存した後、要素を1つポップしたと言えるでしょう。
+
+しかし、実際には、この命令は合計を保存してから\GTT{TOP}にシフトします。
+
+より正確には、\ac{FPU}のレジスタは循環バッファです。

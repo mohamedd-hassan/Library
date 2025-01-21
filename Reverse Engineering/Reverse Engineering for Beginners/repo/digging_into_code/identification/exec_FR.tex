@@ -1,0 +1,143 @@
+\mysection{Identification de fichiers exécutables}
+
+\subsection{Microsoft Visual C++}
+\label{MSVC_versions}
+
+Les versions de MSVC et des DLLs peuvent être importées:
+
+%\small
+\begin{center}
+\begin{tabular}{ | l | l | l | l | l | }
+\hline
+\HeaderColor Marketing ver. &
+\HeaderColor Internal ver. &
+\HeaderColor CL.EXE ver. &
+\HeaderColor DLLs imported &
+\HeaderColor Release date \\
+\hline
+% 4.0, April 1995
+% 97 & 5.0 & February 1997
+6		&  6.0	& 12.00	& msvcrt.dll	& June 1998		\\
+		&	&	& msvcp60.dll	&			\\
+\hline
+.NET (2002)	&  7.0	& 13.00	& msvcr70.dll	& February 13, 2002	\\
+		&	&	& msvcp70.dll	&			\\
+\hline
+.NET 2003	&  7.1	& 13.10 & msvcr71.dll	& April 24, 2003	\\
+		&	&	& msvcp71.dll	&			\\
+\hline
+2005		&  8.0	& 14.00 & msvcr80.dll	& November 7, 2005	\\
+		&	&	& msvcp80.dll	&			\\
+\hline
+2008		&  9.0	& 15.00 & msvcr90.dll	& November 19, 2007	\\
+		&	&	& msvcp90.dll	&			\\
+\hline
+2010		& 10.0	& 16.00 & msvcr100.dll	& April 12, 2010 	\\
+		&	&	& msvcp100.dll	&			\\
+\hline
+2012		& 11.0	& 17.00 & msvcr110.dll	& September 12, 2012 	\\
+		&	&	& msvcp110.dll	&			\\
+\hline
+2013		& 12.0	& 18.00 & msvcr120.dll	& October 17, 2013 	\\
+		&	&	& msvcp120.dll	&			\\
+\hline
+\end{tabular}
+\end{center}
+%\normalsize
+
+msvcp*.dll contient des fonctions relatives à \Cpp{}, donc si elle est importées,
+il s'agit probablement d'un programme \Cpp.
+
+\subsubsection{Mangling de nom}
+
+Les noms commencent en général par le symbole \TT{?}.
+
+Vous trouverez plus d'informations le \glslink{name mangling}{mangling de nom} de
+MSVC ici: \myref{namemangling}.
+
+\subsection{GCC}
+\myindex{GCC}
+
+À part les cibles *NIX, GCC est aussi présent dans l'environnement win32, sous la
+forme de Cygwin et MinGW.
+
+\subsubsection{Mangling de nom}
+
+Les noms commencent en général par le symbole \TT{\_Z}.
+Vous trouverez plus d'informations le \glslink{name mangling}{mangling de nom} de
+GCC ici: \myref{namemangling}.
+\subsubsection{Cygwin}
+\myindex{Cygwin}
+
+cygwin1.dll est souvent importée.
+
+\subsubsection{MinGW}
+\myindex{MinGW}
+
+msvcrt.dll peut être importée.
+
+\subsection{Intel Fortran}
+\myindex{Fortran}
+
+libifcoremd.dll, libifportmd.dll et libiomp5md.dll (support OpenMP) peuvent être importées.
+
+libifcoremd.dll a beaucoup de fonctions préfixées par \TT{for\_}, qui signifie \emph{Fortran}.
+
+\subsection{Watcom, OpenWatcom}
+\myindex{Watcom}
+\myindex{OpenWatcom}
+
+\subsubsection{Mangling de nom}
+
+Les noms commencent usuellement par le symbole \TT{W}.
+
+Par exemple, ceci est la façon dont la méthode nommées \q{method} de la classe \q{class}
+qui n'a pas d'argument et qui renvoie \Tvoid est encodée:
+
+\begin{lstlisting}
+W?method$_class$n__v
+\end{lstlisting}
+
+\subsection{Borland}
+\myindex{Borland Delphi}
+\myindex{Borland C++Builder}
+
+Voici un exemple de \glslink{name mangling}{mangling de nom} de Delphi de Borland
+et de C++Builder:
+
+\lstinputlisting{digging_into_code/identification/borland_mangling.txt}
+
+Les noms commencent toujours avec le symbole \TT{@}, puis nous avons le nom de la
+classe, de la méthode et les types des arguments de méthode encodés.
+
+Ces noms peuvent être dans des imports .exe, des exports .dll, des données de débogage,
+etc.
+
+Les Borland Visual Component Libraries (VCL) sont stockées dans des fichiers .bpl
+au lieu de .dll, par exemple, vcl50.dll, rtl60.dll.
+
+Une autre DLL qui peut être importée: BORLNDMM.DLL.
+
+\subsubsection{Delphi}
+
+Presque tous les exécutables Delpi ont la chaîne de texte \q{Boolean} au début de
+leur segment de code, ainsi que d'autres noms de type.
+
+Ceci est le début très typique du segment \TT{CODE} d'un programme Delphi, ce bloc
+vient juste après l'entête de fichier win32 PE:
+
+\lstinputlisting{digging_into_code/identification/delphi.txt}
+
+Les 4 premiers octets du segment de données (\TT{DATA}) peuvent être \TT{00 00 00 00},
+\TT{32 13 8B C0} ou \TT{FF FF FF FF}.%
+
+Cette information peut être utile lorsque l'on fait face à des exécutables Delphi
+préparés/chiffrés.
+
+\subsection{Autres DLLs connues}
+
+\myindex{OpenMP}
+\begin{itemize}
+\item vcomp*.dll---implémentation d'OpenMP de Microsoft.
+\end{itemize}
+

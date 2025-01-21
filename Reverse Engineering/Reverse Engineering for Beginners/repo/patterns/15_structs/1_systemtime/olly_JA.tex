@@ -1,0 +1,64 @@
+﻿\clearpage
+\subsubsection{\olly}
+\myindex{\olly}
+
+この例を\TT{/GS- /MD}オプション付きでMSVC 2010でコンパイルし \olly で実行してみましょう。
+
+データのウィンドウを開き、\TT{GetSystemTime()}関数の最初の引数として渡されたアドレスにスタックし、
+実行されるまで待機しましょう。 このようになります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/1_systemtime/olly_systemtime1.png}
+\caption{\olly: \TT{GetSystemTime()} が実行された}
+\label{fig:struct_olly_1}
+\end{figure}
+
+私のコンピュータ上での関数のシステム時間は2014年12月9日、22時29分52秒です。
+
+\lstinputlisting[caption=\printf output]{patterns/15_structs/1_systemtime/console.txt}
+
+このような16バイトをデータウィンドウに
+みることができます。
+\begin{lstlisting}
+DE 07 0C 00 02 00 09 00 16 00 1D 00 34 00 D4 03
+\end{lstlisting}
+
+各2バイトが構造体のフィールドを表します。
+\gls{endianness}は\emph{リトルエンディアン}なので、
+低位バイトが最初に見え、高位バイトがその後です。
+
+したがって、これらは現在メモリに格納されている値です。
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} 16進数 & 
+\headercolor{} 10進数 & 
+\headercolor{} フィールド名 \\
+\hline
+0x07DE & 2014	& wYear \\
+\hline
+0x000C & 12	& wMonth \\
+\hline
+0x0002 & 2	& wDayOfWeek \\
+\hline
+0x0009 & 9	& wDay \\
+\hline
+0x0016 & 22	& wHour \\
+\hline
+0x001D & 29	& wMinute \\
+\hline
+0x0034 & 52	& wSecond \\
+\hline	
+0x03D4 & 980	& wMilliseconds \\
+\hline
+\end{tabular}
+\end{center}
+
+同じ値がスタックウィンドウに表示されますが、32ビットの値としてグループ分けされています。
+
+そして、 \printf は必要な値だけを取り出してコンソールに出力します。
+
+いくつかの値は \printf （\TT{wDayOfWeek} と \TT{wMilliseconds}）
+によって出力されませんが、使用可能なメモリ上にあります。

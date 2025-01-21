@@ -1,0 +1,31 @@
+\subsubsection{GCC: x86-64}
+
+\myindex{x86-64}
+Przyjrzyjmy się wynikom kompilacji GCC na 64-bitowym systemie Linux:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/01_helloworld/GCC_x64_PL.s}
+
+Na Linuksie, *BSD i \MacOSX w architekturze x86-64 argumenty funkcji także przekazuje się przez rejestry \SysVABI.
+
+6 pierwszych argumentów jest przekazywanych przez rejestry \RDI, \RSI, \RDX, \RCX, \Reg{8} i \Reg{9}, a reszta --- przez stos.
+
+Wskaźnik na łańcuch znaków jest przekazywany przez \EDI (32-bitową część rejestru). Dlaczego nie użyto 64-bitowego \RDI?
+
+Warto pamiętać, że w 64-bitowym trybie wszystkie instrukcje \MOV, zapisujące cokolwiek do młodszej 32-bitowej części rejestru, zerują starsze 32 bity (jest to opisane w dokumentacji Intela: \myref{x86_manuals}).
+Z tego powodu instrukcja \INS{MOV EAX, 011223344h} poprawnie zapisze tę wartość do \RAX, a starsze bity się wyzerują.
+
+Jeślibyśmy podejrzeli w deasemblerze \IDA skompilowany plik (.o), to zobaczylibyśmy kody operacji (opcode) wszystkich instrukcji
+\footnote{Trzeba włączyć tę opcję w \textbf{Options $\rightarrow$ Disassembly $\rightarrow$ Number of opcode bytes}}:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/01_helloworld/GCC_x64.lst}
+
+\label{hw_EDI_instead_of_RDI}
+Jak widać, instrukcja \MOV pod adresem \TT{0x4004D4}, która zapisuje do \EDI, zajmuje 5 bajtów.
+Ta sama instrukcja, zapisująca 64-bitową wartość do \RDI, zajmuje 7 bajtów.
+Najwyraźniej GCC stara się zaoszczędzić trochę miejsca.
+GCC jest również pewne, że segment danych, w którym przechowywany jest łańcuch znaków, nigdy nie będzie zaalokowany pod adresem powyżej 4\gls{GiB}.
+
+\label{SysVABI_input_EAX}
+Widać również, że rejestr \EAX został wyzerowany przed wywołaniem funkcji \printf.
+Zgodnie ze standardem \ac{ABI} opisanym wyżej, w *NIX dla x86-64 w \EAX jest ustawiana liczba użytych rejestrów wektorowych do przekazania argumentów zmiennoprzecinkowych, jeśli funkcja może przyjmować zmienną liczbę argumentów.
+Nie został wykorzystany żaden taki rejestr, a \printf jest funkcją o zmiennej liczbie argumentów, więc należy ustawić \EAX na 0.

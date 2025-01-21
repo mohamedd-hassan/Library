@@ -1,0 +1,33 @@
+\subsection{Delimitazione delle stringhe}
+
+\myindex{win32!GetOpenFileName}
+E' interessante notare, come i parametri vengono passati alla funzione win32 \emph{GetOpenFileName()}.
+Per chiamarlo, è necessario impostare un elenco di estensioni di file consentite:
+
+\begin{lstlisting}[style=customc]
+	OPENFILENAME *LPOPENFILENAME;
+	...
+	char * filter = "Text files (*.txt)\0*.txt\0MS Word files (*.doc)\0*.doc\0\0";
+	...
+	LPOPENFILENAME = (OPENFILENAME *)malloc(sizeof(OPENFILENAME));
+	...
+	LPOPENFILENAME->lpstrFilter = filter;
+	...
+
+	if(GetOpenFileName(LPOPENFILENAME))
+	{
+		...
+\end{lstlisting}
+
+Ciò che accade qui, è che la lista di stringhe viene passata a \emph{GetOpenFileName()}.
+Non è un problema analizzarla: ogni volta che si incontra un singolo zero byte, questo è un elemento.
+Ogni qualvolta si incontrano due zero byte, si è alla fine della lista.
+Se passassimo la stringa a \printf, tratterebbe il primo oggetto come una singola stringa.
+
+Quindi, questa è una stringa, oppure...?
+Sarebbe meglio dire che questo un buffer contenente diverse stringhe C zero terminate, le quali possono essere salvate e processate
+nel loro insieme.
+
+\myindex{\CStandardLibrary!strtok}
+Un altro esempio è la funzione \emph{strtok()}. Essa prende una stringa e scrive dei byte zero al suo interno.
+Trasforma quindi la stringa di input in un qualche tipo di buffer, che ha diverse stringhe C con lo zero terminatore.

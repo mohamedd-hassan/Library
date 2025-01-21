@@ -1,0 +1,43 @@
+\mysection{Использование const (const correctness)}
+\myindex{\CLanguageElements!const}
+\label{const_in_rdata}
+
+Это незаслуженно малоиспользуемая возможность многих ЯП.
+Тут можно почитать о её важности:
+\href{https://isocpp.org/wiki/faq/const-correctness}{1},
+\href{https://stackoverflow.com/questions/136880/sell-me-on-const-correctness}{2}.
+
+Идеально, всё что вы не модифицируете, должно иметь модификатор \emph{const}.
+
+Интересно, как \emph{const correctness} обеспечивается на низком уровне.
+Локальные \emph{const}-переменные и аргументы ф-ций не проверяются во время исполнения (только во время компиляции).
+Но глобальные переменные этого типа располагаются в сегментах данных только для чтения.
+
+Вот пример который упадет, потому что, если будет скомпилирован MSVC для win32, глобальная переменная $a$ располагается
+в сегменте \verb|.rdata|, который только для чтения:
+
+\lstinputlisting[style=customc]{\CURPATH/ex1.c}
+
+\emph{Анонимные} (не привязанные к имени переменной) строки в Си имеют тип \verb|const char*|.
+Вы не можете их модифицировать:
+
+\lstinputlisting[style=customc]{\CURPATH/ex2.c}
+
+Это код упадет в Linux (``segmentation fault'') и в Windows, если скомпилирован MinGW.
+
+GCC для Linux располагает все текстовые строки в сегменте данных \TT{.rodata}, который недвусмысленно защищен от записи
+(``read only data''):
+
+\lstinputlisting{\CURPATH/ex2.txt}
+
+Когда ф-ция \verb|alter_string()| пытается там писать, срабатывает исключение.
+
+Всё немного иначе в коде сгенерированном MSVC, строки располагаются в сегменте \TT{.data}, у которого нет флага \TT{READONLY}.
+Оплошность разработчиков MSVC?
+
+\lstinputlisting{\CURPATH/ex22.txt}
+
+А в MinGW этой ошибки нет, и строки располагаются в сегменте \verb|.rdata|.
+
+\input{\CURPATH/two_strings_RU}
+

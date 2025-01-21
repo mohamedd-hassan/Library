@@ -1,0 +1,13 @@
+\subsubsection{Przechowywanie zmiennych lokalnych}
+
+Funkcja może zaalokować miejsce na stosie dla własnych zmiennych lokalnych przez zmniejszenie
+\glslink{stack pointer}{wskaźnika stosu}, w kierunku końca stosu (pamiętaj, że stos rośnie w dół, w kierunku niskich adresów!).
+
+% I think here, "stack bottom" means the lowest address in the stack space,
+% but the reader might also think it means towards the top of the stack space,
+% like in a pop, so you might change "towards the stack bottom" to
+% "towards the lowest address of the stack", or just take it out,
+% since "decreasing" also suggests that.
+
+Jest to bardzo szybkie, niezależnie od liczby zmiennych lokalnych.
+Wiedz, że nie ma przymusu trzymania zmiennych lokalnych na stosie. Możesz je trzymać gdziekolwiek, ale tradycyjnie wykorzystuje się do tego stos.

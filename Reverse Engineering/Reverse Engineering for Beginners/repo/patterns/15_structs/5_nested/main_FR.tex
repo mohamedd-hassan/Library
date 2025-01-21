@@ -1,0 +1,45 @@
+\subsection{Structures imbriquées}
+
+Maintenant qu'en est-il lorsqu'une structure est définie au sein d'une autre structure ?
+
+\lstinputlisting[style=customc]{patterns/15_structs/5_nested/nested.c}
+
+\dots dans ce cas, l'ensemble des champs de \TT{inner\_struct} doivent être situés entre les champs a,b et 
+d,e de \TT{outer\_struct}.
+
+Compilons (MSVC 2010):
+
+\lstinputlisting[caption=\Optimizing MSVC 2010 /Ob0,style=customasmx86]{patterns/15_structs/5_nested/nested_msvc_FR.asm}
+
+Un point troublant est qu'en observant le code assembleur généré, nous n'avons aucun indice qui laisse penser 
+qu'il existe une structure imbriquée!
+Nous pouvons donc dire que les structures imbriquées sont fusionnées avec leur conteneur pour former une seule 
+structure \emph{linear} ou \emph{one-dimensional}.
+
+Bien entendu, si nous remplaçons la déclaration \TT{struct inner\_struct c;} par \TT{struct inner\_struct *c;}
+(en introduisant donc un pointeur) la situation sera totalement différente.
+% FIXME1: нарисовать вложенную структуру и развернутую
+
+\clearpage
+\subsubsection{\olly}
+\myindex{\olly}
+
+Chargeons notre exemple dans \olly et observons \TT{outer\_struct} en mémoire:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/5_nested/olly.png}
+\caption{\olly: Avant appel de la fonction \printf}
+\label{fig:nested_olly}
+\end{figure}
+
+Les valeurs sont organisées en mémoire de la manière suivante:
+\begin{itemize}
+\item \emph{(outer\_struct.a)} (octet) 1 + 3 octets de détritus;
+\item \emph{(outer\_struct.b)} (mot de 32 bits) 2;
+\item \emph{(inner\_struct.a)} (mot de 32 bits) 0x64 (100);
+\item \emph{(inner\_struct.b)} (mot de 32 bits) 0x65 (101);
+\item \emph{(outer\_struct.d)} (octet) 3 + 3 octets de détritus;
+\item \emph{(outer\_struct.e)} (mot de 32 bits) 4.
+\end{itemize}
+

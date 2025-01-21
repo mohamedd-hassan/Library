@@ -1,0 +1,25 @@
+\mysection{\ac{ISA} detection}
+\label{ISA_detect}
+
+Often, you can deal with a binary file for an unknown \ac{ISA}.
+Perhaps, easiest way to detect \ac{ISA} is to try various ones in IDA, objdump or another disassembler.
+
+To achieve this, one should understand a difference between incorrectly disassembled code and correctly one.
+
+% subsection:
+\renewcommand{\CURPATH}{digging_into_code/incorrect_disassembly}
+\input{digging_into_code/incorrect_disassembly/main_EN}
+
+\subsection{Correctly disassembled code}
+\label{correctly_disasmed_code}
+
+Each \ac{ISA} has a dozen of a most used instructions, all the rest are used much less often.
+
+As of x86, it is interesting to know that the fact that function calls (\PUSH/\CALL/\ADD) and \MOV
+instructions are the most frequently executed pieces of code in almost all
+programs we use.
+In other words, \ac{CPU} is very busy passing information between levels of abstractions, or,
+it can be said, it's very busy switching between these levels.
+Regardless type of \ac{ISA}.
+This is a cost of splitting problems into several levels of abstractions (so humans could work with them easier).
+

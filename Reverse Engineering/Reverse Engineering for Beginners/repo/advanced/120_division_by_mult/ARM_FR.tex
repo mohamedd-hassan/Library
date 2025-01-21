@@ -1,0 +1,109 @@
+﻿\subsection{ARM}
+
+Le processeur ARM, tout comme un autre processeur \q{pur} RISC n'a pas d'instruction
+pour la division.
+Il manque aussi une simple instruction pour la multiplication avec une constante 32-bit
+(rappelez-vous qu'une constante 32-bit ne tient pas dans un opcode 32-bit).
+
+En utilisant de cette astuce intelligente (ou \emph{hack}), il est possible d'effectuer
+la division en utilisant seulement trois instructions: addition, soustraction et
+décalages de bit~(\myref{sec:bitfields}).
+
+Voici un exemple qui divise un nombre 32-bit par 10, tiré de
+\InSqBrackets{\ARMCookBook 3.3 Division by a Constant}.
+La sortie est constituée du quotient et du reste.
+
+\begin{lstlisting}[style=customasmARM]
+; prend l'argument dans a1
+; renvoie le quotient dans a1, le reste dans a2
+; on peut utiliser moins de cycles si seul le quotient ou le reste est requis
+    SUB    a2, a1, #10             ; garde (x-10) pour plus tard
+    SUB    a1, a1, a1, lsr #2
+    ADD    a1, a1, a1, lsr #4
+    ADD    a1, a1, a1, lsr #8
+    ADD    a1, a1, a1, lsr #16
+    MOV    a1, a1, lsr #3
+    ADD    a3, a1, a1, asl #2
+    SUBS   a2, a2, a3, asl #1      ; calcule (x-10) - (x/10)*10
+    ADDPL  a1, a1, #1              ; fix-up quotient
+    ADDMI  a2, a2, #10             ; fix-up reste
+    MOV    pc, lr
+\end{lstlisting}
+
+\subsubsection{\OptimizingXcodeIV (\ARMMode)}
+
+\begin{lstlisting}[style=customasmARM]
+__text:00002C58 39 1E 08 E3 E3 18 43 E3  MOV    R1, 0x38E38E39
+__text:00002C60 10 F1 50 E7              SMMUL  R0, R0, R1
+__text:00002C64 C0 10 A0 E1              MOV    R1, R0,ASR#1
+__text:00002C68 A0 0F 81 E0              ADD    R0, R1, R0,LSR#31
+__text:00002C6C 1E FF 2F E1              BX     LR
+\end{lstlisting}
+
+Ce code est presque le même que celui généré par MSVC avec optimisation et GCC.
+
+Il semble que LLVM utilise le même algorithme pour générer des constantes.
+
+\myindex{ARM!\Instructions!MOV}
+\myindex{ARM!\Instructions!MOVT}
+
+Le lecteur attentif pourrait se demander comment \MOV écrit une valeur 32-bit dans
+un registre, alors que ceci n'est pas possible en mode ARM.
+
+C'est impossible, en effet, mais on voit qu'il y a 8 octets par instruction, au lieu
+des 4 standards, en fait, ce sont deux instructions.
+
+La première instruction charge \TT{0x8E39} dans les 16 bits bas du registre et la
+seconde instruction est \TT{MOVT}, qui charge \TT{0x383E} dans les 16 bits hauts
+du registre.
+\IDA reconnaît de telles séquences, et par concision, il les réduit a une seule
+\q{pseudo-instruction}.
+
+\myindex{ARM!\Instructions!SMMUL}
+L'instruction \TT{SMMUL} (\emph{Signed Most Significant Word Multiply} mot le plus
+significatif d'une multiplication signée), multiplie deux nombres, les traitant comme
+des nombres signés et laisse la partie 32-bit haute dans le registre \Reg{0},
+en ignorant la partie 32-bit basse du résultat.
+
+\myindex{ARM!Optional operators!ASR}
+L'instruction \TT{\q{MOV R1, R0,ASR\#1}} est le décalage arithmétique à droite d'un bit.
+
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!Data processing instructions}
+\myindex{ARM!Optional operators!LSR}
+\TT{\q{ADD R0, R1, R0,LSR\#31}} est $R0=R1 + R0>>31$
+
+% FIXME какие именно инструкции? \myref{} ->
+\label{shifts_in_ARM_mode}
+
+Il n'y a pas d'instruction de décalage séparée en mode ARM.
+A la place, des instructions comme
+(\MOV, \ADD, \SUB, \TT{RSB})\footnote{\DataProcessingInstructionsFootNote}
+peuvent avoir un suffixe, indiquant si le second argument doit être décalé, et si
+oui, de quelle valeur et comment.
+\TT{ASR} signifie \emph{Arithmetic Shift Right}, \TT{LSR}---\emph{Logical Shift Right}.
+
+
+\subsubsection{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+\begin{lstlisting}[style=customasmARM]
+MOV             R1, 0x38E38E39
+SMMUL.W         R0, R0, R1
+ASRS            R1, R0, #1
+ADD.W           R0, R1, R0,LSR#31
+BX              LR
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!ASRS}
+
+Il y a dex instructions de décalage séparées en mode Thumb, et l'une d'elle est
+utilisée ici---\TT{ASRS} (arithmetic shift right).
+
+\subsubsection{\NonOptimizing Xcode 4.6.3 (LLVM) and Keil 6/2013}
+
+LLVM \NonOptimizing
+ne génère pas le code que nous avons vu avant dans cette section, mais insère à la
+place un appel à la fonction de bibliothèque \emph{\_\_\_divsi3}.
+
+À propos de Keil: il insère un appel à la fonction de bibliothèque \emph{\_\_aeabi\_idivmod}
+dans tous les cas.

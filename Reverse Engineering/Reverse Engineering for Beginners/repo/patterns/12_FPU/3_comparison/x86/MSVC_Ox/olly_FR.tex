@@ -1,0 +1,128 @@
+﻿\clearpage
+\mysubparagraph{Premier exemple sous \olly: a=1.2 et b=3.4}
+\myindex{\olly}
+
+Les deux instructions \FLD ont été exécutées:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_1.png}
+\caption{\olly: les deux \FLD exécutées}
+\label{fig:FPU_comparison_Ox_case1_olly1}
+\end{figure}
+
+\FCOM exécutée:
+\olly montre le contenu de \ST{0} et \ST{1} par commodité.
+
+\clearpage
+\FCOM a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_2.png}
+\caption{\olly: \FCOM a été exécutée}
+\label{fig:FPU_comparison_Ox_case1_olly2}
+\end{figure}
+
+\Czero est mis, tous les autres flags de condition sont à zéro.
+
+\clearpage
+\FNSTSW a été exécutée, \GTT{AX}=0x3100:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_3.png}
+\caption{\olly: \FNSTSW est exécutée}
+\label{fig:FPU_comparison_Ox_case1_olly3}
+\end{figure}
+
+\clearpage
+\TEST est exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_4.png}
+\caption{\olly: \TEST est exécutée}
+\label{fig:FPU_comparison_Ox_case1_olly4}
+\end{figure}
+
+ZF=0, le saut conditionnel va être déclenché maintenant.
+
+\clearpage
+\INS{FSTP ST} (ou \FSTP \ST{0}) a été exécuté~---1.2 a été dépilé, et 3.4 laissé
+au sommet de la pile:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_5.png}
+\caption{\olly: \FSTP est exécutée}
+\label{fig:FPU_comparison_Ox_case1_olly5}
+\end{figure}
+
+Nous voyons que l'instruction \INS{FSTP ST}
+
+fonctionne comme dépiler une valeur de la pile du FPU.
+
+\clearpage
+\mysubparagraph{Second exemple sous \olly: a=5.6 et b=-4}
+
+Les deux \FLD sont exécutées:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_1.png}
+\caption{\olly: les deux \FLD sont exécutée}
+\label{fig:FPU_comparison_Ox_case2_olly1}
+\end{figure}
+
+\FCOM est sur le point de s'exécuter.
+
+\clearpage
+\FCOM a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_2.png}
+\caption{\olly: \FCOM est terminé}
+\label{fig:FPU_comparison_Ox_case2_olly2}
+\end{figure}
+
+Tous les flags de conditions sont à zéro.
+
+\clearpage
+\FNSTSW fait, \GTT{AX}=0x3000:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_3.png}
+\caption{\olly: \FNSTSW a été exécutée}
+\label{fig:FPU_comparison_Ox_case2_olly3}
+\end{figure}
+
+\clearpage
+\TEST a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_4.png}
+\caption{\olly: \TEST a été exécutée}
+\label{fig:FPU_comparison_Ox_case2_olly4}
+\end{figure}
+
+ZF=1, le saut ne va pas se produire maintenant.
+
+\clearpage
+\FSTP \ST{1} a été exécutée: une valeur de 5.6 est maintenant au sommet de la pile
+du FPU.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_5.png}
+\caption{\olly: \FSTP a été exécutée}
+\label{fig:FPU_comparison_Ox_case2_olly5}
+\end{figure}
+
+Nous voyons maintenant que l'instruction \FSTP \ST{1}
+fonctionne comme suit: elle laisse ce qui était au sommet de la pile, mais met \ST{1}
+à zéro.
+

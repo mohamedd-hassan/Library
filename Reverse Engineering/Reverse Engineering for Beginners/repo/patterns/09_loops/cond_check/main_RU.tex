@@ -1,0 +1,23 @@
+\subsection{Проверка условия}
+
+Важно помнить, что в конструкции \emph{for()}, проверка условия происходит не в конце, а в начале, перед исполнением тела цикла.
+Но нередко компилятору удобнее проверять условие в конце, после тела.
+Иногда может добавляться еще одна проверка в начале.
+
+Например:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/1.c}
+
+Оптимизирующий GCC 5.4.0 x64:
+
+\lstinputlisting[style=customasmx86]{patterns/09_loops/cond_check/1.s}
+
+Видим две проверки.
+
+\myindex{Hex-Rays}
+Hex-Rays (по крайней мере версии 2.2.0) декомпилирует это так:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/hexrays.c}
+
+В данном случае, \emph{do/while()} можно смело заменять на \emph{for()}, а первую проверку убрать.
+

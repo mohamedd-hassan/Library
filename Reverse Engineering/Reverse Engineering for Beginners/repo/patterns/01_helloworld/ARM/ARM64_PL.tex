@@ -1,0 +1,97 @@
+\subsubsection{ARM64}
+
+\myparagraph{GCC}
+
+Skompilujmy przykład w GCC 4.8.1 dla ARM64:
+
+\lstinputlisting[numbers=left,label=hw_ARM64_GCC,caption=\NonOptimizing GCC 4.8.1 + objdump,style=customasmARM]{patterns/01_helloworld/ARM/hw.lst}
+
+W ARM64 nie ma trybów Thumb i Thumb-2, jest tylko ARM, więc wszystkie instrukcje są 32-bitowe.
+
+Dysponujemy dwukrotnie większą liczbą rejestrów: \myref{ARM64_GPRs}.
+64-bitowe rejestry mają prefiks
+\TT{X-}, a ich 32-bitowe części --- \TT{W-}.
+
+\myindex{ARM!\Instructions!STP}
+Instrukcja \TT{STP} (\emph{Store Pair}) 
+odkłada na stos jednocześnie 2 rejestry: \RegX{29} i \RegX{30}.
+Oczywiście może ona zapisać tę parę gdziekolwiek w pamięci, ale w tym przypadku miejscem docelowym jest rejestr \ac{SP}, a więc jest ona odkładana na stos.
+
+Rejestry w ARM64 są 64-bitowe (8 bajtowe), dlatego do przechowywania 2 rejestrów potrzeba 16 bajtów.
+
+Wykrzyknik (``!'') po operandzie oznacza, że najpierw od \ac{SP} będzie odjęte 16 i dopiero po tej czynności wartości z obu rejestrów będą odłożone na stos.
+
+Jest to tak zwany \emph{pre-index}.
+Więcej o różnicy między \emph{post-index} a \emph{pre-index}: \myref{ARM_postindex_vs_preindex}.
+
+Posługując się terminologią x86 ~--- pierwsza instrukcja jest analogiczna do pary instrukcji \TT{PUSH X29} i \TT{PUSH X30}.
+\RegX{29} w ARM64 jest wykorzystywane jako \ac{FP}, a \RegX{30} 
+jako \ac{LR}, dlatego są one odkładane na stos w prologu funkcji.
+
+Druga instrukcja kopiuje \ac{SP} do \RegX{29} (\ac{FP}).
+Jest to niezbędne do ustawienia ramki stosu (stack frame) funkcji.
+
+\label{pointers_ADRP_and_ADD}
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+Instrukcje \TT{ADRP} i \ADD ustawiają adres łańcucha znaków \q{Hello!} w rejestrze \RegX{0},
+ponieważ pierwszy argument funkcji jest przekazywany przez ten rejestr.
+Jednakże w ARM nie ma instrukcji, za pomocą których można zapisać do rejestru dużą liczbę 
+(dlatego że długość instrukcji wynosi maksymalnie 4 bajty. Więcej informacji o tym można znaleźć tutaj: \myref{ARM_big_constants_loading}).
+Dlatego trzeba skorzystać z kilku instrukcji.
+Pierwsza instrukcja (\TT{ADRP}) zapisuje do \RegX{0} adres strony o rozmiarze 4KiB, która zawiera łańcuch znaków,
+a druga (\ADD) dodaje do tego adresu resztę (przesunięcie względem początku strony pamięci).
+Więcej o tym: \myref{ARM64_relocs}.
+
+\TT{0x400000 + 0x648 = 0x400648}, i możemy zobaczyć, że w segmencie danych \TT{.rodata} pod tym adresem znajduje się nasz
+łańcuch znaków \q{Hello!}.
+
+\myindex{ARM!\Instructions!BL}
+Następnie za pomocą instrukcji \TT{BL} jest wywoływana funkcja \puts. Zostało to omówione wcześniej: \myref{puts}.
+
+Instrukcja \MOV zapisuje 0 do \RegW{0}. 
+\RegW{0} to młodsze 32 bity 64-bitowego rejestru \RegX{0}:
+
+\input{ARM_X0_register_PL}
+
+Wynik funkcji jest zwracany przez \RegX{0} i \main zwraca 0.
+
+Dlaczego 32-bitowa część?
+W ARM64, jak i w x86-64, typ \Tint ma rozmiar 32 bitów, dla kompatybilności.
+
+Skoro funkcja zwraca 32-bitowy \Tint, to trzeba wypełnić tylko młodsze 32 bity 64-bitowego rejestru \RegX{0}.
+
+Żeby mieć pewność, zmieńmy przykład i skompilujmy go ponownie.
+Teraz \main zwraca 64-bitową wartość:
+
+\begin{lstlisting}[caption=funkcja \main zwracająca wartość typu \TT{uint64\_t},style=customc]
+#include <stdio.h>
+#include <stdint.h>
+
+uint64_t main()
+{
+        printf ("Hello!\n");
+        return 0;
+}
+\end{lstlisting}
+
+Wynik jest taki sam, tylko \MOV w tej linii wygląda teraz:
+
+\begin{lstlisting}[caption=\NonOptimizing GCC 4.8.1 + objdump]
+  4005a4:       d2800000        mov     x0, #0x0      // #0
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!LDP}
+Następnie za pomocą instrukcji \INS{LDP} (\emph{Load Pair}) przywracane są rejestry \RegX{29} i \RegX{30}.
+
+Nie ma wykrzyknika po instrukcji: oznacza to, że najpierw wartości są zdejmowane ze stosu a dopiero po tej czynności \ac{SP} jest zwiększany o 16.
+
+Jest to tzw. \emph{post-index}.
+
+\myindex{ARM!\Instructions!RET}
+W ARM64 pojawia się nowa instrukcja: \RET. 
+Działa tak samo jak \INS{BX LR}, ale zawiera specjalny bit (ang. \emph{hint bit}),
+który podpowiada procesorowi, że jest to wyjście z funkcji, a nie kolejna instrukcja skoku - by procesor mógł zoptymalizować jej wykonanie.
+
+Funkcja jest bardzo prosta, GCC z włączoną optymalizacją generuje dokładnie taki sam kod.
+
+

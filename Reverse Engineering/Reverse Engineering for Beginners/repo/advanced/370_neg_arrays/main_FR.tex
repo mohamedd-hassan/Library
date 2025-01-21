@@ -1,0 +1,98 @@
+\mysection{Index de tableau négatifs}
+\label{negative_array_indices}
+
+Il est possible d'accéder à l'espace \emph{avant} un tableau en donnant un index négatif,
+e.g., $array[-1]$.
+
+\subsection{Accéder à une chaîne depuis la fin}
+
+\myindex{Python}
+Python \ac{PL} permet d'accéder aux tableaux depuis la fin.
+Par exemple, \emph{string[-1]} renvoie le dernier caractère, \emph{string[-2]} renvoie
+le pénultième, etc.
+Difficile à croire, mais ceci est aussi possible en \CCpp:
+
+\lstinputlisting[style=customc]{\CURPATH/pythonesque_addressing.c}
+
+Ça fonctionne, mais \textit{s\_end} doit toujours avoir l'adresse du zéro en fin
+de la chaîne \textit{s}. Si la taille de la chaîne \textit{s} est modifiée,
+\textit{s\_end} doit être modifié aussi.
+
+L'astuce est douteuse, mais, encore une fois, ceci est une démonstration d'indices
+négatifs.
+
+\subsection{Accéder à un bloc quelconque depuis la fin}
+
+Rappelons d'abord pourquoi la pile grossit en arrière (\myref{stack_grow_backwards}).
+Il y a une sorte de bloc en mémoire et vous voulez y stocker à la fois le heap et
+la pile, sans savoir comment ils vont grossir pendant l'exécution.
+
+Vous pouvez mettre un pointeur de \emph{heap} au début du bloc, puis vous mettez un
+pointeur de \emph{pile} à la fin du bloc (\emph{heap + size\_of\_block}), et vous pouvez
+accéder au \emph{n-ième} élément de la pile avec \emph{stack[-n]}.
+Par exemple, \emph{stack[-1]} pour le 1er élément, \emph{stack[-2]} pour le 2nd, etc.
+
+Ceci fonctionnera de la même façon que notre astuce d'accéder la chaîne depuis la
+fin.
+
+Vous pouvez facilement vérifier si les structures n'ont pas commencé à se recouvrir:
+il suffit d'être sûr que l'adresse du dernier élément dans le \emph{heap} est plus
+bas que le dernier élément de la \emph{pile}.
+
+Malheureusement, l'index  $-0$ ne fonctionnera pas, puisque la représentation des
+nombres négatifs en complément à deux ne permet pas de
+zéro négatif. donc il ne peut pas être distingué d'un zéro positif.
+
+Ceci est aussi mentionné dans ``Transaction processing'', Jim Gray, 1993,
+chapitre ``The Tuple-Oriented File System'', p. 755.
+
+\subsection{Tableaux commençants à 1}
+\label{arrays_at_one}
+
+\myindex{Fortran}
+\myindex{Mathematica}
+Fortran et Mathematica définissent le premier élément d'un tableau avec l'indice 1,
+sans doute parce que c'est la tradition en mathématiques.
+D'autres \ac{PL}s comme \CCpp le définisse avec l'indice 0.
+Lequel est le meilleur?
+\myindex{Edsger W. Dijkstra}
+Edsger W. Dijkstra prétend que le dernier est le meilleur
+\footnote{Voir \url{https://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html}}.
+
+Mais les programmeurs peuvent toujours avoir l'habitude après le Fortran, donc avec
+ce petit truc, il est possible d'accéder au premier élément en \CCpp en utilisant l'indice 1:
+
+\lstinputlisting[style=customc]{\CURPATH/neg_array.c}
+
+\lstinputlisting[caption=MSVC 2010 \NonOptimizing,label=neg_array_c,numbers=left,style=customasmx86]{\CURPATH/neg_array_FR.asm}
+
+Donc nous avons le tableau \TT{array[]} de dix éléments, rempli avec les octets $0 \ldots 9$.
+
+Puis nous avons le pointeur \TT{fakearray[]}, qui pointe un octet avant \TT{array[]}.
+
+\TT{fakearray[1]} pointe exactement sur \TT{array[0]}.
+Mais nous sommes toujours curieux, qu'y a-t-il avant \TT{array[]}?
+Nous avons ajouté \TT{random\_value} avant \TT{array[]} et l'avons défini à \TT{0x11223344}.
+Le compilateur sans optimisation a alloué les variables dans l'ordre dans lequel
+elles sont déclarées, donc oui, la valeur 32-bit \TT{random\_value} est juste avant
+le tableau.
+
+Nous le lançons, et:
+
+\begin{lstlisting}
+first element 0
+second element 1
+last element 9
+array[-1]=11, array[-2]=22, array[-3]=33, array[-4]=44
+\end{lstlisting}
+
+Voici le fragment de pile que nous avons copier/coller depuis la fenêtre de pile
+d'\olly (avec les commentaires ajoutés par l'auteur):
+
+\lstinputlisting[caption=MSVC 2010 \NonOptimizing]{\CURPATH/stack_FR.txt}
+
+Le pointeur sur \TT{fakearray[]} (\TT{0x001DFBD3}) est en effet l'adresse de \TT{array[]}
+dans la pile (\TT{0x001DFBD4}), mais moins 1 octet.
+
+C'est un truc très astucieux et douteux. Personne ne devrait l'utiliser dans du code
+de production mais comme démonstration, ça joue parfaitement son rôle.

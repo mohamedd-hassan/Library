@@ -1,0 +1,136 @@
+\subsection{32-битный ARM (AArch32)}
+
+\subsubsection{Регистры общего пользования}
+
+\begin{itemize}
+\myindex{ARM!\Registers!R0}
+	\item R0 --- результат функции обычно возвращается через R0
+	\item R1...R12 --- \ac{GPR}s
+	\item R13 --- \ac{AKA} SP (\gls{stack pointer})
+\myindex{ARM!\Registers!Link Register}
+	\item R14 --- \ac{AKA} LR (\gls{link register})
+	\item R15 --- \ac{AKA} PC (program counter)
+\end{itemize}
+
+\myindex{ARM!\Registers!scratch registers}
+\Reg{0}-\Reg{3} называются также \q{scratch registers}: аргументы функции обычно передаются через них,
+и эти значения не обязательно восстанавливать перед выходом из функции.
+
+\subsubsection{Current Program Status Register (CPSR)}
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\headercolor\ Бит &
+\headercolor\ Описание \\
+\hline
+0..4           & M --- processor mode \\
+\hline
+5              & T --- Thumb state \\
+\hline
+6              & F --- FIQ disable \\
+\hline
+7              & I --- IRQ disable \\
+\hline
+8              & A --- imprecise data abort disable \\
+\hline
+9              & E --- data endianness \\
+\hline
+10..15, 25, 26 & IT --- if-then state \\
+\hline
+16..19         & GE --- greater-than-or-equal-to \\
+\hline
+20..23         & DNM --- do not modify \\
+\hline
+24             & J --- Java state \\
+\hline
+27             & Q --- sticky overflow \\
+\hline
+28             & V --- overflow \\
+\hline
+29             & C --- carry/borrow/extend \\
+\hline
+\myindex{ARM!\Registers!Z}
+30             & Z --- zero bit \\
+\hline
+31             & N --- negative/less than \\
+\hline
+\end{tabular}
+\end{center}
+
+% TODO
+% \myindex{ARM!\Registers!APSR}
+% \subsubsection{Application Program Status Register (APSR)}
+
+% TODO
+% \myindex{ARM!\Registers!FPSCR}
+% \subsubsection{Floating-Point Status and Control Register (FPPSR)}
+% http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0344b/Chdfafia.html
+
+\subsubsection{Регистры VPF (для чисел с плавающей точкой) и NEON}
+\label{ARM_VFP_registers}
+
+% http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0002a/ch01s03s02.html
+
+\myindex{ARM!D-\registers{}}
+\myindex{ARM!S-\registers{}}
+\begin{center}
+\begin{tabular}{ | l | l | l | l | }
+\hline
+0..31\textsuperscript{bits} & 32..64 & 65..96 & 97..127 \\
+\hline
+\multicolumn{4}{ | c | }{Q0\textsuperscript{128 bits}} \\
+\hline
+\multicolumn{2}{ | c | }{D0\textsuperscript{64 bits}} & \multicolumn{2}{ c | }{D1} \\
+\hline
+S0\textsuperscript{32 bits} & S1 & S2 & S3 \\
+\hline
+\end{tabular}
+\end{center}
+
+S-регистры 32-битные, используются для хранения чисел с одинарной точностью.
+
+D-регистры 64-битные, используются для хранения чисел с двойной точностью.
+
+D- и S-регистры занимают одно и то же место в памяти CPU --- можно
+обращаться к D-регистрам через S-регистры (хотя это и бессмысленно).
+
+Точно также, \gls{NEON} Q-регистры имеют размер 128 бит и занимают то же физическое место 
+в памяти CPU что и остальные регистры, предназначенные для чисел с плавающей точкой.
+
+В VFP присутствует 32 S-регистров: S0..S31.
+
+В VPFv2 были добавлены 16 D-регистров, которые занимают то же место что и S0..S31.
+
+В VFPv3 (\gls{NEON} или \q{Advanced SIMD}) добавили еще 16 D-регистров, в итоге это D0..D31, но регистры D16..D31 не делят место с другими S-регистрами.
+
+В \gls{NEON} или \q{Advanced SIMD} были добавлены также 16 128-битных Q-регистров, делящих место с регистрами D0..D31.
+
+\subsection{64-битный ARM (AArch64)}
+
+\subsubsection{Регистры общего пользования}
+\label{ARM64_GPRs}
+
+Количество регистров было удвоено со времен AArch32.
+
+\begin{itemize}
+\myindex{ARM!\Registers!X0}
+	\item X0 --- результат функции обычно возвращается через X0
+        \item X0...X7 --- Здесь передаются аргументы функции.
+	\item X8
+	\item X9...X15 --- временные регистры, вызываемая функция может их использовать и не восстанавливать их.
+	\item X16
+	\item X17
+	\item X18
+	\item X19...X29 --- вызываемая функция может их использовать, но должна восстанавливать их по завершению.
+	\item X29 --- используется как \ac{FP} (как минимум в GCC)
+	\item X30 --- \q{Procedure Link Register} \ac{AKA} \ac{LR} (\gls{link register}).
+	\item X31 --- регистр, всегда содержащий ноль \ac{AKA} XZR или \q{Zero Register}. Его 32-битная часть называется WZR.
+	\item \ac{SP}, больше не регистр общего пользования.
+\end{itemize}
+
+См.также: \ARMPCS.
+
+32-битная часть каждого X-регистра также доступна как W-регистр (W0, W1, итд).
+
+\input{ARM_X0_register_RU}

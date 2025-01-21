@@ -1,0 +1,64 @@
+\subsubsection{\OptimizingXcodeIV (\ARMMode)}
+
+最適化を有効にしない場合のXcode 4.6.3では、冗長なコードが多数生成されるため、命令カウントができるだけ小さい最適化された出力を検討し、コンパイラスイッチ \Othree を設定します。
+
+\begin{lstlisting}[caption=\OptimizingXcodeIV (\ARMMode),style=customasmARM]
+__text:000028C4             _hello_world
+__text:000028C4 80 40 2D E9   STMFD           SP!, {R7,LR}
+__text:000028C8 86 06 01 E3   MOV             R0, #0x1686
+__text:000028CC 0D 70 A0 E1   MOV             R7, SP
+__text:000028D0 00 00 40 E3   MOVT            R0, #0
+__text:000028D4 00 00 8F E0   ADD             R0, PC, R0
+__text:000028D8 C3 05 00 EB   BL              _puts
+__text:000028DC 00 00 A0 E3   MOV             R0, #0
+__text:000028E0 80 80 BD E8   LDMFD           SP!, {R7,PC}
+
+__cstring:00003F62 48 65 6C 6C+aHelloWorld_0  DCB "Hello world!",0
+\end{lstlisting}
+
+命令\TT{STMFD} と \TT{LDMFD}はもうよく知っていますね。
+
+\myindex{ARM!\Instructions!MOV}
+
+\MOV 命令は、\Reg{0}レジスタに数値\TT{0x1686}を書き込むだけです。 
+これは「Hello world！」文字列を指すオフセットです。
+
+\TT{R7}レジスタ（ \IOSABI で標準化されている）はフレームポインタです。 以下でもっとみてみましょう。
+
+MOVT R0、＃0（MOVe Top）命令は、レジスタの上位16ビットに0を書き込みます。 ここでの問題点は、ARMモードの汎用MOV命令がレジスタの下位16ビットだけを書き込むことができることです。
+
+ARMモードの命令オペコードはすべて32ビットに制限されています。 もちろん、この制限はレジスタ間でのデータの移動には関係しません。 
+そのため、上位ビット（16から31まで）に書き込むための命令\TT{MOVT}が追加されています。 
+ただし、ここでの使用方法は冗長です。これは、\TT{MOV R0, \#0x1686}命令がレジスタの上位部分をクリアしたためです。 
+これはおそらくコンパイラの欠点です。
+% TODO:
+% I think, more specifically, the string is not put in the text section,
+% ie. the compiler is actually not using position-independent code,
+% as mentioned in the next paragraph.
+% MOVT is used because the assembly code is generated before the relocation,
+% so the location of the string is not yet known,
+% and the high bits may still be needed.
+
+\myindex{ARM!\Instructions!ADD}
+\TT{ADD R0, PC, R0}命令は、\ac{PC}の値を\Reg{0}の値に加算し、\q{Hello world!}文字列の絶対アドレスを計算します。 
+すでにわかっているように、それは\q{位置独立コード}なので、この修正はここでは必須です。
+
+\INS{BL}命令は \printf の代わりに \puts 関数を呼び出します。
+
+\label{puts}
+\myindex{\CStandardLibrary!puts()}
+\myindex{puts() instead of printf()}
+
+LLVMは最初の \printf 呼び出しを \puts に置き換えました。 
+確かに、唯一の引数を持つ \printf は、 \puts とほぼ同じです。
+
+\emph{ほとんどの場合}、文字列に\emph{\%}で始まるprintf形式識別子が含まれていない場合にのみ、
+2つの関数が同じ結果を生成するためです。 その場合、これらの2つの機能の効果は異なります
+\footnote{ \puts は文字列の最後に改行記号`\textbackslash{}n'を必要としないので、ここでは見られません}
+
+なぜコンパイラは \printf を \puts に置き換えたのでしょうか？おそらく \puts が高速であるためです。
+\footnote{\href{http://www.ciselant.de/projects/gcc_printf/gcc_printf.html}{ciselant.de/projects/gcc\_printf/gcc\_printf.html}}. 
+
+これは、文字を\emph{\%}と一緒に比較することなく、文字を\gls{stdout}に渡すだけです。
+
+次に、\Reg{0}レジスタを0に設定するための使い慣れた\TT{MOV R0, \#0}命令があります。

@@ -1,0 +1,9 @@
+SQL> select * from V$FIXED_VIEW_DEFINITION where view_name='V$VERSION';
+
+VIEW_NAME
+------------------------------
+VIEW_DEFINITION
+------------------------------
+
+V$VERSION
+select  BANNER from GV$VERSION where inst_id = USERENV('Instance')

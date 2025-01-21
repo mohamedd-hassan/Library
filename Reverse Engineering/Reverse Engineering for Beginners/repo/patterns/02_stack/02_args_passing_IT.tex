@@ -1,0 +1,173 @@
+\subsubsection{Passaggio di argomenti alle funzioni}
+
+Il modo più diffuso per passare parametri in x86 è detto \q{cdecl}:
+
+\begin{lstlisting}[style=customasmx86]
+push arg3
+push arg2
+push arg1
+call f
+add esp, 12 ; 4*3=12
+\end{lstlisting}
+
+La funzioni chiamate, \Gls{callee}, ricevono i propri argomenti tramite lo stack pointer.
+
+Quindi è così che i valori degli argomenti sono posizionati nello stack prima dell'esecuzione della prima istruzione della funzione \ttf{}:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+ESP & return address \\
+\hline
+ESP+4 & \argument \#1, \MarkedInIDAAs{} \TT{arg\_0} \\
+\hline
+ESP+8 & \argument \#2, \MarkedInIDAAs{} \TT{arg\_4} \\
+\hline
+ESP+0xC & \argument \#3, \MarkedInIDAAs{} \TT{arg\_8} \\
+\hline
+\dots & \dots \\
+\hline
+\end{tabular}
+\end{center}
+
+Per ulteriori informazioni su altri tipi di convenzioni di chiamata (calling conventions), fare riferimento alla sezione~(\myref{sec:callingconventions}).
+
+\par
+A proposito, la funzione \gls{callee}{chiamata} non possiede alcuna informazione su quanti argomenti sono stati passati.
+Le funzioni C con un numero variabile di argomenti (come \printf) determinano il loro numero attraverso specificatori di formato stringa (che iniziano con il simbolo \%).
+% to be sync: C functions with a variable number of arguments (like \printf) can determine their number using format string specifiers (which begin with the \% symbol).
+
+Se scriviamo qualcosa come:
+
+\begin{lstlisting}
+printf("%d %d %d", 1234);
+\end{lstlisting}
+
+\printf scriverà 1234, e successivamente due numeri casuali\footnote{Non casuali in senso stretto, ma piuttosto non predicibili: \myref{noise_in_stack}}, che si trovavano lì vicino nello stack.
+
+\label{main_arguments}
+\par
+Per questo motivo non è molto importante come dichiariamo la funzione \main: come \main, \\
+\TT{main(int argc, char *argv[])} oppure \TT{main(int argc, char *argv[], char *envp[])}.
+
+Infatti, il codice \ac{CRT} sta chiamando \main circa in questo modo:
+
+\begin{lstlisting}[style=customasmx86]
+push envp
+push argv
+push argc
+call main
+...
+\end{lstlisting}
+
+Se dichiari \main come \main senza argomenti, questi sono, in ogni caso, ancora presenti nello stack, ma non vengono utilizzati.
+Se dichiari \main come \TT{main(int argc, char *argv[])},
+sarai in grado di utilizzare i primi due argomenti, ed il terzo rimarrà \q{invisibile} per la tua funzione.
+In più, è possibile dichiarare \TT{main(int argc)}, e continuerà a funzionare.
+
+% TBT Another related example: \ref{cdecl_DLL}.
+
+\myparagraph{Metodi alternativi per passare argomenti}
+
+Vale la pena notare che non c'è nulla che obbliga il programmatore a passare gli argomenti attraverso lo stack. Non è un requisito necessario.
+Si potrebbe implementare un qualunque altro metodo anche senza usare per niente lo stack.
+
+Un metodo abbastanza popolare tra chi inizia a programmare in linguaggio assembly language è di passare argomenti attraverso variabili globali, in questo modo:
+
+\lstinputlisting[caption=Assembly code,style=customasmx86]{patterns/02_stack/global_args.asm}
+
+Tuttavia questo metodo ha un limite evidente: la funzione \emph{do\_something()} non può richiamare sè stessa in modo ricorsivo (o attraverso un'altra funzione),
+perchè deve cancellare i suoi stessi argomenti.
+Lo stesso accade con le variabili locali: se le tieni in variabili globali, la funzione non può chiamare se stessa.
+Inoltre questo non sarebbe thread-safe
+\footnote{Implementato correttamente, ciascun thread avrebbe il suo proprio stack con i suoi argomenti/variabili.}.
+Il metodo di memorizzare queste informazioni nello stack rende il tutto più semplice---può mantenere quanti argomenti di funzione e/o valori,
+quanto spazio è disponibile.
+
+\InSqBrackets{\TAOCPvolI{}, 189} menziona alcuni schemi ancora più strani e particolarmente convenienti su IBM System/360.
+
+\myindex{MS-DOS}
+\myindex{x86!\Instructions!INT}
+
+MS-DOS utilizzava un modo per passare tutti gli argomenti di funzione via registri, ad esempio, in questo pezzo
+di codice per MS-DOS a 16 bit scrive ``Hello, world!'':
+
+\begin{lstlisting}[style=customasmx86]
+mov  dx, msg      ; indirizzo del messaggio
+mov  ah, 9        ; 9 indica la funzione "print string"
+int  21h          ; "syscall" (chiamata di sistema) DOS
+
+mov  ah, 4ch      ; funzione "termina il programma"
+int  21h          ; "syscall" DOS
+
+msg  db 'Hello, World!\$'
+\end{lstlisting}
+
+\myindex{fastcall}
+Questo è abbastanza simile al metodo \myref{fastcall}.
+Ed è inoltre molto simile alle chiamate syscalls in Linux (\myref{linux_syscall}) e Windows.
+
+\myindex{x86!\Flags!CF}
+Se una funzione MS-DOS restituisce un valore di tipo boolean (cioè, un singolo bit, di solito per indicare uno stato di errore),
+il flag \TT{CF} era spesso utilizzato.
+
+Ad esempio:
+
+\begin{lstlisting}[style=customasmx86]
+mov ah, 3ch       ; crea file
+lea dx, filename
+mov cl, 1
+int 21h
+jc  error
+mov file_handle, ax
+...
+error:
+...
+\end{lstlisting}
+
+In caso di errore, il flag \TT{CF} viene innalzato. Altrimenti, l'handle ad un nuovo file creato viene restituito attraverso \TT{AX}.
+
+Questo metodo viene ancora utilizzato dai programmatori assembly.
+Nel codice sorgente del Windows Research Kernel (che è abbastanza simile a Windows 2003) possiamo trovare qualcosa tipo:
+(file \emph{base/ntos/ke/i386/cpu.asm}):
+
+\begin{lstlisting}[style=customasmx86]
+        public  Get386Stepping
+Get386Stepping  proc
+
+        call    MultiplyTest            ; Esegue test di moltiplicazione
+        jnc     short G3s00             ; se nc, muttest è ok
+        mov     ax, 0
+        ret
+G3s00:
+        call    Check386B0              ; Verifica B0 stepping
+        jnc     short G3s05             ; se nc, è B1/later
+        mov     ax, 100h                ; è B0/earlier stepping
+        ret
+
+G3s05:
+        call    Check386D1              ; Verifica D1 stepping
+        jc      short G3s10             ; se c, non è D1
+        mov     ax, 301h                ; è D1/later stepping
+        ret
+
+G3s10:
+        mov     ax, 101h                ; suppone che sia B1 stepping
+        ret
+
+	...
+
+MultiplyTest    proc
+
+        xor     cx,cx                   ; 64K volte è un bel numero tondo
+mlt00:  push    cx
+        call    Multiply                ; la moltiplicazione funziona in questo chip?
+        pop     cx
+        jc      short mltx              ; se c, No, esci
+        loop    mlt00                   ; se nc, Si, cicla per riprovare
+        clc
+mltx:
+        ret
+
+MultiplyTest    endp
+\end{lstlisting}

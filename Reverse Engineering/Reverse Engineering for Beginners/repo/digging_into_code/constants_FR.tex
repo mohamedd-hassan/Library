@@ -1,0 +1,208 @@
+﻿\mysection{Constantes}
+
+Les humains, programmeurs inclus, utilisent souvent des nombres ronds, comme 10, 100,
+1000, dans la vie courante comme dans le code.
+
+Le rétro ingénieur pratiquant connaît en général bien leur représentation décimale:
+10=0xA, 100=0x64, 1000=0x3E8, 10000=0x2710.
+
+Les constantes \TT{0xAAAAAAAA} (0b10101010101010101010101010101010) et \\
+\TT{0x55555555} (0b01010101010101010101010101010101)  sont aussi répandues---elles
+sont composées d'alternance de bits.
+
+Cela peut aider à distinguer un signal d'un signal dans lequel tous les bits sont
+à 1 (0b1111 \dots) ou à 0 (0b0000 \dots).
+Par exemple, la constante \TT{0x55AA} est utilisée au moins dans le secteur de boot,
+\ac{MBR}, et dans la \ac{ROM} de cartes d'extention de compatible IBM.
+
+Certains algorithmes, particulièrement ceux de chiffrement, utilisent des constantes
+distinctes, qui sont faciles à trouver dans le code en utilisant \IDA.
+
+\myindex{MD5}
+
+Par exemple, l'algorithme MD5 initialise ses propres
+variables internes comme ceci:
+
+\begin{verbatim}
+var int h0 := 0x67452301
+var int h1 := 0xEFCDAB89
+var int h2 := 0x98BADCFE
+var int h3 := 0x10325476
+\end{verbatim}
+
+Si vous trouvez ces quatre constantes utilisées à la suite dans du code, il est
+très probable que cette fonction soit relatives à MD5.
+
+\par Un autre exemple sont les algorithmes CRC16/CRC32, ces algorithmes de calcul
+utilisent souvent des tables pré-calculées comme celle-ci:
+
+\begin{lstlisting}[caption=linux/lib/crc16.c,style=customc]
+/** CRC table for the CRC-16. The poly is 0x8005 (x^16 + x^15 + x^2 + 1) */
+u16 const crc16_table[256] = {
+	0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
+	0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
+	0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1, 0xCE81, 0x0E40,
+	...
+\end{lstlisting}
+
+Voir aussi la table pré-calculée pour CRC32: \myref{sec:CRC32}.
+
+Dans les algorithmes CRC sans table, des polynômes bien connus sont utilisés, par
+exemple 0xEDB88320 pour CRC32.
+
+\subsection{Nombres magiques}
+\label{magic_numbers}
+
+De nombreux formats de fichier définissent un entête standard où un \emph{nombre(s) magique}
+est utilisé, unique ou même plusieurs.
+
+\myindex{MS-DOS}
+
+Par exemple, tous les exécutables Win32 et MS-DOS débutent par ces deux caractères \q{MZ}\footnote{\href{http://en.wikipedia.org/wiki/DOS_MZ_executable}{Wikipédia}}.
+
+\myindex{MIDI}
+
+Au début d'un fichier MIDI, la signature \q{MThd} doit être présente.
+Si nous avons un programme qui utilise des fichiers MIDI pour quelque chose, il
+est très probable qu'il doit vérifier la validité du fichier en testant au moins
+les 4 premiers octets.
+
+Ça peut être fait comme ceci:
+(\emph{buf} pointe sur le début du fichier chargé en mémoire)
+
+\begin{lstlisting}[style=customasmx86]
+cmp [buf], 0x6468544D ; "MThd"
+jnz _error_not_a_MIDI_file
+\end{lstlisting}
+
+\myindex{\CStandardLibrary!memcmp()}
+\myindex{x86!\Instructions!CMPSB}
+
+\dots ou en appelant une fonction pour comparer des blocs de mémoire comme \TT{memcmp()}
+ou tout autre code équivalent jusqu'à une instruction \TT{CMPSB} (\myref{REPE_CMPSx}).
+
+Lorsque vous trouvez un tel point, vous pouvez déjà dire que le chargement du fichier
+MIDI commence, ainsi, vous pouvez voir l'endroit où se trouve le buffer avec le contenu
+du fichier MIDI, ce qui est utilisé dans le buffer et comment.
+
+\subsubsection{Dates}
+
+\myindex{UFS2}
+\myindex{FreeBSD}
+\myindex{HASP}
+
+Souvent, on peut rencontrer des nombres comme \TT{0x19870116}, qui ressemble clairement
+à une date (année 1987, 1er mois (janvier), 16ème jour).
+Ça peut être la date de naissance de quelqu'un (un programmeur, une de ses relations,
+un enfant), ou une autre date importante.
+La date peut aussi être écrite dans l'ordre inverse, comme \TT{0x16011987}.
+Les dates au format américain sont aussi courante, comme \TT{0x01161987}.
+
+Un exemple célèbre est \TT{0x19540119} (nombre magique utilisé dans la structure
+du super-bloc UFS2), qui est la date de naissance de Marshall Kirk McKusick, éminent
+contributeur FreeBSD.
+
+\myindex{Stuxnet}
+Stuxnet utilise le nombre ``19790509'' (pas comme un nombre 32-bit, mais comme une
+chaîne, toutefois), et ça a conduit à spéculer que le malware était relié à Israël%
+\footnote{C'est la date d'exécution de Habib Elghanian, juif persan.}.
+
+Aussi, des nombres comme ceux-ci sont très répandus dans dans le chiffrement niveau
+amateur, par exemple, extrait de la \emph{fonction secrète} des entrailles du dongle
+HASP3\footnote{\url{https://web.archive.org/web/20160311231616/http://www.woodmann.com/fravia/bayu3.htm}}:
+
+\begin{lstlisting}[style=customc]
+void xor_pwd(void)
+{
+	int i;
+
+	pwd^=0x09071966;
+	for(i=0;i<8;i++)
+	{
+		al_buf[i]= pwd & 7; pwd = pwd >> 3;
+	}
+};
+
+void emulate_func2(unsigned short seed)
+{
+	int i, j;
+	for(i=0;i<8;i++)
+	{
+		ch[i] = 0;
+
+		for(j=0;j<8;j++)
+		{
+			seed *= 0x1989;
+			seed += 5;
+			ch[i] |= (tab[(seed>>9)&0x3f]) << (7-j);
+		}
+	}
+}
+\end{lstlisting}
+
+\subsubsection{DHCP}
+
+Ceci s'applique aussi aux protocoles réseaux.
+Par exemple, les paquets réseau du protocole DHCP contiennent un soi-disant \emph{nombre
+magique}: \TT{0x63538263}.
+Tout code qui génère des paquets DHCP doit contenir quelque part cette constante
+à insérer dans les paquets.
+Si nous la trouvons dans du code, nous pouvons trouver ce qui s'y passe, et pas seulement ça.
+Tout programme qui peut recevoir des paquet DHCP doit vérifier le \emph{cookie magique},
+et le comparer à cette constante.
+
+Par exemple, prenons le fichier dhcpcore.dll de Windows 7 x64 et cherchons cette constante.
+Et nous la trouvons, deux fois:
+Il semble que la constante soit utilisée dans deux fonctions avec des noms parlants\\
+\TT{DhcpExtractOptionsForValidation()} et \TT{DhcpExtractFullOptions()}:
+
+\begin{lstlisting}[caption=dhcpcore.dll (Windows 7 x64),style=customasmx86]
+.rdata:000007FF6483CBE8 dword_7FF6483CBE8 dd 63538263h          ; DATA XREF: DhcpExtractOptionsForValidation+79
+.rdata:000007FF6483CBEC dword_7FF6483CBEC dd 63538263h          ; DATA XREF: DhcpExtractFullOptions+97
+\end{lstlisting}
+
+Et ici sont les endroits où ces constantes sont accédées:
+
+\begin{lstlisting}[caption=dhcpcore.dll (Windows 7 x64),style=customasmx86]
+.text:000007FF6480875F  mov     eax, [rsi]
+.text:000007FF64808761  cmp     eax, cs:dword_7FF6483CBE8
+.text:000007FF64808767  jnz     loc_7FF64817179
+\end{lstlisting}
+
+Et:
+
+\begin{lstlisting}[caption=dhcpcore.dll (Windows 7 x64),style=customasmx86]
+.text:000007FF648082C7  mov     eax, [r12]
+.text:000007FF648082CB  cmp     eax, cs:dword_7FF6483CBEC
+.text:000007FF648082D1  jnz     loc_7FF648173AF
+\end{lstlisting}
+
+\subsection{Constantes spécifiques}
+
+Parfois, il y a une constante spécifique pour un certain type de code.
+Par exemple, je me suis plongé une fois dans du code, où le nombre 12 était rencontré
+anormalement souvent.
+La taille de nombreux tableaux était 12 ou un multiple de 12 (24, etc.).
+Il s'est avéré que ce code prenait des fichiers audio de 12 canaux en entrée et les
+traitait.
+
+Et vice versa: par exemple, si un programme fonctionne avec des champs de texte qui
+ont une longueur de 120 octets, il doit y avoir une constante 120 ou 119 quelque
+part dans le code.
+Si UTF-16 est utilisé, alors $2 \cdot 120$.
+Si le code fonctionne avec des paquets réseau de taille fixe, c'est une bonne idée
+de chercher cette constante dans le code.
+
+C'est aussi vrai pour le chiffrement amateur (clefs de licence, etc.).
+Si le bloc chiffré a une taille de $n$ octets, vous pouvez essayer de trouver des
+occurrences de ce nombre à travers le code.
+Aussi, si vous voyez un morceau de code qui est répété $n$ fois dans une boucle durant
+l'exécution, ceci peut être une routine de chiffrement/déchiffrement.
+
+\subsection{Chercher des constantes}
+
+C'est facile dans \IDA: Alt-B or Alt-I.
+\myindex{binary grep}
+Et pour chercher une constante dans un grand nombre de fichiers, ou pour chercher
+dans des fichiers non exécutables, il y a un petit utilitaire appelé \emph{binary grep}\footnote{\BGREPURL}.
+

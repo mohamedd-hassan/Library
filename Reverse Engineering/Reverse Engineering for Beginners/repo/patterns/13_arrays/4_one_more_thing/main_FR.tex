@@ -1,0 +1,35 @@
+\subsection{Encore un mot sur les tableaux}
+
+
+Maintenant nous comprenons pourquoi il est impossible d'écrire quelque chose comme
+ceci en code \CCpp:
+
+\begin{lstlisting}[style=customc]
+void f(int size)
+{
+    int a[size];
+...
+};
+\end{lstlisting}
+
+
+C'est simplement parce que le compilateur doit connaître la taille exacte du tableau
+pour lui allouer de l'espace sur la pile locale lors de l'étape de compilation.
+
+\myindex{\CLanguageElements!C99!variable length arrays}
+\myindex{\CStandardLibrary!alloca()}
+
+% TODO: améliorer
+Si vous avez besoin d'un tableau de taille arbitraire, il faut l'allouer en utilisant
+\TT{malloc()}, puis en accédant aux blocs de mémoire allouée comme un tableau de
+variables du type dont vous avez besoin.
+
+
+Ou utiliser la caractéristique du standart C99 \InSqBrackets{\CNineNineStd 6.7.5/2},
+et qui fonctionne comme \emph{alloca()}~(\myref{alloca}) en interne.
+
+
+Il est aussi possible d'utiliser des bibliothèques de ramasse-miettes pour C.
+
+Et il y a aussi des bibliothèques supportant les pointeurs intelligents pour C++.
+

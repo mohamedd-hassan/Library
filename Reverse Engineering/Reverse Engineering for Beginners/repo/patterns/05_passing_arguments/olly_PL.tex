@@ -1,0 +1,26 @@
+\subsubsection{MSVC + \olly}
+\myindex{\olly}
+Prześledźmy działanie programu w \olly.
+Gdy zatrzymamy się na pierwszej instrukcji w \ttf, używającej jednego z argumentów (pierwszego),
+widać, że \EBP pokazuje na \glslink{stack frame}{ramkę stosu} (oznaczona czerwonym prostokątem).
+
+Pierwszym elementem w ramce stosu jest zapisana wartość \EBP,
+drugim jest \ac{RA} (adres powrotu), trzecim jest pierwszy argument funkcji, następnie drugi i trzeci.
+
+Do odwołania się do pierwszego arugmentu należy dodać dokładnie 8 (dwa 32-bitowe słowa) do \EBP.
+
+\olly potrafi to rozpoznać i dodał odpowiednie komentarze do elementów na stosie:
+
+\q{RETURN from} czy \q{Arg1 = \dots}, etc.
+
+Tak naprawdę - argumenty funkcji nie należą do ramki stosu funkcji, są elementami ramki stosu \glslink{caller}{funkcji wywołującej}.
+
+Z tego powodu \olly oznaczył argumenty \q{Arg} jako elementy innej ramki stosu.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/05_passing_arguments/olly.png}
+\caption{\olly: inside of \ttf{} function}
+\label{fig:passing_arguments_olly}
+\end{figure}
+

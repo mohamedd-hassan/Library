@@ -1,0 +1,243 @@
+﻿\subsection{Tableau de pointeurs sur des chaînes}
+\label{array_of_pointers_to_strings}
+
+Voici un exemple de tableau de pointeurs.\footnote{NDT: attention à l'encodage des
+fichiers, en ASCII ou en ISO-8859, un caractère occupe un octet, alors qu'en UTF-8,
+notamment, il peut en occuper plusieurs. Par exemple, 'û' est codé \$fb (1 octet)
+en ISO-8859 et \$c3\$bb (2 octets) en UTF-8. J'ai donc volontairement mis des caractères
+non accentués dans le code.}
+
+\lstinputlisting[caption=Prendre le nom du mois,label=get_month1,style=customc]{patterns/13_arrays/45_month_1D/month1_FR.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=MSVC 2013 \Optimizing x64,style=customasmx86]{patterns/13_arrays/45_month_1D/month1_MSVC_2013_x64_Ox.asm}
+
+Le code est très simple:
+
+\begin{itemize}
+
+\item
+\myindex{x86!\Instructions!MOVSXD}
+
+La première instruction \INS{MOVSXD} copie une valeur 32-bit depuis \ECX (où l'argument
+$month$ est passé) dans \RAX avec extension du signe (car l'argument $month$ est
+de type \Tint).
+
+La raison de l'extension du signe est que cette valeur 32-bit va être utilisée dans
+des calculs avec d'autres valeurs 64-bit.
+
+C'est pourquoi il doit être étendu à 64-bit\footnote{C'est parfois bizarre, mais des
+indices négatifs de tableau peuvent être passés par $month$ (les indices négatifs
+de tableaux sont expliqués plus loin: \myref{negative_array_indices}).
+Et si cela arrive, la valeur entrée négative de type \Tint est étendue correctement
+et l'élément correspondant avant le tableau est sélectionné.
+Ça ne fonctionnera pas correctement sans l'extension du signe.}.
+
+\item
+Ensuite l'adresse du pointeur de la table est chargée dans \RCX.
+
+\item
+Enfin, la valeur d'entrée ($month$) est multipliée par 8 et ajoutée à l'adresse.
+Effectivement: nous sommes dans un environnement 64-bit et toutes les adresses (ou
+pointeurs) nécessitent exactement 64 bits (ou 8 octets) pour être stockées.
+C'est pourquoi chaque élément de la table a une taille de 8 octets.
+Et c'est pourquoi pour prendre un élément spécifique, $month*8$ octets doivent être
+passés depuis le début.
+C'est ce que fait \MOV.
+De plus, cette instruction charge également l'élément à cette adresse.
+Pour 1, l'élément sera un pointeur sur la chaîne qui contient \q{février}, etc.
+
+\end{itemize}
+
+GCC 4.9 \Optimizing peut faire encore mieux\footnote{\q{0+} a été laissé dans le
+listing car la sortie de l'assembleur GCC n'est pas assez soignée pour l'éliminer.
+C'est un \emph{déplacement}, et il vaut zéro ici.}:
+
+\begin{lstlisting}[caption=GCC 4.9 \Optimizing x64,style=customasmx86]
+	movsx	rdi, edi
+	mov	rax, QWORD PTR month1[0+rdi*8]
+	ret
+\end{lstlisting}
+
+\myparagraph{MSVC 32-bit}
+
+Compilons-le aussi avec le compilateur MSVC 32-bit:
+
+\lstinputlisting[caption=MSVC 2013 \Optimizing x86,style=customasmx86]{patterns/13_arrays/45_month_1D/month1_MSVC_2013_x86_Ox.asm}
+
+La valeur en entrée n'a pas besoin  d'être étendue sur 64-bit, donc elle est utilisée
+telle quelle.
+
+Et elle est multipliée par 4, car les éléments de la table sont larges de 32-bit
+(ou 4 octets).
+
+% FIXME1 move to another file
+\subsubsection{ARM 32-bit}
+
+\myparagraph{ARM en mode ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/13_arrays/45_month_1D/month1_Keil_ARM_O3.s}
+
+% TODO Fix R1s
+
+L'adresse de la table est chargée en R1.
+\myindex{ARM!\Instructions!LDR}
+
+Tout le reste est effectué en utilisant juste une instruction \LDR.
+
+Puis la valeur en entrée est décalée de 2 vers la gauche (ce qui est la même chose
+que multiplier par 4), puis ajoutée à R1 (où se trouve l'adresse de la table) et
+enfin un élément de la table est chargé depuis cette adresse.
+
+L'élément 32-bit de la table est chargé dans R1 depuis la table.
+
+\myparagraph{ARM en mode Thumb}
+
+Le code est essentiellement le même, mais moins dense, car le suffixe \LSL ne peut
+pas être spécifié dans l'instruction \LDR ici:
+
+\begin{lstlisting}[style=customasmARM]
+get_month1 PROC
+        LSLS     r0,r0,#2
+        LDR      r1,|L0.64|
+        LDR      r0,[r1,r0]
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+\subsubsection{ARM64}
+
+\lstinputlisting[caption=GCC 4.9 \Optimizing ARM64,style=customasmARM]{patterns/13_arrays/45_month_1D/month1_GCC49_ARM64_O3.s}
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+
+L'adresse de la table est chargée dans X1 en utilisant la paire \ADRP/\ADD.
+
+Puis l'élément correspondant est choisi dans la table en utilisant seulement un \LDR,
+qui prend W0 (le registre où l'argument d'entrée $month$ se trouve), le décale de
+3 bits vers la gauche (ce qui est la même chose que de le multiplier par 8), étend
+son signe (c'est ce que le suffixe \q{sxtw} implique) et l'ajoute à X0.
+Enfin la valeur 64-bit est chargée depuis la table dans X0.
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/13_arrays/45_month_1D/MIPS_O3_IDA_FR.lst}
+
+\subsubsection{Débordement de tableau}
+
+Notre fonction accepte des valeurs dans l'intervalle 0..11, mais que se passe-t-il
+si 12 est passé?
+Il n'y a pas d'élément dans la table à cet endroit.
+
+Donc la fonction va charger la valeur qui se trouve là, et la renvoyer.
+
+Peu après, une autre fonction pourrait essayer de lire une chaîne de texte depuis
+cette adresse et pourrait planter.
+
+Compilons l'exemple dans MSVC pour win64 et ouvrons le dans \IDA pour voir ce que
+l'éditeur de lien à stocker après la table:
+
+\lstinputlisting[caption=Fichier exécutable dans IDA,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2012_win64_1.lst}
+
+Les noms des mois se trouvent juste après.
+
+Notre programme est minuscule, il n'y a donc pas beaucoup de données à mettre dans
+le segment de données, juste les noms des mois.
+Mais il faut noter qu'il peut y avoir ici vraiment \emph{n'importe quoi} que l'éditeur
+de lien aurait décidé d'y mettre.
+
+Donc, que se passe-t-il si nous passons 12 à la fonction?
+Le 13ème élément va être renvoyé.
+
+Voyons comment le CPU traite les octets en une valeur 64-bit:
+
+\lstinputlisting[caption=Fichier exécutable dans IDA,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2012_win64_2.lst}
+
+Et c'est 0x797261756E614A.
+
+Peu après, une autre fonction (supposons, une qui traite des chaînes) pourrait essayer
+de lire des octets à cette adresse, y attendant une chaîne-C.
+
+Plus probablement, ça planterait, car cette valeur ne ressemble pas à une adresse
+valide.
+
+\myparagraph{Protection contre les débordements de tampon}
+
+\epigraph{Si quelque chose peut mal tourner, ça tournera mal}{Loi de Murphy}
+
+Il est un peu naïf de s'attendre à ce que chaque programmeur qui utilisera votre
+fonction ou votre bibliothèque ne passera jamais un argument plus grand que 11.
+
+Il existe une philosophie qui dit \q{échouer tôt et échouer bruyamment} ou \q{échouer rapidement},
+qui enseigne de remonter les problèmes le plus tôt possible et d'arrêter.
+\myindex{\CStandardLibrary!assert()}
+
+Une telle méthode en \CCpp est les assertions.
+
+Nous pouvons modifier notre programme pour qu'il échoue si une valeur incorrecte
+est passée:
+
+\lstinputlisting[caption=assert() ajoutée,style=customc]{patterns/13_arrays/45_month_1D/month1_assert.c}
+
+La macro assertion vérifie que la validité des valeurs à chaque démarrage de fonction
+et échoue si l'expression est fausse.
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{patterns/13_arrays/45_month_1D/MSVC2013_x64_Ox_checked.asm}
+
+En fait, assert() n'est pas une fonction, mais une macro. Elle teste une condition,
+puis passe le numéro de ligne et le nom du fichier à une autre fonction qui rapporte
+cette information à l'utilisateur.
+
+Ici nous voyons qu'à la fois le nom du fichier et la condition sont encodés en UTF-16.
+Le numéro de ligne est aussi passé (c'est 29).
+
+Le mécanisme est sans doute le même dans tous les compilateurs.
+Voici ce que fait GCC:
+
+\lstinputlisting[caption=GCC 4.9 x64 \Optimizing,style=customasmx86]{patterns/13_arrays/45_month_1D/GCC491_x64_O3_checked.s}
+
+Donc la macro dans GCC passe aussi le nom de la fonction par commodité.
+
+Rien n'est vraiment gratuit, et c'est également vrai pour les tests de validité.
+
+Ils rendent votre programme plus lent, en particulier si la macro assert() est utilisée
+dans des petites fonctions à durée critique.
+
+Donc MSCV, par exemple, laisse les tests dans les compilations debug, mais ils disparaissent
+dans celles de release.
+
+Les noyaux de Microsoft \gls{Windows NT} existent en versions \q{checked} et \q{free}.
+\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/hardware/ff543450(v=vs.85).aspx}{msdn.microsoft.com/en-us/library/windows/hardware/ff543450(v=vs.85).aspx}}.
+
+Le premier a des tests de validation (d'où, \q{checked}), le second n'en a pas (d'où, \q{free/libre} de tests).
+
+Bien sûr, le noyau \q{checked} fonctionne plus lentement à cause de ces tests, donc
+il n'est utilisé que pour des sessions de debug.
+
+% FIXME: ARM? MIPS?
+
+\subsubsection{Accéder à un caractère spécifique}
+
+Un tableau de pointeurs sur des chaînes peut être accédé comme ceci\footnote{Lisez
+l'avertissement dans la NDT ici \myref{array_of_pointers_to_strings}}:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/45_month_1D/month2_FR.c}
+
+\dots puisque l'expression \emph{month[3]} a un type \emph{const char*}.
+Et donc, le 5ème caractère est extrait de cette expression en ajoutant 4 octets à
+cette adresse.
+
+À propos, la liste d'arguments passée à la fonction \emph{main()} a le même type de
+données:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/45_month_1D/argv_FR.c}
+
+Il est très important de comprendre, que, malgré la syntaxe similaire, c'est différent
+d'un tableau à deux dimensions, dont nous allons parler plus tard.
+
+Une autre chose importante à noter: les chaînes considérées doivent être encodées
+dans un système où chaque caractère occupe un seul octet, comme l'\ac{ASCII} ou l'\ac{ASCII}
+étendu.
+UTF-8 ne fonctionnera pas ici.
+

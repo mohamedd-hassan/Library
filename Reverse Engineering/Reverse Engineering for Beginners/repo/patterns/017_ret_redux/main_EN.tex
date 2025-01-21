@@ -1,0 +1,9 @@
+\mysection{Returning Values: redux}
+
+Again, when we know about function prologue and epilogue, let's recompile an example returning a value
+(\myref{ret_val_func}, \myref{lst:ret_val_func}) using non-optimizing GCC:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/017_ret_redux/1.s}
+
+Effective instructions here are \INS{MOV} and \INS{RET}, others are -- prologue and epilogue.
+

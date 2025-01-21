@@ -1,0 +1,39 @@
+\mysection{Exemple strstr()}
+\label{strstr_example}
+\myindex{\CStandardLibrary!strstr()}
+
+Revenons au fait que GCC peut parfois utiliser une partie d'une chaîne de caractères:
+\myref{use_parts_of_C_strings}.
+
+La fonction \emph{strstr()} de la bibliothèque standard \CCpp est utilisée pour trouver
+une occurrence dans une chaîne. C'est ce que nous voulons faire:
+
+\begin{lstlisting}[style=customc]
+#include <string.h>
+#include <stdio.h>
+
+int main()
+{
+	char *s="Hello, world!";
+	char *w=strstr(s, "world");
+
+	printf ("%p, [%s]\n", s, s);
+	printf ("%p, [%s]\n", w, w);
+};
+\end{lstlisting}
+
+La sortie est:
+
+\begin{lstlisting}
+0x8048530, [Hello, world!]
+0x8048537, [world!]
+\end{lstlisting}
+
+La différence entre l'adresse de la chaîne originale et l'adresse de la sous-chaîne
+que \emph{strstr()} a renvoyé est 7.
+En effet, la chaîne \q{Hello, } a une longueur de 7 caractères.
+
+La fonction \printf{} lors du second appel n'a aucune idée qu'il y a des autres caractères
+avant la chaîne passée et elle affiche des caractères depuis le milieu de la chaîne
+originale jusqu'à la fin (marquée par un octet à zéro).
+

@@ -1,0 +1,18 @@
+﻿my_strlen:
+; "eos"変数は常に\$v1に配置
+                move    $v1, $a0
+
+loc_4:
+; "eos"のアドレスのバイトを\$a1にロード
+                lb      $a1, 0($v1)
+                or      $at, $zero ; load delay slot, NOP
+; ロードされたバイトがゼロでなければ、loc\_4にジャンプ
+                bnez    $a1, loc_4
+; "eos"をとにかくインクリメント
+                addiu   $v1, 1 ; branch delay slot
+; ループが終了。"str"変数を反転させる
+                nor     $v0, $zero, $a0
+; \$v0=-str-1
+                jr      $ra
+; 戻り値 = \$v1 + \$v0 = eos + ( -str-1 ) = eos - str - 1
+                addu    $v0, $v1, $v0 ; branch delay slot

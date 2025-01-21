@@ -1,0 +1,16 @@
+create_color:
+	rep ret
+
+main:
+	xor	eax, eax
+; as if create\_color() was called and returned 0
+	sub	rsp, 8
+	mov	r8d, DWORD PTR ds:8
+	mov	ecx, DWORD PTR [rax+4]
+	mov	edx, DWORD PTR [rax]
+	mov	esi, OFFSET FLAT:.LC1
+	mov	edi, 1
+	call	__printf_chk
+	xor	eax, eax
+	add	rsp, 8
+	ret

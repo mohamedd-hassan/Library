@@ -1,0 +1,47 @@
+\subsection{Version de structure C}
+
+De nombreux programmeurs Windows ont vu ceci dans MSDN:
+
+\begin{lstlisting}
+SizeOfStruct
+    The size of the structure, in bytes. This member must be set to sizeof(SYMBOL_INFO).
+\end{lstlisting}
+
+( \url{https://msdn.microsoft.com/en-us/library/windows/desktop/ms680686(v=vs.85).aspx} )
+
+En effet, certaines structures comme \emph{SYMBOL\_INFO} commencent en effet avec ce
+champ.  Pourquoi ?
+C'est une sorte de version de structure.
+
+Imaginez que vous avez une fonction qui dessine un cercle.
+Elle prend un unique argument---un pointeur sur une structure avec seulement trois
+champs: X, Y et radius.
+Et puis, les affichages couleurs ont inondé le marché durant les années 1980. Et
+vous voulez ajouter un argument \emph{color} à la fonction.
+Mais, disons que vous ne pouvez pas lui ajouter un argument (de nombreux logiciels
+utilisent votre \ac{API} et ne peuvent pas être recompilés).
+Et si un vieux logiciels utilise votre \ac{API} avec un affichage couleur, faites
+que votre fonction dessine un cercle avec par défaut les couleurs noire et blanche.
+
+Un autre jour, vous ajoutez une autre possibilité: le cercle peut maintenant être
+rempli, et le type de brosse peut être passé.
+
+Voici une solution à ce problème:
+
+\lstinputlisting[style=customc]{advanced/550_more_structs/src_EN.c}
+
+Autrement dit, le champ \emph{SizeOfStruct} prend le rôle d'un champ \emph{version of structure}.
+Il pourrait être un type énuméré (1, 2, 3, etc.), mais mettre le champ \emph{SizeOfStruct}
+à \emph{sizeof(struct...)} est moins sujet à l'erreur: nous écrivons simplement \emph{s.SizeOfStruct=sizeof(...)}
+dans le code de l'appelant.
+
+En C++, ce problème est résolu en utilisant l'\emph{hérutage} (\myref{cpp_inheritance}).
+Vous avez seulement à étendre la classe de base (appelons la \emph{Circle}), puis vous
+aurez une classe \emph{ColoredCircle}, et ensuite \emph{FilledColoredCircle}, et ainsi
+de suite.
+La version courante d'un objet (ou, plus précisemment, le \emph{type} courant) sera
+déterminé en utilisant la \ac{RTTI} de C++.
+
+Donc lorsque vous voyez \emph{SizeOfStruct} quelque part dans \ac{MSDN}---peut-être
+que cette structure a été étendue au moins une fois par le passé.
+

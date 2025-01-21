@@ -1,0 +1,19 @@
+.rodata:080185A0 kqfvip dd offset _2__STRING_11126_0 ; DATA XREF: kqfgvcn+18
+.rodata:080185A0                                ; kqfgvt+F
+.rodata:080185A0                                ; \verb|"select inst_id,decode(indx,1,'data bloc"...|
+.rodata:080185A4        dd offset kqfv459_c_0
+.rodata:080185A8        dd 0
+.rodata:080185AC        dd 0
+
+...
+
+.rodata:08019570        dd offset _2__STRING_11378_0 ; \verb|"select  BANNER from GV$VERSION where in"...|
+.rodata:08019574        dd offset kqfv133_c_0
+.rodata:08019578        dd 0
+.rodata:0801957C        dd 0
+.rodata:08019580        dd offset _2__STRING_11379_0 ; \verb|"select inst_id,decode(bitand(cfflg,1),0"...|
+.rodata:08019584        dd offset kqfv403_c_0
+.rodata:08019588        dd 0
+.rodata:0801958C        dd 0
+.rodata:08019590        dd offset _2__STRING_11380_0 ; \verb|"select  STATUS , NAME, IS_RECOVERY_DEST"...|
+.rodata:08019594        dd offset kqfv199_c_0

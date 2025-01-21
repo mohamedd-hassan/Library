@@ -1,0 +1,33 @@
+﻿\subsection{MIPS}
+
+Pour une raison quelconque, GCC 4.4.5 avec optimisation génère seulement une instruction
+de division:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{\CURPATH/MIPS_O3_IDA_FR.lst}
+
+\myindex{MIPS!\Instructions!BREAK}
+Ici, nous voyons une nouvelle instruction: BREAK. Elle lève simplement une exception.
+
+Dans ce cas, une exception est levée si le diviseur est zéro (il n'est pas possible
+de diviser par zéro dans les mathématiques conventionnelles).
+
+Mais GCC n'a probablement pas fait correctement le travail d'optimisation et n'a
+pas vu que \$V0 ne vaut jamais zéro.
+
+Donc le test est laissé ici.
+Donc, si \$V0 est zéro, BREAK est exécuté, signalant l'exception à l'\ac{OS}.
+
+\myindex{MIPS!\Instructions!MFLO}
+Autrement, MFLO s'exécute, qui prend le résultat de la division depuis le registre
+LO et le copie dans \$V0.
+
+\myindex{MIPS!\Registers!LO}
+\myindex{MIPS!\Registers!HI}
+À propos, comme on devrait le savoir, l'instruction MUL laisse les 32bits hauts du
+résultat dans le registre HI et les 32 bits bas dans le registre LO.
+
+DIV laisse le résultat dans le registre LO, et le reste dans le registre HI.
+
+\myindex{MIPS!\Instructions!MFHI}
+Si nous modifions la déclaration en \q{a \% 9},
+l'instruction MFHI est utilisée au lieu de MFLO.

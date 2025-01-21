@@ -1,0 +1,87 @@
+\clearpage
+\myparagraph{x86 + MSVC + \olly}
+\myindex{\olly}
+\myindex{x86!\Registers!\Flags}
+
+Possiamo vedere come vengono settati i flag facendo girare l'esempio in \olly.
+Iniziamo con \TT{f\_unsigned()}, che funziona con numeri di tipo unsigned.
+
+L'istruzione \CMP è eseguita tre volte e con gli stessi argomenti, pertanto i flag saranno ogni volta gli stessi.
+
+Risultato del primo confronto:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned1.png}
+\caption{\olly: \TT{f\_unsigned()}: primo salto condizionale}
+\label{fig:jcc_olly_unsigned_1}
+\end{figure}
+
+I flag sono: C=1, P=1, A=1, Z=0, S=1, T=0, D=0, O=0.
+In \olly sono riportati per brevità con la sola iniziale.
+
+
+\olly suggerisce che il jump (\JBE) sarà innescato.
+Infatti, consultando i manuali Intel (\myref{x86_manuals}), vediamo che \JBE è innescato se CF=1 o ZF=1.
+La condizione è vera, e quindi il salto viene effettuato.
+
+\clearpage
+Jump condizionale successivo:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned2.png}
+\caption{\olly: \TT{f\_unsigned()}: secondo salto condizionale}
+\label{fig:jcc_olly_unsigned_2}
+\end{figure}
+
+\olly dice che il \JNZ verrà seguito.
+Infatti, \JNZ è innescato se ZF=0 (zero flag).
+
+\clearpage
+Il terzo salto condizionale, \JNB:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_unsigned3.png}
+\caption{\olly: \TT{f\_unsigned()}: terzo salto condizionale}
+\label{fig:jcc_olly_unsigned_3}
+\end{figure}
+
+Nei manuali Intel (\myref{x86_manuals}) vediamo che \JNB è innescato se CF=0 (carry flag).
+Nel nostro caso questa condizione non è vera, e quindi la terza \printf sarà eseguita.
+
+\clearpage
+Rivediamo ora la funzione \TT{f\_signed()}, che opera con valori signed, in \olly.
+I flag sono settati allo stesso modo: C=1, P=1, A=1, Z=0, S=1, T=0, D=0, O=0.
+Il primo salto condizionale \JLE sarà eseguito:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed1.png}
+\caption{\olly: \TT{f\_signed()}: primo salto condizionale}
+\label{fig:jcc_olly_signed_1}
+\end{figure}
+
+Nei manuali Intel (\myref{x86_manuals}) vediamo che questa istruzione viene innescata se ZF=1 o SF$\neq$OF.
+SF$\neq$OF nel nostro caso, quindi il salto viene effettuato.
+
+\clearpage
+Il secondo salto condizionale \JNZ viene innescato, se ZF=0 (zero flag):
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed2.png}
+\caption{\olly: \TT{f\_signed()}: secondo salto condizionale}
+\label{fig:jcc_olly_signed_2}
+\end{figure}
+
+\clearpage
+Il terzo jump \JGE non sarà innescato in quanto lo sarebbe solo se SF=OF, condizione non vera nel nostro caso:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/07_jcc/simple/olly_signed3.png}
+\caption{\olly: \TT{f\_signed()}: terzo salto condizionale}
+\label{fig:jcc_olly_signed_3}
+\end{figure}

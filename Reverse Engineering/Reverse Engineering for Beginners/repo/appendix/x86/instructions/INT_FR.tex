@@ -1,0 +1,51 @@
+\myindex{x86!\Instructions!INT}
+\myindex{MS-DOS}
+
+\item[INT] (M): \INS{INT x} est similaire à \INS{PUSHF; CALL dword ptr [x*4]}
+en environnement 16-bit.
+  Elle était énormément utilisée dans MS-DOS, fonctionnant comme un vecteur syscall.
+  Les registres AX/BX/CX/DX/SI/DI étaient remplis avec les arguments et le flux sautait
+  à l'adresse dans la table des vecteurs d'interruption (Interrupt Vector Table,
+  située au début de l'espace d'adressage).
+  Elle était répandue car INT a un opcode court (2 octets) et le programme qui a
+  besoin d'un service MS-DOS ne doit pas déterminer l'adresse du point d'entrée de
+  ce service.
+\myindex{x86!\Instructions!IRET}
+  Le gestionnaire d'interruption renvoie le contrôle du flux à l'appelant en utilisant
+  l'instruction IRET.
+
+  Le numéro d'interruption les plus utilisé était 0x21, servant une grande partie
+  de on \ac{API}.
+  Voir aussi: [Ralf Brown \emph{Ralf Brown's Interrupt List}],
+  pour les listes d'interruption plus exhaustives et d'autres informations sur MS-DOS.
+
+\myindex{x86!\Instructions!SYSENTER}
+\myindex{x86!\Instructions!SYSCALL}
+  Durant l'ère post-MS-DOS, cette instruction était toujours utilisée comme un syscall
+  à la fois dans Linux et Windows (\myref{syscalls}), mais fût remplacée plus tard
+  par les instructions SYSENTER ou SYSCALL.
+
+\item[INT 3] (M): cette instruction est proche de
+\INS{INT}, elle a son propre opcode d'1 octet (\GTT{0xCC}),
+et est très utilisée pour le débogage.
+Souvent, les débogueurs écrivent simplement l'octet \GTT{0xCC} à l'adresse du point
+d'arrêt à mettre, et lorsqu'une exception est levée, l'octet original est restauré
+et l'instruction originale à cette adresse est ré-exécutée. \\
+Depuis \gls{Windows NT}, une exception \GTT{EXCEPTION\_BREAKPOINT} est déclenchée
+lorsque le \ac{CPU} exécute cette instruction.
+Cet évènement de débogage peut être intercepté et géré par un débogueur hôte, si
+il y en a un de chargé.
+S'il n'y en a pas de charger, Windows propose de lancer un des débogueurs enregistré
+dans le système.
+Si \ac{MSVS} est installé, son débogueur peut être chargé et connecté au processus.
+Afin de protéger contre le \gls{reverse engineering}, de nombreuses méthodes anti-débogage
+vérifient l'intégrité du code chargé.
+
+\ac{MSVC} possède une \glslink{compiler intrinsic}{fonction intrinsèque} pour l'instruction:
+\GTT{\_\_debugbreak()}\footnote{\href{http://msdn.microsoft.com/en-us/library/f408b4et.aspx}{MSDN}}.
+
+
+Il y a aussi une fonction win32 dans kernel32.dll appelée
+\GTT{DebugBreak()}\footnote{\href{http://msdn.microsoft.com/en-us/library/windows/desktop/ms679297(v=vs.85).aspx}{MSDN}},
+qui exécute aussi \GTT{INT 3}.
+

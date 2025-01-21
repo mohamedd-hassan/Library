@@ -1,0 +1,67 @@
+\item[Jcc] (where cc --- condition code)
+
+\myindex{x86!\Instructions!JAE}
+\myindex{x86!\Instructions!JA}
+\myindex{x86!\Instructions!JBE}
+\myindex{x86!\Instructions!JB}
+\myindex{x86!\Instructions!JC}
+\myindex{x86!\Instructions!JE}
+\myindex{x86!\Instructions!JGE}
+\myindex{x86!\Instructions!JG}
+\myindex{x86!\Instructions!JLE}
+\myindex{x86!\Instructions!JL}
+\myindex{x86!\Instructions!JNAE}
+\myindex{x86!\Instructions!JNA}
+\myindex{x86!\Instructions!JNBE}
+\myindex{x86!\Instructions!JNB}
+\myindex{x86!\Instructions!JNC}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Instructions!JNGE}
+\myindex{x86!\Instructions!JNG}
+\myindex{x86!\Instructions!JNLE}
+\myindex{x86!\Instructions!JNL}
+\myindex{x86!\Instructions!JNO}
+\myindex{x86!\Instructions!JNS}
+\myindex{x86!\Instructions!JNZ}
+\myindex{x86!\Instructions!JO}
+\myindex{x86!\Instructions!JPO}
+\myindex{x86!\Instructions!JP}
+\myindex{x86!\Instructions!JS}
+\myindex{x86!\Instructions!JZ}
+
+A lot of these instructions have synonyms (denoted with AKA), this was done for convenience.
+Synonymous instructions are translated into the same opcode.
+The opcode has a \gls{jump offset}.
+
+\label{Jcc}
+\begin{description}
+\item[JAE] \ac{AKA} JNC: jump if above or equal (unsigned): CF=0
+\item[JA] \ac{AKA} JNBE: jump if greater (unsigned): CF=0 and ZF=0
+\item[JBE] jump if lesser or equal (unsigned): CF=1 or ZF=1
+\item[JB] \ac{AKA} JC: jump if below (unsigned): CF=1
+\item[JC] \ac{AKA} JB: jump if CF=1
+\item[JE] \ac{AKA} JZ: jump if equal or zero: ZF=1
+\item[JGE] jump if greater or equal (signed): SF=OF
+\item[JG] jump if greater (signed): ZF=0 and SF=OF
+\item[JLE] jump if lesser or equal (signed): ZF=1 or SF$\neq$OF
+\item[JL] jump if lesser (signed): SF$\neq$OF
+\item[JNAE] \ac{AKA} JC: jump if not above or equal (unsigned) CF=1
+\item[JNA] jump if not above (unsigned) CF=1 and ZF=1
+\item[JNBE] jump if not below or equal (unsigned): CF=0 and ZF=0
+\item[JNB] \ac{AKA} JNC: jump if not below (unsigned): CF=0
+\item[JNC] \ac{AKA} JAE: jump CF=0 synonymous to JNB.
+\item[JNE] \ac{AKA} JNZ: jump if not equal or not zero: ZF=0
+\item[JNGE] jump if not greater or equal (signed): SF$\neq$OF
+\item[JNG] jump if not greater (signed): ZF=1 or SF$\neq$OF
+\item[JNLE] jump if not lesser (signed): ZF=0 and SF=OF
+\item[JNL] jump if not lesser (signed): SF=OF
+\item[JNO] jump if not overflow: OF=0
+\item[JNS] jump if SF flag is cleared
+\item[JNZ] \ac{AKA} JNE: jump if not equal or not zero: ZF=0
+\item[JO] jump if overflow: OF=1
+\item[JPO] jump if PF flag is cleared (Jump Parity Odd)
+\item[JP] \ac{AKA} \ac{JPE}: jump if PF flag is set
+\item[JS] jump if SF flag is set
+\item[JZ] \ac{AKA} JE: jump if equal or zero: ZF=1
+\end{description}
+

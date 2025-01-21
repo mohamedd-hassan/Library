@@ -1,0 +1,183 @@
+\subsection{Systemy liczbowe}
+
+\epigraph{Nowadays octal numbers seem to be
+used for exactly one purpose---file permissions on POSIX systems---but hexadecimal numbers
+are widely used to emphasize the bit pattern of a number over its numeric value.}
+{Alan A. A. Donovan, Brian W. Kernighan ---  The Go Programming Language}
+
+Ludzie przyzwyczaili się do systemu dziesiętnego prawdopodobnie dlatego, że każdy ma 10 palców.
+Natomiast liczba 10 nie odgrywa szczególnej roli w nauce i matematyce.
+Binarny (dwójkowy) system liczbowy jest naturalny dla techniki cyfrowej i elektroniki: 0 oznacza brak prądu, a 1 --- jego obecność.
+10 w systemie binarnym to 2 w dziesiętnym; 100 w binarnym to 4 w dziesiętnym, itd.
+
+Jeżeli w systemie liczbowym jest 10 znaków, jego \emph{podstawa} (ang. \emph{radix} lub \emph{base}) to 10.
+System dwójkowy ma \emph{podstawę} 2.
+
+Ważne rzeczy, które warto sobie przypomnieć:
+
+1) \emph{liczba} jest liczbą, natomiast \emph{cyfra} to umowny znak pisarski służący do zapisywania liczb;
+2) sama w sobie liczba się nie zmienia przy przeliczaniu z jednego systemu na inny: zmienia się tylko sposób jej zapisu (lub reprezentacja w pamięci).
+
+Jak skonwertować liczbę z jednego systemu na drugi?
+
+Z notacji pozycyjnej korzysta się prawie wszędzie, to znaczy, że każda cyfra posiada swoją wagę w zależności od jej usytuowania wewnątrz liczby.
+Jeżeli 2 znajduje sie na ostatnim miejscu od prawej, jest to 2.
+Jeżeli jest ona usytuowana w miejscu przedostatnim, jest to 20.
+
+Co oznacza zapis $1234$?
+
+$10^3 \cdot 1 + 10^2 \cdot 2 + 10^1 \cdot 3 + 1 \cdot 4$ = 1234 lub
+$1000 \cdot 1 + 100 \cdot 2 + 10 \cdot 3 + 4 = 1234$
+
+Tak samo to wygląda w przypadku liczb binarnych, tyle że podstawą jest 2, a nie 10.
+Co oznacza zapis 0b101011?
+
+$2^5 \cdot 1 + 2^4 \cdot 0 + 2^3 \cdot 1 + 2^2 \cdot 0 + 2^1 \cdot 1 + 2^0 \cdot 1 = 43$ lub
+$32 \cdot 1 + 16 \cdot 0 + 8 \cdot 1 + 4 \cdot 0 + 2 \cdot 1 + 1 = 43$
+
+Notację pozycyjną można przeciwstawić notacji niepozycyjnej, np. rzymskiej.
+\footnote{O ewolucji systemów liczbowych przeczytasz w \InSqBrackets{\TAOCPvolII{}, 195--213.}}.
+Prawdopodobnie ludzkość przeszła na notację pozycyjną, ponieważ w ten sposób łatwiej jest wykonywać proste operacje (dodawanie, mnożenie, itd.) na papierze, ręcznie.
+
+Liczby binarne również można pisemnie dodawać, odejmować itd., dokładnie tak samo jak uczy się tego w szkole, tylko z użyciem dwóch cyfr.
+
+Liczby w zapisie binarnym są nieporęczne, kiedy stosuje się je w kodzie źródłowym i zrzutach pamięci, dlatego w tych miejscach używa się systemu szesnastkowego (heksadecymalnego), o podstawie 16.
+System szesnastkowy używa szesnastu cyfr - znaków 0-9 oraz A-F.
+Każda cyfra zajmuje 4 bity lub 4 cyfry w systemie binarnym, więc łatwo można konwertować z reprezentacji binarnej na szesnastkową i odwrotnie, nawet w pamięci.
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor szesnastkowy & \HeaderColor binarny & \HeaderColor dziesiętny \\
+\hline
+0	&0000	&0 \\
+1	&0001	&1 \\
+2	&0010	&2 \\
+3	&0011	&3 \\
+4	&0100	&4 \\
+5	&0101	&5 \\
+6	&0110	&6 \\
+7	&0111	&7 \\
+8	&1000	&8 \\
+9	&1001	&9 \\
+A	&1010	&10 \\
+B	&1011	&11 \\
+C	&1100	&12 \\
+D	&1101	&13 \\
+E	&1110	&14 \\
+F	&1111	&15 \\
+\hline
+\end{longtable}
+\end{center}
+
+Jak rozpoznać w jakim systemie zapisana jest konkretna liczba?
+
+Liczby dziesiętne z reguły są zapisywane tradycyjnie, czyli 1234. Ale niektóre asemblery pozwalają podkreślić to przez sufiks "d": 1234d.
+
+Do liczb binarnych czasami dodaje się prefiks "0b": 0b100110111
+(W \ac{GCC} istnieje do tego niestandardowe rozszerzenie
+\footnote{\url{https://gcc.gnu.org/onlinedocs/gcc/Binary-constants.html}}).
+Jest jeszcze inny sposób: sufiks "b", np: 100110111b.
+W tej książce będę się trzymał konwencji prefiksowej "0b" dla liczb binarnych.
+
+Liczby szesnastkowe mają prefiks "0x" w \CCpp i niektórych innych \ac{PL}: 0x1234ABCD.
+Lub mają sufiks "h": 1234ABCDh --- zwykle są w ten sposób reprezentowane w asemblerach lub debuggerach.
+W tej konwencji, jeśli liczba zaczyna się od A..F, przed nimi dopisuje się 0: 0ABCDEFh.
+Za czasów 8-bitowych komputerów domowych był również sposób zapisu liczb za pomocą prefiksu \$, np., \$ABCD.
+W tej książce będę się trzymał prefiksu "0x" dla liczb szesnastkowych.
+
+Czy trzeba umieć konwertować liczby w głowie? Tablicę liczb szesnastkowych składających się z jednej cyfry łatwo zapamiętać,
+ale raczej nie warto zapamiętywać większych liczb.
+
+Prawdopodobnie najczęściej liczby szesnastkowe są spotykane w \ac{URL}-ach.
+W ten sposób są kodowane litery spoza alfabetu łacińskiego.
+Np.:
+\url{https://en.wiktionary.org/wiki/na\%C3\%AFvet\%C3\%A9} to \ac{URL} strony w Wiktionary o słowie \q{naïveté}.
+
+\subsubsection{System ósemkowy}
+
+Jeszcze jeden system, z którego często korzystało się w informatyce w przeszłości to system oktalny. System oktalny ma 8 cyfr (0-7), każda
+opisująca 3 bity, więc łatwo przeliczać liczbę na inne systemu, w obie strony.
+Ten system prawie wszędzie został zastąpiony przez szesnastkowy, ale, o dziwo, w systemach *NIX nadal jest program korzystający z systemu ósemkowego: \TT{chmod}.
+
+\myindex{UNIX!chmod}
+Jak wiedzą użytkownicy systemów *NIX, argumentem \TT{chmod} jest liczba składająca się z 3 cyfr. Pierwsza cyfra określa uprawnienia właściciela pliku,
+druga - to uprawnienia grupy (do której plik należy), trzecia dla reszty użytkowników.
+Każda cyfra może być przedstawiona binarnie:
+
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor dziesiętny & \HeaderColor binarny & \HeaderColor znaczenie \\
+\hline
+7	&111	&\textbf{rwx} \\
+6	&110	&\textbf{rw-} \\
+5	&101	&\textbf{r-x} \\
+4	&100	&\textbf{r-{}-} \\
+3	&011	&\textbf{-wx} \\
+2	&010	&\textbf{-w-} \\
+1	&001	&\textbf{-{}-x} \\
+0	&000	&\textbf{-{}-{}-} \\
+\hline
+\end{longtable}
+\end{center}
+
+Więc każdy bit jest powiązany z flagą: read/write/execute (prawo do odczytu/zapisu/wykonania).
+
+Właśnie dlatego wspomniałem o \TT{chmod} ~--- liczba, będąca argumentem, może być reprezentowana w systemie ósemkowym.
+Na przykład weźmy 644.
+Kiedy uruchamiasz \TT{chmod 644 file}, ustawiasz uprawnienia read/write (odczyt zapis) dla właściciela, uprawnienia read (zapis) dla grupy i read dla wszystkich innych użytkowników.
+Jeśli skonwertujemy liczbę 644 z systemu ósemkowego na binarny, to otrzymamy \TT{110100100}, lub (w grupach po 3 bity) \TT{110 100 100}.
+
+Teraz widzimy, że każda 'trójka' opisuje uprawnienia dla właściciela/grupy/reszty: pierwsza \TT{rw-}, druga to \TT{r--} i trzecia to \TT{r--}.
+
+System ósemkowy był również popularny na starych komputerach, jak PDP-8, dlatego że słowo (podstawowa porcja informacji) mogło składać się 12, 24 lub
+36 bitów, a wszystkie te liczby są podzielne przez 3, więc wybór systemu ósemkowego był całkiem logiczny.
+Obecnie wszystkie popularne komputery mają słowa/adresy 16-, 32- lub 64-bitowe i wszystkie te liczby są podzielne przez 4,
+więc system szesnastkowy jest wygodniejszy.
+
+System ósemkowy jest wspierany przez wszystkie standardowe kompilatory \CCpp{}.
+Czasami jest to źródłem nieporozumień, dlatego że liczby ósemkowe są kodowane z zerem z przodu, na przykład: 0377 to 255.
+Gdy pomylisz się i napiszesz "09" zamiast 9, to kompilator zgłosi błąd.
+GCC może zwrócić podobny komunikat :\\
+\TT{error: invalid digit "9" in octal constant}.
+
+System ósemkowy jest również popularny w Javie. Gdy \IDA wyświetla string ze znakami niedrukowalnymi, są one zakodowane w systemie ósemkowym (a nie szesnastkowym)
+\myindex{JAD}.
+Dekompilator JAD zachowuje się w taki sam sposób.
+
+\subsubsection{Podzielność}
+
+Kiedy widzisz liczbę 120, to można szybko się zorientować, że jest ona podzielna przez 10, dlatego że ostatnią cyfrą jest 0.
+Podobnie, 123400 jest podzielne przez 100, bo ostatnie dwie cyfry są zerami.
+
+Analogicznie liczba szesnastkowa 0x1230 jest podzielna przez 0x10 (16 w systemie dziesiętnym), 0x123000 jest podzielne przez 0x1000 (4096 w systemie dziesiętnym), itd.
+
+Liczba binarna 0b1000101000 jest podzielna przez 0b1000 (8), itd.
+
+Tę właściwość można wykorzystać, żeby szybko sprawdzić
+czy jakiś adres lub rozmiar bloku jest wyrównany do pewnej granicy (czy rozmiar bloku jest całkowitą krotnością długości słowa, np. krotnością 32 bitów).
+Na przykład sekcje w plikach \ac{PE} prawie zawsze zaczynają się od adresów kończących się trzema szesnastkowymi zerami: 0x41000, 0x10001000, itd., gdyż prawie wszystkie sekcje w plikach \ac{PE} są wyrównane do granicy 0x1000 (4096) bajtów.
+
+\subsubsection{Arytmetyka wielokrotnej precyzji a podstawa}
+
+\myindex{RSA}
+Arytmetyka wielokrotnej precyzji (multi-precision arithmetic) może operować na dowolnie dużych liczbach,
+które mogą być przechowywane w kilku bajtach.
+Na przykład klucze RSA, zarówno prywatne jak i publiczne, mogą zajmować 4096 bitów a nawet więcej.
+
+W \InSqBrackets{\TAOCPvolII, 265} przedstawiono ideę: kiedy przechowuje się liczbę wielokrotnej precyzji w kilku bajtach,
+cała liczba może być reprezentowana jako zapisana w systemie liczbowym o podstawie $2^8=256$, i każda cyfra reprezentuje jeden bajt.
+Podobnie, gdybyś liczbę wielokrotnej precyzji przechowywał w kilku 32-bitowych całkowitoliczbowych wartościach,
+każda cyfra byłaby reprezentowana przez 32-bitowy slot (4 bajty), i można by uważać tę liczbę za zapisaną w systemie o podstawie $2^{32}$.
+
+\subsubsection{Wymowa liczb w systemach niedziesiętnych}
+
+Liczby zapisane w systemie o podstawie innej niż 10, zwykle wymawia się cyfra po cyfrze: ``jeden-zero-zero-jeden-jeden-...``. Nie używa się słów jak ``dziesięć`` czy ``tysiąc`` by przez pomyłkę nie potraktowano liczby jak zapisanej w systemie dziesiętnym.
+
+\subsubsection{Liczby zmiennoprzecinkowe}
+
+Żeby odróżniać liczby zmiennoprzecinkowe od całkowitoliczbowych, często na końcu dodaje się ``.0'',
+np. $0.0$, $123.0$, itd.
+
+

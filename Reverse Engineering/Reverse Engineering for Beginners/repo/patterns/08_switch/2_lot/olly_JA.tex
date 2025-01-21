@@ -1,0 +1,51 @@
+﻿\clearpage
+\mysubparagraph{\olly}
+\myindex{\olly}
+
+\olly でこの例を試してみましょう。
+関数への入力値2が \EAX にロードされます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/2_lot/olly1.png}
+\caption{\olly: 関数への入力値が \EAX にロードされる}
+\label{fig:switch_lot_olly1}
+\end{figure}
+
+\clearpage
+入力値が4より大きいかチェックされます。
+そうでなければ、\q{default} ジャンプは実行されません。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/2_lot/olly2.png}
+\caption{\olly: 2は4より大きいか：ジャンプは実行されない}
+\label{fig:switch_lot_olly2}
+\end{figure}
+
+\clearpage
+ここで、ジャンプテーブルを見ることができます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/2_lot/olly3.png}
+\caption{\olly: ジャンプテーブルを用いて行先のアドレスを計算する}
+\label{fig:switch_lot_olly3}
+\end{figure}
+
+ここで、\q{Follow in Dump} $\rightarrow$ \q{Address constant} をチェックします。そして、データウィンドウに\emph{jumptable}が見えます。
+5つの32ビット値があります。\footnote{これらはまた要修正\myref{subsec:relocs}であるため、 \olly で下線が引かれています。後でそれらに戻ってくるつもりです}
+\ECX は2になりました。したがって、テーブルの3番目の要素（2として\footnote{インデックスについては以下を参照: \myref{arrays_at_one}}索引付けできます）が使用されます。
+\q{Follow in Dump} $\rightarrow$ \q{Memory address}をクリックすることができ、
+\olly は \JMP 命令で指示された要素を表示します。
+それは\TT{0x010B103A}です。
+
+\clearpage
+ジャンプの後、\TT{0x010B103A}にいます。\q{two}を表示するコードが実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/08_switch/2_lot/olly4.png}
+\caption{\olly: 今や \emph{case:} ラベルにいます}
+\label{fig:switch_lot_olly4}
+\end{figure}

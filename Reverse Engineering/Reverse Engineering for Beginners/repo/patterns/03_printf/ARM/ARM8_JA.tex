@@ -1,0 +1,171 @@
+\subsubsection{ARM: 8つの引数}
+% to be sync: \subsubsection{ARM: 8 integer arguments}
+
+前のセクションの9つの引数を使って例を再利用してみましょう：\myref{example_printf8_x64}
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{\OptimizingKeilVI: \ARMMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp1.asm}
+
+このコードはいくつかの部分に分けることができます：
+
+\myindex{Function prologue}
+\begin{itemize}
+\item 関数プロローグ:
+
+\myindex{ARM!\Instructions!STR}
+最初の\INS{STR LR, [SP,\#var\_4]!}命令は、このレジスタを \printf 呼び出しに使用する予定であるため、\ac{LR}をスタックに保存します。 
+最後の感嘆符は、事前索引を示します。
+
+これは、まず\ac{SP}を4減少させた後、\ac{SP}に格納されたアドレスに\ac{LR}を保存することを意味します。
+これはx86のPUSHに似ています。 
+もっと読む：\myref{ARM_postindex_vs_preindex}
+
+\myindex{ARM!\Instructions!SUB}
+第2の\INS{SUB SP, SP, \#0x14}命令は、スタック上に0x14（20）バイトを割り当てるために\ac{SP}（\gls{stack pointer}）を減少させる。 
+実際には、スタックを介して5つの32ビット値を \printf 関数に渡さなければならず、それぞれが4バイトを占めます。これは正確に$5*4=20$です。
+他の4つの32ビット値は、レジスタに通される。
+
+\item スタックを介して5,6,7および8を渡す：それらはそれぞれ\Reg{0}, \Reg{1}, \Reg{2} と \Reg{3}レジスタに格納される。\\
+次に、\INS{ADD R12, SP, \#0x18+var\_14}命令は、これら4つの変数が格納されるスタックアドレスを\Reg{12}レジスタに書き込みます。 
+\myindex{IDA!var\_?}
+\emph{var\_14}は、スタックにアクセスするコードを便利に表示するために \IDA によって作成された-0x14に等しいアセンブリマクロです。 
+\IDA によって生成される\emph{var\_?}マクロは、スタック内のローカル変数を反映します。
+
+したがって、\GTT{SP+4}は\Reg{12}レジスタに格納されます。\\
+\myindex{ARM!\Instructions!STMIA}
+次の\INS{STMIA R12, {R0-R3}}命令は、レジスタ\Reg{0}-\Reg{3}の内容を\Reg{12}が指すメモリに書き込みます。 
+\INS{STMIA}は、\emph{後に複数のインクリメント}を格納します。 
+\emph{Increment After}は、各レジスタ値が書き込まれた後に\Reg{12}が4ずつ増加することを意味する。
+
+\item スタックを介して4を渡す：4が\Reg{0}に格納され、\INS{STR R0, [SP,\#0x18+var\_18]}命令の助けを借りてこの値がスタックに保存されます。
+\emph{var\_18}は-0x18なので、オフセットは0になります。したがって、\Reg{0}レジスタ（4）の値は\ac{SP}に書き込まれたアドレスに書き込まれます。
+
+\item レジスタ経由で1,2,3を渡す
+最初の3つの数値（a、b、c）（それぞれ1,2,3）の値は、printf（）呼び出しの直前に\Reg{1}、 \Reg{2}、 \Reg{3}レジスタに渡されます。
+% to be resynced. I hope I removed a line here correcly
+
+\item \printf 呼び出し。
+
+\myindex{Function epilogue}
+\item 関数エピローグ：
+
+\INS{ADD SP, SP, \#0x14}命令は\ac{SP}ポインタを元の値に戻して、スタックに格納されているものをすべて取り消します。
+もちろん、スタックに格納されているものはそこにとどまりますが、後続の関数の実行中にすべて書き換えられます。
+
+\myindex{ARM!\Instructions!LDR}
+\INS{LDR PC, [SP+4+var\_4],\#4}命令は、保存された\ac{LR}値をスタックから\ac{PC}レジスタにロードして、機能を終了させます。
+感嘆符はありません。次に、\ac{SP}は（$4+var\_4=4+(-4)=0$)に格納されているアドレスから最初にロードされるため、この命令は\INS{LDR PC, [SP],\#4}に似ています）、 \ac{SP}は4だけ増加します。これは\emph{ポストインデックス}\footnote{もっと読む： \myref{ARM_postindex_vs_preindex}}と呼ばれます。
+なぜ \IDA はそのような指示を表示するのですか？
+なぜなら、スタックレイアウトと、\GTT{var\_4}がローカルスタックの\ac{LR}値を保存するために割り当てられているという事実を説明したいからです。
+この命令は、x86の\INS{POP PC}と多少似ています。
+\footnote{x86では \POP を使って\GTT{IP/EIP/RIP}の値を設定することは不可能ですが、アナロジーとしてはよいでしょう}
+
+\end{itemize}
+
+\myparagraph{\OptimizingKeilVI: \ThumbMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp2.asm}
+
+出力は前の例とほぼ同じです。 ただし、これはThumbコードであり、値はスタックに別々にパックされます。
+8が先に進み、次に5,6,7、および4が3番目に進みます。
+
+\myparagraph{\OptimizingXcodeIV: \ARMMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:0000290C             _printf_main2
+__text:0000290C
+__text:0000290C             var_1C = -0x1C
+__text:0000290C             var_C  = -0xC
+__text:0000290C
+__text:0000290C 80 40 2D E9   STMFD  SP!, {R7,LR}
+__text:00002910 0D 70 A0 E1   MOV    R7, SP
+__text:00002914 14 D0 4D E2   SUB    SP, SP, #0x14
+__text:00002918 70 05 01 E3   MOV    R0, #0x1570
+__text:0000291C 07 C0 A0 E3   MOV    R12, #7
+__text:00002920 00 00 40 E3   MOVT   R0, #0
+__text:00002924 04 20 A0 E3   MOV    R2, #4
+__text:00002928 00 00 8F E0   ADD    R0, PC, R0
+__text:0000292C 06 30 A0 E3   MOV    R3, #6
+__text:00002930 05 10 A0 E3   MOV    R1, #5
+__text:00002934 00 20 8D E5   STR    R2, [SP,#0x1C+var_1C]
+__text:00002938 0A 10 8D E9   STMFA  SP, {R1,R3,R12}
+__text:0000293C 08 90 A0 E3   MOV    R9, #8
+__text:00002940 01 10 A0 E3   MOV    R1, #1
+__text:00002944 02 20 A0 E3   MOV    R2, #2
+__text:00002948 03 30 A0 E3   MOV    R3, #3
+__text:0000294C 10 90 8D E5   STR    R9, [SP,#0x1C+var_C]
+__text:00002950 A4 05 00 EB   BL     _printf
+__text:00002954 07 D0 A0 E1   MOV    SP, R7
+__text:00002958 80 80 BD E8   LDMFD  SP!, {R7,PC}
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!STMFA}
+\myindex{ARM!\Instructions!STMIB}
+\INS{STMFA}（Store Multiple Increment Before）命令の同義語である\INS{STMIB}（Store Multiple Full Ascending）命令を除き、既に見てきたものとほぼ同じです。
+この命令は、\ac{SP}レジスタの値を増加させ、逆の順序でこれら2つの動作を実行するのではなく、次のレジスタ値をメモリに書き込むだけです。
+
+目を引くもう一つのことは、命令が一見無作為に配置されていることです。
+例えば、R0レジスタの値は、アドレス\GTT{0x2918}, \GTT{0x2920} and \GTT{0x2928}の3箇所で操作できます。
+
+しかしながら、最適化コンパイラは、実行中により高い効率を達成するために、命令をどのように順序付けするかに関する独自の理由を有することができる。
+
+通常、プロセッサは、並んで配置された命令を同時に実行しようと試みます。
+たとえば、\INS{MOVT R0, \#0}、\INS{ADD R0, PC, R0}などの命令は、
+両方とも\Reg{0}レジスタを変更するため、同時に実行することはできません。
+一方、\INS{MOVT R0, \#0}、\INS{MOV R2, \#4}命令は、
+実行の影響が互いに矛盾しないため、同時に実行することができます。
+おそらく、コンパイラはそのような方法でコードを生成しようと試みます（どこでも可能です）。
+
+\myparagraph{\OptimizingXcodeIV: \ThumbTwoMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:00002BA0               _printf_main2
+__text:00002BA0
+__text:00002BA0               var_1C = -0x1C
+__text:00002BA0               var_18 = -0x18
+__text:00002BA0               var_C  = -0xC
+__text:00002BA0
+__text:00002BA0 80 B5          PUSH     {R7,LR}
+__text:00002BA2 6F 46          MOV      R7, SP
+__text:00002BA4 85 B0          SUB      SP, SP, #0x14
+__text:00002BA6 41 F2 D8 20    MOVW     R0, #0x12D8
+__text:00002BAA 4F F0 07 0C    MOV.W    R12, #7
+__text:00002BAE C0 F2 00 00    MOVT.W   R0, #0
+__text:00002BB2 04 22          MOVS     R2, #4
+__text:00002BB4 78 44          ADD      R0, PC  ; char *
+__text:00002BB6 06 23          MOVS     R3, #6
+__text:00002BB8 05 21          MOVS     R1, #5
+__text:00002BBA 0D F1 04 0E    ADD.W    LR, SP, #0x1C+var_18
+__text:00002BBE 00 92          STR      R2, [SP,#0x1C+var_1C]
+__text:00002BC0 4F F0 08 09    MOV.W    R9, #8
+__text:00002BC4 8E E8 0A 10    STMIA.W  LR, {R1,R3,R12}
+__text:00002BC8 01 21          MOVS     R1, #1
+__text:00002BCA 02 22          MOVS     R2, #2
+__text:00002BCC 03 23          MOVS     R3, #3
+__text:00002BCE CD F8 10 90    STR.W    R9, [SP,#0x1C+var_C]
+__text:00002BD2 01 F0 0A EA    BLX      _printf
+__text:00002BD6 05 B0          ADD      SP, SP, #0x14
+__text:00002BD8 80 BD          POP      {R7,PC}
+\end{lstlisting}
+
+Thumb/Thumb-2命令が代わりに使用される点を除いて、出力は前の例とほぼ同じです。
+% I hope I changed that line (^^^) correctly
+% FIXME: also STMIA is used instead of STMIB,
+% which is why it uses LR, which is 4 bytes ahead of SP
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM8_O0_JA.lst}
+
+最初の8つの引数は、XレジスタまたはWレジスタに渡されます。 \ARMPCS.
+文字列ポインタは64ビットのレジスタを必要とするため、\RegX{0}で渡されます。 
+それ以外の値はすべてint型32ビット型なので、レジスタ（W-）の32ビット部分に格納されます。 
+第9引数（8）はスタックを介して渡されます。 
+実際には、レジスタの数が限られているため、多数の引数をレジスタに渡すことはできません。
+
+\Optimizing GCC (Linaro) 4.9 は同じコードを生成します。

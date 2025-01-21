@@ -1,0 +1,36 @@
+﻿\subsection{右シフト}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/shifting/3.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 /Ob1,style=customasmx86]{patterns/185_64bit_in_32_env/shifting/3_MSVC.asm}
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.1 -fno-inline,style=customasmx86]{patterns/185_64bit_in_32_env/shifting/3_GCC.asm}
+
+\myindex{x86!\Instructions!SHRD}
+
+シフトは2つのパスでも発生します：最初に下部がシフトされ、次に上部がシフトされます。 
+しかし、下位部分は\INS{SHRD}命令の助けを借りてシフトされ、それは\EAX{}の値を7ビットだけシフトしますが、\EDX{}から
+すなわち上位部分から新しいビットを引き出します。 つまり、\TT{EDX:EAX}レジスタのペアからの64ビット値は、全体として7ビットシフトされ、
+結果の最下位32ビットが \EAX{} に格納されます。 
+上位部分は、より一般的な \SHR{} 命令を使用してシフトされます。実際、上位部分の解放されたビットは
+ゼロで埋められなければなりません。
+
+\subsubsection{ARM}
+
+ARMはx86では\INS{SHRD}のような命令を持っていないので、Keilコンパイラはこれを単純なシフトと\INS{OR}演算を使って行うべきです。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/shifting/Keil_ARM_O3.s}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/185_64bit_in_32_env/shifting/Keil_thumb_O3.s}
+% TODO add explanation
+
+\subsubsection{MIPS}
+
+MIPS向けのGCCは、KeilがThumbモードで行うのと同じアルゴリズムに従います。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/shifting/MIPS_O3_IDA.lst}
+
+% TODO add explanation
+

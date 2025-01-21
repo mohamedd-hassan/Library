@@ -1,0 +1,67 @@
+\item[Jcc] (где cc --- condition code)
+
+\myindex{x86!\Instructions!JAE}
+\myindex{x86!\Instructions!JA}
+\myindex{x86!\Instructions!JBE}
+\myindex{x86!\Instructions!JB}
+\myindex{x86!\Instructions!JC}
+\myindex{x86!\Instructions!JE}
+\myindex{x86!\Instructions!JGE}
+\myindex{x86!\Instructions!JG}
+\myindex{x86!\Instructions!JLE}
+\myindex{x86!\Instructions!JL}
+\myindex{x86!\Instructions!JNAE}
+\myindex{x86!\Instructions!JNA}
+\myindex{x86!\Instructions!JNBE}
+\myindex{x86!\Instructions!JNB}
+\myindex{x86!\Instructions!JNC}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Instructions!JNGE}
+\myindex{x86!\Instructions!JNG}
+\myindex{x86!\Instructions!JNLE}
+\myindex{x86!\Instructions!JNL}
+\myindex{x86!\Instructions!JNO}
+\myindex{x86!\Instructions!JNS}
+\myindex{x86!\Instructions!JNZ}
+\myindex{x86!\Instructions!JO}
+\myindex{x86!\Instructions!JPO}
+\myindex{x86!\Instructions!JP}
+\myindex{x86!\Instructions!JS}
+\myindex{x86!\Instructions!JZ}
+
+Немало этих инструкций имеют синонимы (отмечены с AKA), это сделано для удобства.
+Синонимичные инструкции транслируются в один и тот же опкод.
+Опкод имеет т.н. \gls{jump offset}.
+
+\label{Jcc}
+\begin{description}
+\item[JAE] \ac{AKA} JNC: переход если больше или равно (беззнаковый): CF=0
+\item[JA] \ac{AKA} JNBE: переход если больше (беззнаковый): CF=0 и ZF=0
+\item[JBE] переход если меньше или равно (беззнаковый): CF=1 или ZF=1
+\item[JB] \ac{AKA} JC: переход если меньше (беззнаковый): CF=1
+\item[JC] \ac{AKA} JB: переход если CF=1
+\item[JE] \ac{AKA} JZ: переход если равно или ноль: ZF=1
+\item[JGE] переход если больше или равно (знаковый): SF=OF
+\item[JG] переход если больше (знаковый): ZF=0 и SF=OF
+\item[JLE] переход если меньше или равно (знаковый): ZF=1 или SF$\neq$OF
+\item[JL] переход если меньше (знаковый): SF$\neq$OF
+\item[JNAE] \ac{AKA} JC: переход если не больше или равно (беззнаковый) CF=1
+\item[JNA] переход если не больше (беззнаковый) CF=1 и ZF=1
+\item[JNBE] переход если не меньше или равно (беззнаковый): CF=0 и ZF=0
+\item[JNB] \ac{AKA} JNC: переход если не меньше (беззнаковый): CF=0
+\item[JNC] \ac{AKA} JAE: переход если CF=0, синонимично JNB.
+\item[JNE] \ac{AKA} JNZ: переход если не равно или не ноль: ZF=0
+\item[JNGE] переход если не больше или равно (знаковый): SF$\neq$OF
+\item[JNG] переход если не больше (знаковый): ZF=1 или SF$\neq$OF
+\item[JNLE] переход если не меньше (знаковый): ZF=0 и SF=OF
+\item[JNL] переход если не меньше (знаковый): SF=OF
+\item[JNO] переход если не переполнение: OF=0
+\item[JNS] переход если флаг SF сброшен
+\item[JNZ] \ac{AKA} JNE: переход если не равно или не ноль: ZF=0
+\item[JO] переход если переполнение: OF=1
+\item[JPO] переход если сброшен флаг PF (Jump Parity Odd)
+\item[JP] \ac{AKA} \ac{JPE}: переход если выставлен флаг PF
+\item[JS] переход если выставлен флаг SF
+\item[JZ] \ac{AKA} JE: переход если равно или ноль: ZF=1
+\end{description}
+

@@ -1,0 +1,68 @@
+\subsection{Mémoire}
+
+Vous pouvez parfois entendre de la part de programmeurs C++ \q{allouer la mémoire sur la pile}
+et/ou \q{allouer la mémoire sur le \gls{heap}}.
+
+Allouer un objet \emph{sur la pile}:
+
+\begin{lstlisting}[style=customc]
+void f()
+{
+	...
+
+	Class o=Class(...);
+
+	...
+};
+\end{lstlisting}
+
+La mémoire de l'objet (ou de la structure) est allouée sur le pile, en utilisant
+un simple décalage de \ac{SP}.
+La mémoire est allouée jusqu'à la sortie de la fonction, ou, plus précisément, à
+la fin du \emph{scope}---\ac{SP} est remis à son état (comme au début de la fonction)
+et le destructeur de \emph{Class} est appelé.
+De la même manière, la mémoire allouée pour une structure en C est désallouée à la
+sortie de la fonction.
+
+Allouer un objet \emph{dans le \gls{heap}}:
+
+\begin{lstlisting}[style=customc]
+void f1()
+{
+	...
+
+	Class *o=new Class(...);
+
+	...
+};
+
+void f2()
+{
+	...
+
+	delete o;
+
+	...
+};
+\end{lstlisting}
+
+\myindex{\CStandardLibrary!malloc()}
+\myindex{\CStandardLibrary!free()}
+Ceci est la même chose que d'allouer de la mémoire pour une structure en utilisant
+un appel à \emph{malloc()}.
+En fait, \emph{new} en C++ est un wrapper pour \emph{malloc()}, et \emph{delete} est un
+wrapper pour \emph{free()}.
+Puisque le bloc de mémoire a été allouée sur le \gls{heap}, il doit être désalloué
+explicitement, en utilisant \emph{delete}.
+Le destructeur de classe sera appelé automatiquement juste avant ce moment.
+
+Quelle méthode est la meilleure?
+L'allocation \emph{isur la pile} est très rapide, et bon pour les petits, à durée de
+vie courte objets, qui seront utilisés seulement dans la fonction courante.
+
+L'allocation \emph{sur le heap} est plus lente, et meilleure pour des objets à longue
+durée de vie, qui seront utilisés dans plusieurs fonctions.
+Aussi, les objets alloués sur le \gls{heap} sont sujets à la fuite de mémoire, car
+ils doivent être libérés explicitement, mais on peut oublier de le faire.
+
+De toutes façons, ceci est une affaire de goût.

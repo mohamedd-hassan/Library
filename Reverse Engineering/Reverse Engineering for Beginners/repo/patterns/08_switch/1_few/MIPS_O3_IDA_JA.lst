@@ -1,0 +1,40 @@
+f:
+                lui     $gp, (__gnu_local_gp >> 16)
+; 1か？
+                li      $v0, 1
+                beq     $a0, $v0, loc_60
+                la      $gp, (__gnu_local_gp & 0xFFFF) ; 分岐遅延スロット
+; 2か？
+                li      $v0, 2
+                beq     $a0, $v0, loc_4C
+                or      $at, $zero ; 分岐遅延スロット、NOP
+; 0と等しくなければジャンプ
+                bnez    $a0, loc_38
+                or      $at, $zero ; 分岐遅延スロット、NOP
+; 0の場合
+                lui     $a0, ($LC0 >> 16)  # "zero"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; 分岐遅延スロット、NOP
+                jr      $t9 ; 分岐遅延スロット、NOP
+                la      $a0, ($LC0 & 0xFFFF)  # "zero" ; 分岐遅延スロット
+
+loc_38:                                  # CODE XREF: f+1C
+                lui     $a0, ($LC3 >> 16)  # "something unknown"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; 分岐遅延スロット、NOP
+                jr      $t9 
+                la      $a0, ($LC3 & 0xFFFF)  # "something unknown" ; 分岐遅延スロット
+
+loc_4C:                                  # CODE XREF: f+14
+                lui     $a0, ($LC2 >> 16)  # "two"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; 分岐遅延スロット、NOP
+                jr      $t9
+                la      $a0, ($LC2 & 0xFFFF)  # "two" ; 分岐遅延スロット
+
+loc_60:                                  # CODE XREF: f+8
+                lui     $a0, ($LC1 >> 16)  # "one"
+                lw      $t9, (puts & 0xFFFF)($gp)
+                or      $at, $zero ; 分岐遅延スロット、NOP
+                jr      $t9
+                la      $a0, ($LC1 & 0xFFFF)  # "one" ; 分岐遅延スロット

@@ -1,0 +1,174 @@
+\subsubsection{ARM: 9 argumentów}
+
+Użyjmy ponownie przykładu z 9 argumentami: \myref{example_printf8_x64}.
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{\OptimizingKeilVI: \ARMMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp1.asm}
+
+Kod można podzielić na kilka części.
+
+\myindex{Function prologue}
+\begin{itemize}
+\item Prolog.
+
+\myindex{ARM!\Instructions!STR}
+Pierwsza instrukcja ~--- \INS{STR LR, [SP,\#var\_4]!} ~--- zapisuje \ac{LR} na stosie, ponieważ użyjemy tego rejestru przy wywołaniu funkcji \printf.
+Wykrzyknik na końcu oznacza \emph{pre-index}.
+
+\emph{Pre-index} oznacza, że \ac{SP} zostanie najpierw zmniejszony o 4, a następnie pod tym zmodyfikowanym adresem zostanie zapisana wartość \ac{LR}.
+Podobnie działa instrukcja \PUSH na x86.
+Więcej przeczytasz o tym tutaj: \myref{ARM_postindex_vs_preindex}.
+
+\myindex{ARM!\Instructions!SUB}
+Druga instrukcja ~--- \INS{SUB SP, SP, \#0x14} ~--- zmniejsza \ac{SP} (\glslink{stack pointer}{wskaźnik stosu}) by zaalokować na stosie \GTT{0x14} (20) bajtów.
+Będziemy przekazywać do funkcji \printf 5 32-bitowych wartości, każda z nich zajmuje 4 bajty ~--- razem zajmą więc dokładnie 20 bajtów.
+Pozostałe 4 32-bitowe wartości zostaną przekazane przez rejestry.
+
+\item Przekazania argumentów 5, 6, 7 i 8 przez stos.
+
+Najpierw argumenty zapisywane są do rejestrów, odpowiednio: \Reg{0}, \Reg{1}, \Reg{2} and \Reg{3}. Następnie instrukcja \INS{ADD R12, SP, \#0x18+var\_14} zapisuje do rejestru \Reg{12} adres stosu, pod którym te wartości zostaną umieszczone.
+\myindex{IDA!var\_?}
+\emph{var\_14} to makro równe -0x14, stworzone przez program \IDA by poprawić czytelność kodu pracującego ze stosem.
+Makra \emph{var\_?} wygenerowane w programie \IDA odpowiadają zmiennym lokalnym umieszczonym na stosie.
+Zatem ostatecznie do rejestru \Reg{12} trafi adres \GTT{SP+4}.
+
+\myindex{ARM!\Instructions!STMIA}
+Kolejna instrukcja ~--- \INS{STMIA R12, {R0-R3}} ~--- zapisuje zawartość rejestrów \Reg{0}-\Reg{3} w pamięci, pod adres z \Reg{12}.
+\INS{STMIA} to skrót od \emph{Store Multiple Increment After}.
+\emph{Increment After} oznacza, że \Reg{12} będzie zwiększany o 4, po każdej zapisanej wartości rejestru.
+
+\item Przekazanie argumentu 4 przez stos.
+
+Najpierw wartość 4 jest zapisywana w \Reg{0}, a następnie za pomocą instrukcji \INS{STR R0, [SP,\#0x18+var\_18]} odkładana jest na stos.
+\emph{var\_18} to -0x18, a więc ostateczne przesunięcie (offset) wynosi 0, a więc wartość z \Reg{0} (4) trafi pod adres z \ac{SP}.
+
+\item Przekazanie argumentów 1, 2, 3 przez rejestry.
+
+3 pierwsze argumenty ~--- 1, 2, 3 (a, b, c w łańcuchu formatującym) ~--- są przekazywane przez rejestry \Reg{1}, \Reg{2} i \Reg{3}
+tuż przed wywołaniem funkcji \printf.
+
+\item Wywołanie \printf.
+
+\myindex{Function epilogue}
+\item Epilog.
+
+Instrukcja \INS{ADD SP, SP, \#0x14} przywraca wskaźnik stosu \ac{SP} do poprzedniej wartości,
+porzucając wszystkie tam zapisane dane.
+Oczywiście odłożone wartości wciąż tam są, ale zostaną nadpisane przy wywołaniach kolejnych funkcji.
+
+\myindex{ARM!\Instructions!LDR}
+Instrukcja \INS{LDR PC, [SP+4+var\_4],\#4} wczytuje do \ac{PC} wcześniej odłożoną na stos wartość \ac{LR}, powodując wyjście z funkcji.
+Tym razem na końcu instrukcji nie ma wykrzyknika --- tak, najpierw \ac{PC} jest ładowany z adresu przechowywanego w \ac{SP}
+($4+var\_4=4+(-4)=0$), a następnie \ac{SP} jest zwiększany o 4.
+
+
+Dlaczego \IDA w taki sposób wyświetla instrukcje?
+W ten sposób łatwiej pokazać układ danych na stosie, widać tutaj, że zmienna \GTT{var\_4} została stworzona do zapisu wartości \ac{LR} na stosie lokalnym.
+Instrukcje jest na swój sposób podobna do \INS{POP PC} w x86\footnote{Niemożliwe jest ustawienie wartości w \GTT{IP/EIP/RIP} za pomocą \POP w x86, ale poza tym to trafne porównanie.}.
+
+\end{itemize}
+
+\myparagraph{\OptimizingKeilVI: \ThumbMode}
+
+\lstinputlisting[style=customasmARM]{patterns/03_printf/ARM/tmp2.asm}
+
+Wyjście jest podobne do poprzedniego przykładu. Tym razem jest to kod w trybie Thumb i wartości są umieszczane na stosie w innym porządku:
+najpierw odkładana jest wartość 8, jako druga odkładana jest grupa wartości 5, 6, 7 a jako trzecia odkładana jest wartość 4.
+
+\myparagraph{\OptimizingXcodeIV: \ARMMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:0000290C             _printf_main2
+__text:0000290C
+__text:0000290C             var_1C = -0x1C
+__text:0000290C             var_C  = -0xC
+__text:0000290C
+__text:0000290C 80 40 2D E9   STMFD  SP!, {R7,LR}
+__text:00002910 0D 70 A0 E1   MOV    R7, SP
+__text:00002914 14 D0 4D E2   SUB    SP, SP, #0x14
+__text:00002918 70 05 01 E3   MOV    R0, #0x1570
+__text:0000291C 07 C0 A0 E3   MOV    R12, #7
+__text:00002920 00 00 40 E3   MOVT   R0, #0
+__text:00002924 04 20 A0 E3   MOV    R2, #4
+__text:00002928 00 00 8F E0   ADD    R0, PC, R0
+__text:0000292C 06 30 A0 E3   MOV    R3, #6
+__text:00002930 05 10 A0 E3   MOV    R1, #5
+__text:00002934 00 20 8D E5   STR    R2, [SP,#0x1C+var_1C]
+__text:00002938 0A 10 8D E9   STMFA  SP, {R1,R3,R12}
+__text:0000293C 08 90 A0 E3   MOV    R9, #8
+__text:00002940 01 10 A0 E3   MOV    R1, #1
+__text:00002944 02 20 A0 E3   MOV    R2, #2
+__text:00002948 03 30 A0 E3   MOV    R3, #3
+__text:0000294C 10 90 8D E5   STR    R9, [SP,#0x1C+var_C]
+__text:00002950 A4 05 00 EB   BL     _printf
+__text:00002954 07 D0 A0 E1   MOV    SP, R7
+__text:00002958 80 80 BD E8   LDMFD  SP!, {R7,PC}
+\end{lstlisting}
+
+\myindex{ARM!\Instructions!STMFA}
+\myindex{ARM!\Instructions!STMIB}
+Niemal to samo widzieliśmy poprzednio, za wyjątkiem istrukcji \INS{STMFA} (Store Multiple Full Ascending), która jest synonimem \INS{STMIB} (Store Multiple Increment Before).
+Instrukcja najpierw zwiększa wartość rejestru \ac{SP}, a po tym zapisuje wartości rejestrów (z drugiego operandu) do pamięci. Te dwa kroki odbywają się w odwrotnej kolejności niż w instrukcji \INS{STMIA}.
+
+Można również zwrócić uwagę, że instrukcje zostały rozrzucone jakby losowo. Na przykład wartość w rejestrze \Reg{0} jest ustawiana w trzech różnych miejscach: \GTT{0x2918}, \GTT{0x2920} i \GTT{0x2928}, a można by to zrobić w jednym.
+
+Musimy pamiętać, że ten porządek jest pozornie losowy, kompilator ma swoje powodu do takiego szeregowania instrukcji, ponieważ kieruje się efektywnością kodu w trakcie wykonania.
+
+Procesor z reguły próbuje równolegle wykonywać instrukcje położone obok siebie. Na przykład, instrukcje jak \TT{MOVT R0, \#0} oraz
+\TT{ADD R0, PC, R0} nie mogę być wykonywane równocześnie, gdyż obie modyfikują ten sam rejestr \Reg{0}.
+Z drugiej strony, \TT{MOVT R0, \#0} oraz \TT{MOV R2, \#4}
+mogą być wykonywane równolegle, gdyż nie ma konfliktu między wynikami ich pracy.
+Prawdopodobnie kompilator starał się tak uszeregować instrukcje, by mogły być wykonywane równolegle tam, gdzie to możliwe.
+ 
+\myparagraph{\OptimizingXcodeIV: \ThumbTwoMode}
+
+\begin{lstlisting}[style=customasmARM]
+__text:00002BA0               _printf_main2
+__text:00002BA0
+__text:00002BA0               var_1C = -0x1C
+__text:00002BA0               var_18 = -0x18
+__text:00002BA0               var_C  = -0xC
+__text:00002BA0
+__text:00002BA0 80 B5          PUSH     {R7,LR}
+__text:00002BA2 6F 46          MOV      R7, SP
+__text:00002BA4 85 B0          SUB      SP, SP, #0x14
+__text:00002BA6 41 F2 D8 20    MOVW     R0, #0x12D8
+__text:00002BAA 4F F0 07 0C    MOV.W    R12, #7
+__text:00002BAE C0 F2 00 00    MOVT.W   R0, #0
+__text:00002BB2 04 22          MOVS     R2, #4
+__text:00002BB4 78 44          ADD      R0, PC  ; char *
+__text:00002BB6 06 23          MOVS     R3, #6
+__text:00002BB8 05 21          MOVS     R1, #5
+__text:00002BBA 0D F1 04 0E    ADD.W    LR, SP, #0x1C+var_18
+__text:00002BBE 00 92          STR      R2, [SP,#0x1C+var_1C]
+__text:00002BC0 4F F0 08 09    MOV.W    R9, #8
+__text:00002BC4 8E E8 0A 10    STMIA.W  LR, {R1,R3,R12}
+__text:00002BC8 01 21          MOVS     R1, #1
+__text:00002BCA 02 22          MOVS     R2, #2
+__text:00002BCC 03 23          MOVS     R3, #3
+__text:00002BCE CD F8 10 90    STR.W    R9, [SP,#0x1C+var_C]
+__text:00002BD2 01 F0 0A EA    BLX      _printf
+__text:00002BD6 05 B0          ADD      SP, SP, #0x14
+__text:00002BD8 80 BD          POP      {R7,PC}
+\end{lstlisting}
+
+Wyjście jest prawie takie samo jak w poprzednim przykładzie, różnicą jest użycie instrukcji z trybu Thumb/Thumb-2.
+% FIXME: also STMIA is used instead of STMIB,
+% which is why it uses LR, which is 4 bytes ahead of SP
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM8_O0_PL.lst}
+
+Pierwsze 8 argumentów przekazywanych jest w rejestrach X- oraz W-: \ARMPCS.
+Wskaźnik na łańcuch znaków wymaga 64-bitowego rejestru, trafia więc do \RegX{0}.
+Wszystkie pozostałe wartości są typu \Tint, mają szerokość 32 bitów i umieszczane są w młodszych 32-bitowych częściach rejestrów (W-).
+Dziewiąty argument (8) jest przekazywany przez stos.
+Nie można przekazać dużej liczby argumentów przez rejestry, gdyż ich liczba jest ograniczona.
+
+\Optimizing GCC (Linaro) 4.9 generuje taki sam kod.

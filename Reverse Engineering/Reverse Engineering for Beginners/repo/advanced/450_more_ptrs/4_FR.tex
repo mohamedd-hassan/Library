@@ -1,0 +1,249 @@
+\subsection{Pointeurs nuls}
+
+\subsubsection{``Null pointer assignment'' erreur du temps de MS-DOS}
+
+\myindex{MS-DOS}
+Des anciens peuvent se souvenir d'un message d'erreur bizarre du temps de MS-DOS:
+``Null pointer assignment''.
+Qu'est-ce que ça signifie?
+
+Il n'est pas possible d'écrire à l'adresse mémoire zéro avec les OSs *NIX et Windows,
+mais il est possible de le faire avec MS-DOS, à cause de l'absence de protection
+de la mémoire.
+
+\myindex{Turbo C++}
+\myindex{Borland C++}
+Donc, j'ai sorti mon ancien Turbo C++ 3.0 (qui fût renommer plus tard en Borland C++)
+d'avant les années 1990s et essayé de compiler ceci:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int main()
+{
+	int *ptr=NULL;
+	*ptr=1234;
+	printf ("Now let's read at NULL\n");
+	printf ("%d\n", *ptr);
+};
+\end{lstlisting}
+
+C'est difficile à croire, mais ça fonctionne, sans erreur jusqu'à la sortie, toutefois:
+
+\begin{lstlisting}[caption=Ancient Turbo C 3.0]
+C:\TC30\BIN\1
+Now let's read at NULL
+1234
+Null pointer assignment
+
+C:\TC30\BIN>_
+\end{lstlisting}
+
+Plongeons un peu plus profondément dans le code du \ac{CRT} de Borland C++ 3.1, fichier \emph{c0.asm}:
+
+\lstinputlisting[style=customasmx86]{advanced/450_more_ptrs/tmp2.lst}
+
+Le modèle de mémoire de MS-DOS était vraiment bizarre (\myref{8086_memory_model}) et
+ne vaut probablement pas la peine de s'y plonger, à moins d'être fan de rétro-computing
+ou de rétro-gaming.
+Une chose que nous devons garder à l'esprit est que le segment de mémoire (segment
+de données inclus) dans MS-DOS, est un segment de mémoire dans lequel du code ou
+des données sont stockés, mais contrairement au \ac{OS}s ``sérieux'', il commence
+à l'adresse 0.
+
+Et dans le \ac{CRT} de Borland C++, le segment de données commence avec 4 octets
+à zéro puis la chaîne de copyright ``Borland C++ - Copyright 1991 Borland Intl.''.
+L'intégrité des 4 octets à zéro et de la chaîne de texte est vérifiée en sortant,
+et s'ils sont corrompus, le message d'erreur est affiché.
+
+Mais pourquoi? Écrire à l'adresse zéro est une erreur courante en \CCpp, et si vous
+faites cela sur *NIX ou Windows, votre application va planter.
+MS-DOS n'a pas de protection de la mémoire, donc le \ac{CRT} doit vérifier ceci post-factum
+et le signaler à la sortie.
+Si vous voyez ce message, ceci signifie que votre programme à un certain point, a
+écrit à l'adresse 0.
+
+Notre programme le fait. Et ceci est pourquoi le nombre 1234 a été lu correctement:
+car il a été écrit à la place des 4 premiers octets à zéro.
+La somme de contrôle est incorrecte à la sortie (car le nombre y a été laissé), donc
+le message a été affiché.
+
+Ai-je raison?
+J'ai récrit le programme pour vérifier mes suppositions:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int main()
+{
+	int *ptr=NULL;
+	*ptr=1234;
+	printf ("Now let's read at NULL\n");
+	printf ("%d\n", *ptr);
+	*ptr=0; // psst, cover our tracks!
+};
+\end{lstlisting}
+
+Ce programme s'exécute sans message d'erreur à la sortie.
+
+Une telle méthode pour avertir en cas d'assignation du pointeur nul est pertinente
+pour MS-DOS, peut-être qu'elle peut encore être utilisée de nos jours avec des \ac{MCU}s
+à bas coût sans protection de la mémoire et/ou \ac{MMU}.
+
+\subsubsection{Pourquoi voudrait-on écrire à l'adresse 0?}
+
+Mais pourquoi un programmeur sain d'esprit écrirait du code écrivant quelque chose
+à l'adresse 0?
+Ça peut être fait accidentellement: par exemple, un pointeur doit être initialisé
+au bloc de mémoire nouvellement alloué et ensuite passé à quelque fonction qui renvoie
+des données à travers un pointeur.
+
+\begin{lstlisting}[style=customc]
+int *ptr=NULL;
+
+\dots nous avons oublié d'allouer la mémoire et d'initialiser ptr
+
+strcpy (ptr, buf); // strcpy() termine silencieusement car MS-DOS n'a pas de protection de la mémoire
+\end{lstlisting}
+
+Encore pire:
+
+\begin{lstlisting}[style=customc]
+int *ptr=malloc(1000);
+
+\dots nous avons oublié de vérifier si la mémoire a réellement été allouée: c'est MS-DOS après tout et les ordinateurs ont une petite quantité de RAM,
+\dots et être à court de RAM était très courant.
+\dost si malloc() a renvoyé NULL, ptr sera aussi NULL.
+
+strcpy (ptr, buf); // strcpy() termine silencieusement car MS-DOS n'a pas de protection de la mémoire
+\end{lstlisting}
+
+\subsubsection{Écrire sciemment à l'adresse 0}
+\label{dmalloc_KILL_PROCESS}
+
+\myindex{dmalloc}
+\myindex{Core dump}
+Voici un exemple tiré de dmalloc\footnote{\url{http://dmalloc.com/}},
+une façon portable de générer un core dump, si les autres moyens ne sont pas disponibles:
+
+\lstinputlisting{advanced/450_more_ptrs/dmalloc_KILL_PROCESS}
+
+\subsubsection{NULL en \CCpp}
+
+NULL en \CCpp est juste une macro qui est souvent définie comme ceci:
+
+\begin{lstlisting}[style=customc]
+#define NULL  ((void*)0)
+\end{lstlisting}
+( \href{https://github.com/wzhy90/linaro_toolchains/blob/8ff8ae680bac04558d10cc9626e12c4c2f6c1348/arm-cortex_a15-linux-gnueabihf/libc/usr/include/libio.h#L70}{fichier libio.h} )
+
+\emph{void*} est un type de données reflétant le fait que c'est un pointeur, mais sur
+une valeur d'un type de données inconnu (\emph{void}).
+
+NULL est usuellement utilisé pour montrer l'absence d'un objet.
+Par exemple, vous avez une liste simplement chaînée, et chaque n\oe{}ud a une valeur
+(ou un pointeur sur une valeur) et un pointeur \emph{next}.
+Pour montrer qu'il n'y a pas de n\oe{}ud suivant, 0 est stocké dans le champ \emph{next}.
+(D'autres solutions sont pires.)
+Peut-être pourriez-vous avoir un environnement fou où vous devriez allouer un bloc
+de mémoire à l'adresse zéro. Comment indiqueriez-vous l'absence de n\oe{}ud suivant?
+Avec une sorte de \emph{magic number}? Peut-être -1? Ou peut-être avec un bit additionnel?
+
+Nous trouvons ceci dans Wikipédia:
+
+\begin{framed}
+\begin{quotation}
+In fact, quite contrary to the zero page's original preferential use, some modern operating systems such as FreeBSD, Linux and Microsoft Windows[2] actually make the zero page inaccessible to trap uses of NULL pointers. 
+\end{quotation}
+\end{framed}
+( \url{https://en.wikipedia.org/wiki/Zero_page} )
+
+\subsubsection{Pointeur nul à une fonction}
+
+Il est possible d'appeler une fonction avec son adresse.
+Par exemple, je compile ceci avec MSVC 2010 et le lance dans Windows 7:
+
+\begin{lstlisting}[style=customc]
+#include <windows.h>
+#include <stdio.h>
+
+int main()
+{
+	printf ("0x%x\n", &MessageBoxA);
+};
+\end{lstlisting}
+
+Le résultat est \emph{0x7578feae} et ne change pas après plusieurs lancements, car user32.dll
+(où la fonction MessageBoxA se trouve) est toujours chargée à la même adresse.
+Et aussi car \ac{ASLR} n'est pas activé (le résultat serait différent à chaque exécution
+dans ce cas).
+
+Appelons \emph{MessageBoxA()} par son adresse:
+
+\begin{lstlisting}[style=customc]
+#include <windows.h>
+#include <stdio.h>
+
+typedef int (*msgboxtype)(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption,  UINT uType);
+
+int main()
+{
+	msgboxtype msgboxaddr=0x7578feae;
+
+	// force to load DLL into process memory, 
+	// since our code doesn't use any function from user32.dll, 
+	// and DLL is not imported
+	LoadLibrary ("user32.dll");
+
+	msgboxaddr(NULL, "Hello, world!", "hello", MB_OK);
+};
+\end{lstlisting}
+
+Bizarre, mais ça fonctionne avec Windows 7 x86.
+
+Ceci est communément utilisé dans les shellcodes, car il est difficile d'y appeler
+des fonctions DLL par leur nom.
+Et \ac{ASLR} est une contre-mesure.
+
+Maintenant, ce qui est vraiment bizarre, quelques programmeurs C embarqué peuvent
+être familiers avec un code comme ceci:
+
+\begin{lstlisting}[style=customc]
+int reset()
+{
+	void (*foo)(void) = 0;
+	foo();
+};
+\end{lstlisting}
+
+Qui voudrait appeler une fonction à l'adresse 0?
+Ceci est un moyen portable de sauter à l'adresse zéro.
+De nombreux micro-contrôleurs à bas coût n'ont pas de protection mémoire ou de \ac{MMU}
+et après un reset, ils commencent à exécuter le code à l'adresse 0, où une sorte
+de code d'initialisation est stocké.
+Donc sauter à l'adresse 0 est un moyen de se réinitialiser.
+On pourrait utiliser de l'assembleur inline, mais si ce n'est pas possible, cette
+méthode portable est utilisable.
+
+Ça compile même correctement avec mon GCC 4.8.4 sur Linux x64:
+
+\begin{lstlisting}[style=customasmx86]
+reset:
+        sub     rsp, 8
+        xor     eax, eax
+        call    rax
+        add     rsp, 8
+        ret
+\end{lstlisting}
+
+Le fait que le pointeur de pile soit décalé n'est pas un problème: le code d'initialisation
+dans les micro-contrôleurs ignorent en général les registres et l'état de la \ac{RAM}
+et démarrent from scratch.
+
+Et bien sûr, ce code planterait sur *NIX ou Windows à cause de la protection mémoire,
+et même sans la protection mémoire, il n'y a pas de code à l'adresse 0.
+
+GCC possède même des extensions non-standard, permettant de sauter à une adresse spécifique
+plutôt qu'un appel à une fonction ici:
+\url{http://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html}.
+

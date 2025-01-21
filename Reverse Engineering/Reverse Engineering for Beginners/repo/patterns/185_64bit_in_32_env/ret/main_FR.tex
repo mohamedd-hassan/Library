@@ -1,0 +1,26 @@
+﻿\subsection{Renvoyer une valeur 64-bit}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/ret/0.c}
+
+\subsubsection{x86}
+
+Dans un environnement 32-bit, les valeurs 64-bit sont renvoyées des fonctions dans
+la paire de registres \EDX{}:\EAX{}.
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{patterns/185_64bit_in_32_env/ret/0_MSVC_2010_Ox.asm}
+
+\subsubsection{ARM}
+
+Une valeur 64-bit est renvoyée dans la paire de registres \Reg{0}-\Reg{1} (\Reg{1}
+est pour la partie haute et \Reg{0} pour la partie basse):
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/ret/Keil_ARM_O3.s}
+
+\subsubsection{MIPS}
+
+Une valeur 64-bit est renvoyée dans la paire de registres \TT{V0}-\TT{V1} (\$2-\$3)
+(\TT{V0} (\$2) est pour la partie haute et \TT{V1} (\$3) pour la partie basse):
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (listing assembleur),style=customasmMIPS]{patterns/185_64bit_in_32_env/ret/0_MIPS.s}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/ret/0_MIPS_IDA.lst}

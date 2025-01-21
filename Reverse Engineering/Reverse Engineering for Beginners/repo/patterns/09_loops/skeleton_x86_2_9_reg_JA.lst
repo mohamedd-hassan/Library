@@ -1,0 +1,10 @@
+﻿    MOV EBX, 2 ; 初期化
+    JMP check
+body:
+    ; ループボディ
+    ; ここで何かする
+    ; EBXでカウンタを使用しますが、変更してはいけません
+    INC EBX ; インクリメント
+check:
+    CMP EBX, 9
+    JLE body

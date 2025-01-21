@@ -1,0 +1,110 @@
+\subsubsection{x86}
+
+\myparagraph{MSVC}
+
+MSVC 2010でコンパイルした後に得られるものは次のとおりです。
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/1_simple/ex1_MSVC_JA.asm}
+
+\TT{x}はローカル変数です。
+
+\CCpp 標準によれば、この関数でのみ表示でき、他の外部スコープでは表示できません。
+従来、ローカル変数はスタックに格納されていました。
+それらを割り当てる方法はおそらく他にもありますが、それはx86の方法です。
+
+\myindex{x86!\Instructions!PUSH}
+関数プロローグ、\TT{PUSH ECX}に続く命令の目的は、 \ECX 状態を保存することではありません
+（関数の最後に対応する\TT{POP ECX}が存在しないことに注意してください）。
+
+実際、\TT{x}変数を格納するためにスタックに4バイトを割り当てます。
+
+\label{stack_frame}
+\myindex{\Stack!Stack frame}
+\myindex{x86!\Registers!EBP}
+\TT{x}は、\TT{\_x\$} マクロ (-4に等しい)と現在のフレームを指す \EBP レジスタの助けを借りてアクセスされます。
+
+関数の実行の範囲にわたって、 \EBP は現在の\gls{stack frame}を指しており、 \TT{EBP+オフセット}
+を介してローカル変数と関数引数にアクセスすることができます。
+
+\myindex{x86!\Registers!ESP}
+同じ目的で \ESP を使用することもできますが、 \ESP は頻繁に変更されるためあまり便利ではありません。 
+\EBP の値は、関数の実行開始時に \ESP の値が固定された状態として認識される可能性があります。
+
+% FIXME1 это уже было в 02_stack?
+32ビット環境での典型的な\gls{stack frame}レイアウトを次に示します。
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\dots & \dots \\
+\hline
+EBP-8 & local variable \#2, \MarkedInIDAAs{} \TT{var\_8} \\
+\hline
+EBP-4 & local variable \#1, \MarkedInIDAAs{} \TT{var\_4} \\
+\hline
+EBP & saved value of \EBP \\
+\hline
+EBP+4 & return address \\
+\hline
+EBP+8 & \argument \#1, \MarkedInIDAAs{} \TT{arg\_0} \\
+\hline
+EBP+0xC & \argument \#2, \MarkedInIDAAs{} \TT{arg\_4} \\
+\hline
+EBP+0x10 & \argument \#3, \MarkedInIDAAs{} \TT{arg\_8} \\
+\hline
+\dots & \dots \\
+\hline
+\end{tabular}
+\end{center}
+
+この例の \scanf 関数には2つの引数があります。
+
+最初のものは\TT{\%d}を含む文字列へのポインタで、2番目のものは\TT{x}変数のアドレスです。
+
+\myindex{x86!\Instructions!LEA}
+最初に、\TT{x}変数のアドレスが\TT{lea eax, DWORD PTR \_x\$[ebp]}命令によって \EAX レジスタにロードされます。
+
+\LEA は\emph{ロード実効アドレス}の略で、アドレスを形成するためによく使用されます（~(\myref{sec:LEA})）。
+
+この場合、\LEA は単に \EBP レジスタ値と\TT{\_x\$}マクロの合計を \EAX レジスタに格納すると言うことができます。
+
+これは\INS{lea eax, [ebp-4]}と同じです。
+
+したがって、 \EBP レジスタ値から4が減算され、その結果が \EAX レジスタにロードされます。
+次に、 \EAX レジスタの値がスタックにプッシュされ、 \scanf が呼び出されます。
+
+\printf は最初の引数で呼び出されています。文字列へのポインタ：
+\TT{You entered \%d...\textbackslash{}n}
+
+2番目の引数は\TT{mov ecx, [ebp-4]}で準備されています。
+命令は、 \ECX レジスタにそのアドレスではなく\TT{x}変数値を格納します。
+
+次に、 \ECX の値がスタックに格納され、最後の \printf が呼び出されます。
+
+\input{patterns/04_scanf/1_simple/olly.tex}
+
+\myparagraph{GCC}
+
+Linux上のGCC 4.4.1でこのコードをコンパイルしようとしましょう。
+
+\lstinputlisting[style=customasmx86]{patterns/04_scanf/1_simple/ex1_GCC.asm}
+
+\myindex{puts() instead of printf()}
+GCCは \printf 呼び出しを \puts の呼び出しで置き換えました。 この理由は、~(\myref{puts})で説明されました。
+
+% TODO: rewrite
+%\RU{Почему \scanf переименовали в \TT{\_\_\_isoc99\_scanf}, я честно говоря, пока не знаю.}
+%\EN{Why \scanf is renamed to \TT{\_\_\_isoc99\_scanf}, I do not know yet.}
+% 
+% Apparently it has to do with the ISO c99 standard compliance. By default GCC allows specifying a standard to adhere to.
+% For example if you compile with -std=c89 the outputted assmebly file will contain scanf and not __isoc99__scanf. I guess current GCC version adhares to c99 by default.
+% According to my understanding the two implementations differ in the set of suported modifyers (See printf man page)
+
+MSVCの例のように、引数は \MOV 命令を使用してスタックに配置されます。
+
+\myparagraph{ところで}
+
+ところで、この単純な例は、コンパイラが \CCpp ブロックの式のリストを命令の連続したリストに
+変換するという事実のデモンストレーションです。
+\CCpp の式の間には何もないので、結果のマシンコードには、
+ある式から次の式への制御フローの間には何もありません。

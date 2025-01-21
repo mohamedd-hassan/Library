@@ -1,0 +1,37 @@
+﻿\subsection{Recevoir un argument par adresse}
+\label{pointer_to_argument}
+
+\dots mieux que cela, il est possible de passer à une fonction l'adresse d'un argument, plutôt que
+la valeur de l'argument lui-même:
+
+\lstinputlisting[style=customc]{OS/calling_conventions/ptr_to_argument/10.c}
+
+Il est difficile de comprendre ce fonctionnement jusqu'à ce que l'on regarde le code:
+
+\lstinputlisting[caption=MSVC 2010 optimisé,style=customasmx86]{OS/calling_conventions/ptr_to_argument/MSVC_2010_O3.asm}
+
+L'argument $a$ est placé sur la pile et l'adresse de cet emplacement de pile est passé à une autre
+fonction. Celle-ci modifie la valeur à l'adresse référencée par le pointeur, puis \printf affiche
+la valeur après modification.
+
+\par Le lecteur attentif se demandera peut-être ce qu'il en est avec les conventions d'appel qui
+utilisent les registres pour passer les arguments.
+
+C'est justement une des utilisations du \emph{Shadow Space}.
+
+La valeur en entrée est copiée du registre vers le \emph{Shadow Space} dans la pile locale, puis
+l'adresse de la pile locale est passée à la fonction appelée:
+
+\lstinputlisting[caption=MSVC 2012 x64 optimisé,style=customasmx86]{OS/calling_conventions/ptr_to_argument/MSVC_2012_x64_O3.asm}
+
+Le compilateur GCC lui aussi sauvegarde la valeur sur la pile locale:
+
+\lstinputlisting[caption=GCC 4.9.1 optimisé x64,style=customasmx86]{OS/calling_conventions/ptr_to_argument/GCC491_x64_O3.s}
+
+Le compilateur GCC pour ARM64 se comporte de la même manière, mais l'espace de sauvegarde sur la pile
+est dénommé \emph{Register Save Area} :
+
+\lstinputlisting[caption=GCC 4.9.1 optimisé ARM64,style=customasmARM]{OS/calling_conventions/ptr_to_argument/GCC49_ARM64_O3.s}
+
+Enfin, nous constatons un usage similaire du \emph{Shadow Space} ici: \myref{variadic_arith_registers}.
+

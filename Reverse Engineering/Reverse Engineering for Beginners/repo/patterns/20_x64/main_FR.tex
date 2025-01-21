@@ -1,0 +1,139 @@
+\mysection{64 bits}
+
+\subsection{x86-64}
+\myindex{x86-64}
+\label{x86-64}
+
+Il s'agit d'une extension à 64 bits de l'architecture x86.
+
+Pour l'ingénierie inverse, les changements les plus significatifs sont:
+
+\myindex{\CLanguageElements!\Pointers}
+\begin{itemize}
+
+\item
+
+La plupart des registres (à l'exception des registres FPU et SIMD) ont été étendus à 64 bits et 
+leur nom préfixé de la lettre R. 8 registres ont également été ajoutés.
+Les \ac{GPR} sont donc désormais: \RAX, \RBX, \RCX, \RDX, 
+\RBP, \RSP, \RSI, \RDI, \Reg{8}, \Reg{9}, \Reg{10}, 
+\Reg{11}, \Reg{12}, \Reg{13}, \Reg{14}, \Reg{15}. 
+
+Les \emph{anciens} registres restent accessibles de la manière habituelle. Ainsi, l'utilisation de 
+\EAX donne accès aux 32 bits de poids faible du registre \RAX:
+
+\RegTableOne{RAX}{EAX}{AX}{AH}{AL}
+
+Les nouveaux registres \GTT{R8-R15} possèdent eux aussi des sous-parties : \GTT{R8D-R15D} 
+(pour les 32 bits de poids faible), \GTT{R8W-R15W} (16 bits de poids faible), \GTT{R8L-R15L} 
+(8 bits de poids faible).
+
+\RegTableFour{R8}{R8D}{R8W}{R8L}
+
+Les registres SIMD ont vu leur nombre passé de 8 à 16: \XMM{0}-\XMM{15}.
+
+\item
+
+En environnement Win64, la convention d'appel de fonctions est légèrement différente et ressemble 
+à la convention fastcall (\myref{fastcall}).
+Les 4 premiers arguments sont stockés dans les registres \RCX, \RDX, \Reg{8} et \Reg{9}. Les 
+arguments suivants~---sur la pile.
+La fonction \glslink{caller}{appelante} doit également allouer 32 octets pour utilisation par la fonction
+\glslink{callee}{appelée} qui pourra y sauvegarder les registres contenant les 4 premiers arguments.
+Les fonctions les plus simples peuvent utiliser les arguments directement depuis les registres. 
+En revanche, les fonctions plus complexes peuvent sauvegarder ces registres sur la pile.
+
+L'ABI System V AMD64 (Linux, *BSD, \MacOSX)\SysVABI ressemble elle aussi à la convention fastcall.
+Elle utilise 6 registres \RDI, \RSI, \RDX, \RCX, \Reg{8}, \Reg{9} pour les 6 premiers arguments. 
+Tous les suivants sont passés sur la pile.
+
+Référez-vous également à la section sur les conventions d'appel~(\myref{sec:callingconventions}).
+
+\item
+Pour des raisons de compatibilité, le type \CCpp \Tint conserve sa taille de 32bits.
+
+\item
+Tous les pointeurs sont désormais sur 64 bits.
+
+\end{itemize}
+
+\myindex{Register allocation}
+
+Dans la mesure où le nombre de registres a doublé, les compilateurs disposent de plus de marge 
+de man\oe{}uvre en matière d'\glslink{register allocator}{allocation des registres}. 
+Pour nous, il en résulte que le code généré contient moins de variables locales.
+
+\myindex{DES}
+
+Par exemple, la fonction qui calcule la première S-box de l'algorithme de chiffrage DES traite 
+en une fois au moyen de la méthode DES bitslice des valeurs de 32/64/128/256 bits (en fonction 
+du type \GTT{DES\_type} (uint32, uint64, SSE2 or AVX)).
+Pour en savoir plus sur cette technique, voyez ~(\myref{bitslicedes}):
+
+\lstinputlisting[style=customc]{patterns/20_x64/19_1.c}
+
+Cette fonction contient de nombreuses variables locales, mais toutes ne se retrouveront pas dans 
+la pile. Compilons ce fichier avec MSVC 2008 et l'option \GTT{/Ox}:
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing,style=customasmx86]{patterns/20_x64/19_2_msvc_Ox.asm}
+
+Seules 5 variables ont été allouées dans la pile par le compilateur.
+
+Essayons maintenant une compilation avec la version 64 bits de MSVC 2008:
+
+\lstinputlisting[caption=MSVC 2008 \Optimizing,style=customasmx86]{patterns/20_x64/19_3_msvc_x64.asm}
+
+Le compilateur n'a pas eu besoin d'allouer de l'espace sur la pile. \GTT{x36} est synonyme de \GTT{a5}.
+
+\iffalse
+% FIXME1 невнятно
+
+Nous observons également que les registres \RCX et \RDX ont été sauvegardés dans l'espace alloué 
+par l'\gls{appelant} et que les registres \Reg{8} et \Reg{9} sont utilisés directement, sans avoir 
+à être sauvegardés.
+\fi
+
+Il existe cependant des CPUs qui possèdent beaucoup plus de \ac{GPR}. Itanium possède ainsi 128 
+registres.
+
+\subsection{ARM}
+
+Les instructions 64 bits sont apparues avec ARMv8.
+
+\subsection{Nombres flottants}
+
+Le traitement des nombres flottants en environnement x86-64 est expliqué ici: \myref{floating_SIMD}.
+
+\subsection{Critiques concernant l'architecture 64 bits}
+
+Certains se sont parfois irrité du doublement de la taille des pointeurs, en particulier dans le 
+cache puisque les \ac{CPU}s x64 ne peuvent de toute manière adresser que des adresses \ac{RAM} 
+sur 48 bits.
+
+\begin{framed}
+\begin{quotation}
+Les pointeurs ont perdu mes faveurs au point que j'en viens à les injurier. Si je cherche vraiment
+à utiliser au mieux les capacités de mon ordinateur 64 bits, j'en conclus que je ferais mieux de
+ne pas utiliser de pointeurs. Les registres de mon ordinateur sont sur 64 bits, mais je n'ai que
+2Go de RAM. Les pointeurs n'ont donc jamais plus de 32 bits significatifs. Et pourtant, chaque
+fois que j'utilise un pointeur, il me coûte 64 bits ce qui double la taille de ma structure de
+données. Pire, ils atterrissent dans mon cache et en gaspillent la moitié et cela me coûte car le
+cache est cher.
+
+Donc, si je cherche à grappiller, j'en viens à utiliser des tableaux au lieu de pointeurs. Je
+rédige des macros compliquées qui peuvent laisser l'impression à tort que j'utilise des pointeurs.
+\end{quotation}
+\end{framed}
+
+( Donald Knuth dans ``Coders at Work: Reflections on the Craft of Programming ''. )
+
+Certains en sont venus à fabriquer leurs propres allocateurs de mémoire.
+\myindex{CryptoMiniSat}
+
+Il est intéressant de se pencher sur le cas de CryptoMiniSat\footnote{\url{https://github.com/msoos/cryptominisat/}}.
+Ce programme qui utilise rarement plus de 4Go de \ac{RAM}, fait un usage intensif des pointeurs.
+Il nécessite donc moins de mémoire sur les architectures 32 bits que sur celles à 64 bits.
+Pour remédier à ce problème, l'auteur a donc programmé son propre allocateur 
+(dans \emph{clauseallocator.(h|cpp)}), qui lui permet d'allouer de la mémoire en utilisant des 
+identifiants sur 32 bits à la place de pointeurs sur 64 bits.
+

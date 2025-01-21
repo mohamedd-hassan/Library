@@ -1,0 +1,55 @@
+....
+
+.text:0000000078D24510 ; \verb|__int64 __fastcall BaseDllMapResourceIdA(PCSZ SourceString)|
+.text:0000000078D24510 BaseDllMapResourceIdA proc near         ; CODE XREF: FindResourceExA+34
+.text:0000000078D24510                                         ; FindResourceExA+4B
+.text:0000000078D24510
+.text:0000000078D24510 var_38          = qword ptr -38h
+.text:0000000078D24510 var_30          = qword ptr -30h
+.text:0000000078D24510 var_28          = _UNICODE_STRING ptr -28h
+.text:0000000078D24510 DestinationString= _STRING ptr -18h
+.text:0000000078D24510 arg_8           = dword ptr  10h
+.text:0000000078D24510
+.text:0000000078D24510 ; FUNCTION CHUNK AT .text:0000000078D42FB4 SIZE 000000D5 BYTES
+.text:0000000078D24510
+.text:0000000078D24510                 push    rbx
+.text:0000000078D24512                 sub     rsp, 50h
+.text:0000000078D24516                 cmp     rcx, 10000h
+.text:0000000078D2451D                 jnb     loc_78D42FB4
+.text:0000000078D24523                 mov     [rsp+58h+var_38], rcx
+.text:0000000078D24528                 jmp     short $+2
+.text:0000000078D2452A ; ---------------------------------------------------------------------------
+.text:0000000078D2452A
+.text:0000000078D2452A loc_78D2452A:                           ; CODE XREF: BaseDllMapResourceIdA+18
+.text:0000000078D2452A                                         ; BaseDllMapResourceIdA+1EAD0
+.text:0000000078D2452A                 jmp     short $+2
+.text:0000000078D2452C ; ---------------------------------------------------------------------------
+.text:0000000078D2452C
+.text:0000000078D2452C loc_78D2452C:                           ; \verb|CODE XREF: BaseDllMapResourceIdA:loc_78D2452A|
+.text:0000000078D2452C                                         ; BaseDllMapResourceIdA+1EB74
+.text:0000000078D2452C                 mov     rax, rcx
+.text:0000000078D2452F                 add     rsp, 50h
+.text:0000000078D24533                 pop     rbx
+.text:0000000078D24534                 retn
+.text:0000000078D24534 ; ---------------------------------------------------------------------------
+.text:0000000078D24535                 align 20h
+.text:0000000078D24535 BaseDllMapResourceIdA endp
+
+....
+
+.text:0000000078D42FB4 loc_78D42FB4:                           ; CODE XREF: BaseDllMapResourceIdA+D
+.text:0000000078D42FB4                 cmp     byte ptr [rcx], '#'
+.text:0000000078D42FB7                 jnz     short loc_78D43005
+.text:0000000078D42FB9                 inc     rcx
+.text:0000000078D42FBC                 lea     r8, [rsp+58h+arg_8]
+.text:0000000078D42FC1                 mov     edx, 0Ah
+.text:0000000078D42FC6                 call    cs:__imp_RtlCharToInteger
+.text:0000000078D42FCC                 mov     ecx, [rsp+58h+arg_8]
+.text:0000000078D42FD0                 mov     [rsp+58h+var_38], rcx
+.text:0000000078D42FD5                 test    eax, eax
+.text:0000000078D42FD7                 js      short loc_78D42FE6
+.text:0000000078D42FD9                 test    rcx, 0FFFFFFFFFFFF0000h
+.text:0000000078D42FE0                 jz      loc_78D2452A
+
+....
+

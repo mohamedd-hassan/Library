@@ -1,0 +1,42 @@
+﻿% N.B.: \Conclusion{} is a macro name, do not translate
+\subsection{\Conclusion{}}
+
+2から9のループの大まかなスケルトン：
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_optimized_JA.lst}
+
+インクリメント操作は、最適化されていないコードでは3つの命令として表すことができます。
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_JA.lst}
+
+ループの本体が短い場合は、レジスタ全体をカウンタ変数専用にすることができます。
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_reg_JA.lst}
+
+ループの一部はコンパイラによって異なる順序で生成されることがあります。
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_order_JA.lst}
+
+通常、条件はループ本体の\emph{前で}チェックされますが、ループ本体の後で条件がチェックされるように
+コンパイラが再配置することがあります。
+
+これは、ループの本体が少なくとも1回は実行されるように、最初の反復で条件が常に\emph{true}であると
+コンパイラが確信するときに行われます。
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_2_9_reorder_JA.lst}
+
+\myindex{x86!\Instructions!LOOP}
+
+\TT{LOOP}命令を使用します。 これはまれですが、コンパイラはそれを使用していません。
+あなたがこれを見る時は、コードは手書きであるというサインです。
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/09_loops/skeleton_x86_loop_JA.lst}
+
+ARM. 
+
+この例では、\Reg{4}レジスタはカウンタ変数専用です。
+
+\lstinputlisting[caption=ARM,style=customasmARM]{patterns/09_loops/skeleton_ARM_JA.lst}
+
+% TODO MIPS
+

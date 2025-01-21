@@ -1,0 +1,77 @@
+\subsection{Operatore ternario}
+\label{chap:cond}
+
+L'operatore ternario in \CCpp ha la seguente sintassi:
+
+\begin{lstlisting}
+espressione ? espressione : espressione
+\end{lstlisting}
+
+Ecco un semplice esempio:
+
+\lstinputlisting[style=customc]{patterns/07_jcc/cond_operator/cond.c}
+
+\subsubsection{x86}
+
+I vecchi compilatori e quelli non ottimizzanti generano codice assembly come se fosse stata usata una coppia \TT{if/else}:
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2008,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2008_IT.asm}
+
+\lstinputlisting[caption=\Optimizing MSVC 2008,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2008_Ox_IT.asm}
+
+I nuovi compilatori sono più concisi:
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/07_jcc/cond_operator/MSVC2012_Ox_x64_IT.asm}
+
+\myindex{x86!\Instructions!CMOVcc}
+\Optimizing GCC 4.8 per x86 usa anche l'istruzione \TT{CMOVcc}, mentre la versione non-optimizing usa jump condizionali.
+
+\subsubsection{ARM}
+
+\myindex{x86!\Instructions!ADRcc}
+Anche l'ottimizzazione Keil per ARM mode usa le istruzioni condizionali \TT{ADRcc}:
+
+\lstinputlisting[label=cond_Keil_ARM_O3,caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/cond_operator/Keil_ARM_O3_IT.s}
+
+Senza alcun intervento manuale, le due istruzioni \TT{ADREQ} e \TT{ADRNE} non possono essere eseguite nella stessa istanza.
+
+\Optimizing Keil per Thumb mode deve usare i jump condizionali, in quanto non esistono istruzioni di caricamento che supportano i flag condizionali:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/cond_operator/Keil_thumb_O3_IT.s}
+
+\subsubsection{ARM64}
+
+L' \Optimizing GCC (Linaro) 4.9 per ARM64 usa anch'esso i jump condizionali:
+
+\lstinputlisting[label=cond_ARM64,caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/07_jcc/cond_operator/ARM64_GCC_O3_IT.s}
+
+Ciò avviene perchè ARM64 non ha una semplice istruzione di caricamento con flag condizionali, come \TT{ADRcc} in ARM mode a 32-bit o \INS{CMOVcc} in x86.
+
+\myindex{ARM!\Instructions!CSEL}
+Tuttavia ha l'istruzione \q{Conditional SELect} (\TT{CSEL})\InSqBrackets{\ARMSixFourRef p390, C5.5},
+ma GCC 4.9 non sembra essere abbastanza intelligente da usarla in un simile pezzo di codice.
+
+\subsubsection{MIPS}
+
+Sfortunatamente, anche GCC 4.4.5 per MIPS non è molto intelligente:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/07_jcc/cond_operator/MIPS_O3_IT.s}
+
+\subsubsection{Riscriviamolo come un \TT{if/else}}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/cond_operator/cond2.c}
+
+\myindex{x86!\Instructions!CMOVcc}
+
+E' interessante notare che GCC 4.8 ottimizzante per x86 è stato in grado di usare \TT{CMOVcc} in questo caso:
+
+\lstinputlisting[caption=\Optimizing GCC 4.8,style=customasmx86]{patterns/07_jcc/cond_operator/cond2_GCC_O3_IT.s}
+
+Keil ottimizzante in ARM mode genera codice identico a \lstref{cond_Keil_ARM_O3}.
+
+Ma MSVC 2012 ottimizzante non è (ancora) così in gamba.
+
+% Do not translate, this is macro:
+\subsubsection{\Conclusion{}}
+
+Perchè i compilatori ottimizzanti cercano di sbarazzarsi dei jump condizionali? Leggi qui: \myref{branch_predictors}.

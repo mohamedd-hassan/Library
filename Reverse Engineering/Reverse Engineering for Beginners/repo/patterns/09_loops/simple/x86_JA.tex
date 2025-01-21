@@ -1,0 +1,176 @@
+﻿\subsubsection{x86}
+
+\myindex{x86!\Instructions!LOOP}
+
+x86命令セットには \ECX というレジスタが値をチェックする特別な \LOOP 命令になります。そして
+0でなければ、\gls{decrement} \ECX し、 \LOOP オペランドのラベルに制御フローを渡します。
+おそらくこの命令はあまり便利ではなく、自動的にそれを発行する最新のコンパイラはありません。
+したがって、コードのどこかでこの命令を見ると、これは手作業で書かれたアセンブリコードである可能性が高いです。
+
+\par
+
+\CCpp のループでは通常\TT{for()}、\TT{while()} または \TT{do/while()}文を使用して構成されます。
+
+\TT{for()}を使ってみましょう。
+\myindex{\CLanguageElements!for}
+
+この文はループの初期化を定義し（ループカウンタを初期値にセット）、
+ループ条件（がリミットより大きいか？）が各イテレーション（\gls{increment}/\gls{decrement}）で実行され、
+ループボディも当然実行されます。
+
+\lstinputlisting[style=customc]{patterns/09_loops/simple/loops_1_JA.c}
+
+生成されたコードは4つの部分で構成されています。
+
+簡単な例から始めましょう：
+
+\lstinputlisting[label=loops_src,style=customc]{patterns/09_loops/simple/loops_2.c}
+
+結果(MSVC 2010):
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/09_loops/simple/1_MSVC_JA.asm}
+
+我々が見るように、特別なものはありません。
+
+GCC 4.4.1はほぼ同じコードを出力しますが、微妙な違いが1つあります：
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/09_loops/simple/1_GCC_JA.asm}
+
+最適化を有効にして（\TT{\Ox}）取得した内容を見てみましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC,style=customasmx86]{patterns/09_loops/simple/1_MSVC_Ox.asm}
+
+ここで起こるのは、 $i$ 変数のスペースがローカルスタックにはもう割り当てられず、
+\ESI のための個別のレジスタを使用するということです。 
+これは、ローカル変数があまりないような小さな関数で可能です。
+
+とても重要なことは、 \ttf 関数が \ESI の値を変更してはならないことです。 
+私たちのコンパイラは確かにそうしています。
+コンパイラが \ttf で \ESI レジスタを使用することを決定した場合、
+その値は関数のプロローグに保存され、関数のエピローグで復元されなければなりません。
+リストのようになります。関数の開始と終了での\TT{PUSH ESI/POP ESI}に注意してください。
+
+最適化を最大にしてGCC 4.4.1を試してみましょう（ \Othree オプション）：
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.1,style=customasmx86]{patterns/09_loops/simple/1_GCC_O3.asm}
+
+\myindex{Loop unwinding}
+
+えっ、GCCは単に私たちのループを巻き戻してしまいました。
+
+\Gls{loop unwinding} は反復回数が多くなく、
+すべてのループサポート命令を削除することで実行時間を短縮できる場合に利点があります。 
+逆の場合では、明らかにコードが大きくなります。
+
+大規模な関数は大量のキャッシュフットプリント%
+%
+\footnote{非常によい記事: \DrepperMemory 
+インテルのループアンローリングに関するその他の推奨事項はこちら:
+\InSqBrackets{\IntelOptimization 3.4.1.7}}
+を必要とする可能性があるため、大きなアンロールループは現代では推奨されません。
+
+OK、 $i$ 変数の最大値を100に増やして、もう一度試してみましょう。 GCCの結果は以下の通り：
+
+\lstinputlisting[caption=GCC,style=customasmx86]{patterns/09_loops/simple/2_GCC_JA.asm}
+
+これは、EBXレジスタが $i$ 変数に割り当てられていることを除いて、
+最適化ありのMSVC 2010（\Ox）と非常によく似ています。
+
+GCCはこのレジスタが \ttf 関数の内部で変更されないことをわかっています。
+もしそうであれば、 \main 関数のように関数プロローグに保存され、エピローグで復元されます。
+
+\clearpage
+\subsubsection{x86: \olly}
+\myindex{\olly}
+
+\Ox と \Obzero オプションを使用してMSVC 2010のサンプルをコンパイルし、 
+\olly にロードしてみましょう。
+
+\olly は単純なループを検出し、便宜上、角カッコで表示してくれます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/09_loops/simple/olly1.png}
+\caption{\olly: \main 開始}
+\label{fig:loops_olly_1}
+\end{figure}
+
+By tracing (F8~--- \stepover) we see \ESI 
+\glslink{increment}{incrementing}.
+Here, for instance, $ESI=i=6$:
+
+トレースすることにより（F8。ステップオーバ）、ESIが増加することがわかります。 ここで、例えば、ESI = i = 6：
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/09_loops/simple/olly2.png}
+\caption{\olly: ループボディが $i=6$ で実行}
+\label{fig:loops_olly_2}
+\end{figure}
+
+9は最後のループ値です。
+そのため、 \JL は\gls{increment}後に実行されず、関数は終了します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/09_loops/simple/olly3.png}
+\caption{\olly: $ESI=10$、ループ終了}
+\label{fig:loops_olly_3}
+\end{figure}
+
+\subsubsection{x86: tracer}
+\myindex{tracer}
+
+見てきたように、デバッガで手動でトレースするのはあまり便利ではありません。 
+それがトレーサを試みる理由です。
+
+コンパイルされたサンプルを \IDA で開き、命令\INS{PUSH ESI}（ \ttf へ1つ引数を渡す）
+のアドレスを見つけます。この場合は \TT{0x401026} で、トレーサを実行してみます。
+
+\begin{lstlisting}
+tracer.exe -l:loops_2.exe bpx=loops_2.exe!0x00401026
+\end{lstlisting}
+
+\TT{BPX} はアドレスにブレークポイントを設定するだけで、 \tracer はレジスタの状態を出力します。
+
+\TT{tracer.log}では、このようになります。
+
+\lstinputlisting{patterns/09_loops/simple/tracer.log}
+
+\ESI レジスタの値が2から9に変化する様子を見ています。
+
+\tracer はそれ以上にも、関数内のすべてのアドレスのレジスタ値を収集できます。 
+これを\emph{trace}といいます。 
+すべての命令がトレースされ、興味深いレジスタ値がすべて記録されます。
+
+次に、コメントを追加する \IDA .idcスクリプトが生成されます。 
+したがって、 \IDA では、 \main 関数のアドレスは\TT{0x00401020}であり、次のように実行されます。
+
+\begin{lstlisting}
+tracer.exe -l:loops_2.exe bpf=loops_2.exe!0x00401020,trace:cc
+\end{lstlisting}
+
+\TT{BPF}は、関数にブレークポイントを設定します。
+
+その結果、\TT{loops\_2.exe.idc}および\TT{loops\_2.exe\_clear.idc}スクリプトが取得されます。
+
+\clearpage
+\TT{loops\_2.exe.idc}を \IDA にロードすると次のようになります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/09_loops/simple/IDA_tracer_cc.png}
+\caption{.idc-scriptを \IDA でロードした}
+\label{fig:loops_IDA_tracer}
+\end{figure}
+
+\ESI はループ本体の開始時には2から9、
+インクリメント後は3から0xA（10）になります。
+\main が \EAX 0で終了していることもわかります。
+
+\tracer はまた、各命令が何回実行されたかに
+関する情報とレジスタ値を含む\TT{loops\_2.exe.txt}も生成します。
+
+\lstinputlisting[caption=loops\_2.exe.txt]{patterns/09_loops/simple/loops_2.exe.txt}
+\myindex{\GrepUsage}
+ここではgrepを使うことができます。

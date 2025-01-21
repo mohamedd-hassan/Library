@@ -1,0 +1,33 @@
+\subsection{\Example{} \#4}
+
+\label{win16_32bit_values}
+
+\lstinputlisting[style=customc]{\CURPATH/ex4.c}
+
+\lstinputlisting[style=customasmx86]{\CURPATH/ex4.lst}
+
+\myindex{MS-DOS}
+Les valeurs 32-bit (le type de donnée \TT{long} implique 32 bits, tandis que \Tint
+est 16-bit en code 16-bit (à la fois pour MS-DOS et Win16) sont passées par paires.
+C'est tout comme lorsqu'une valeur 64-bit est utilisée dans un environnement 32-bit (\myref{sec:64bit_in_32_env}).
+
+\TT{sub\_B2} 
+voici une fonction de bibliothèques écrite par les développeurs du compilateurs qui
+fait la \q{multiplication des long} (i.e., multiplie deux valeurs 32-bits).
+D'autres fonctions de compilateur qui font la même chose sont listées ici: \myref{sec:MSVC_library_func}, \myref{sec:GCC_library_func}.
+
+\myindex{x86!\Instructions!ADD}
+\myindex{x86!\Instructions!ADC}
+La paire d'instructions \TT{ADD}/\TT{ADC} est utilisée pour l'addition de valeurs
+composées: \TT{ADD} peut mettre le flag \TT{CF} à 0/1, et \TT{ADC} l'utilise après.
+
+La paire d'instructions \TT{SUB}/\TT{SBB} est utilisée pour la soustraction: \TT{SUB}
+peut mettre la flag \TT{CF} à 0/1, et \TT{SBB} l'utilise après.
+
+Les valeurs 32-bit sont renvoyées de la fonction dans la paire de registres \TT{DX:AX}.
+
+Les constantes sont aussi passées par paires dans \TT{WinMain()} ici.
+
+\myindex{x86!\Instructions!CWD}
+La constante 123 typée \Tint{} est d'abord converti suivant le signe de la valeur
+32-bit en utilisant l'instruction \TT{CWD}.

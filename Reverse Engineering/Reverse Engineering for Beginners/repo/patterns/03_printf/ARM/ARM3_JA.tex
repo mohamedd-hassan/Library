@@ -1,0 +1,111 @@
+\subsubsection{ARM: 3つの引数}
+% to be sync: \subsubsection{ARM: 3 integer arguments}
+
+引数を渡すためのARMの伝統的なスキーム（呼び出し規約）は、次のように動作します。
+最初の4つの引数は\Reg{0}-\Reg{3}レジスタに渡されます。 残りの引数はスタックを介して。 
+これはfastcall~(\myref{fastcall})またはwin64~(\myref{sec:callingconventions_win64})の引数渡しスキームに似ています。
+
+\myparagraph{32ビットARM}
+
+\mysubparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 40 2D E9   STMFD   SP!, {R4,LR}
+.text:00000004 03 30 A0 E3   MOV     R3, #3
+.text:00000008 02 20 A0 E3   MOV     R2, #2
+.text:0000000C 01 10 A0 E3   MOV     R1, #1
+.text:00000010 08 00 8F E2   ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:00000014 06 00 00 EB   BL      __2printf
+.text:00000018 00 00 A0 E3   MOV     R0, #0          ; return 0
+.text:0000001C 10 80 BD E8   LDMFD   SP!, {R4,PC}
+\end{lstlisting}
+
+したがって、最初の4つの引数は、\Reg{0}-\Reg{3}レジスタをこの順序で渡します。
+\Reg{0}の \printf 形式文字列へのポインタ、\Reg{1}の1、\Reg{2}の2、\Reg{3}の3の順です。 
+\GTT{0x18}の命令は\Reg{0}に0を書き込みます。 これは\emph{return 0} となるCの命令文です。 
+珍しいことは何もありません。
+
+\OptimizingKeilVI は同じコードを生成します。
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 B5        PUSH    {R4,LR}
+.text:00000002 03 23        MOVS    R3, #3
+.text:00000004 02 22        MOVS    R2, #2
+.text:00000006 01 21        MOVS    R1, #1
+.text:00000008 02 A0        ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:0000000A 00 F0 0D F8  BL      __2printf
+.text:0000000E 00 20        MOVS    R0, #0
+.text:00000010 10 BD        POP     {R4,PC}
+\end{lstlisting}
+
+ARMモードの最適化されていないコードとの大きな違いはありません。
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode) + returnを削除してみる}
+\label{ARM_B_to_printf}
+
+\emph{return 0}を取り除いて例を少し修正しましょう：
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf("a=%d; b=%d; c=%d", 1, 2, 3);
+};
+\end{lstlisting}
+
+結果はちょっと珍しくなりました。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/03_printf/ARM/tmp3.asm}
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!B}
+\myindex{Function epilogue}
+これはARMモード用に最適化された（\Othree）バージョンであり、今回は\INS{B}を使い慣れた\INS{BL}ではなく最後の命令と見なします。
+この最適化されたバージョンと前のバージョン（最適化なしでコンパイルされたもの）との別の違いは、
+関数のプロローグとエピローグ（\Reg{0} と \ac{LR}レジスタの値を保持する命令）の欠如です。 
+\INS{B}命令は、x86の \JMP と同様に、\ac{LR}レジスタの操作なしで別のアドレスにジャンプするだけです。
+それはなぜ機能するのでしょうか？実際、このコードは以前のコードと事実上同等です。
+主な理由は2つあります。1）スタックも\ac{SP}（\gls{stack pointer}）も変更されていません。 
+2） \printf の呼び出しが最後の命令なので、その後は何も起こりません。
+完了すると、 \printf 関数は\ac{LR}に格納されているアドレスにコントロールを返します。 
+\ac{LR}は現在、関数が呼び出されたポイントのアドレスを格納しているので、 \printf からの制御はそのポイントに返されます。
+したがって、\ac{LR}を変更する必要がないため、\ac{LR}を節約する必要はありません。 
+\printf 以外の関数呼び出しがないため、\ac{LR}を変更する必要はありません。
+さらに、この呼び出しの後、私たちは何もしません！これがそのような最適化が可能な理由です。
+
+この最適化は、最後のステートメントが別の関数の呼び出しである関数でよく使用されます。
+同様の例をここに示します：\myref{jump_to_last_printf}
+
+% TBT
+% A somewhat simpler case was described above: \myref{Boolector}.
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM3_O0_JA.lst}
+
+\myindex{ARM!\Instructions!STP}
+
+第1の命令\INS{STP} (\emph{ストアペア})は、\ac{FP}（X29）および\ac{LR}（X30）をスタックに保存します。 
+2番目の\INS{ADD X29, SP, 0}命令がスタックフレームを形成します。 
+\ac{SP}の値をX29に書き込むだけです。
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+次に、使い慣れた\INS{ADRP}/\ADD 命令ペアを参照します。これは、文字列へのポインタを形成します。 
+\myindex{ARM64!lo12}
+すなわち、\emph{lo12}は、LC1アドレスの下位12ビットを \ADD 命令のオペコードに書き込みます。
+\printf の文字列書式の\GTT{\%d}は32ビット \Tint なので、1,2および3は32ビットのレジスタ部分にロードされます。
+% to be synced:
+%1, 2 and 3 are 32-bit \Tint{} values, so they are loaded into 32-bit register parts
+%\footnote{Changing 1 to 1L will make it a 64-bit value that would be loaded into 64-bit register.
+%See more about integer constants/literals:
+%\href{https://en.cppreference.com/w/c/language/integer_constant}{1},
+%\href{https://en.cppreference.com/w/cpp/language/integer_literal}{2}.}
+
+\Optimizing GCC (Linaro) 4.9 は同じコードを生成します。

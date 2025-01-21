@@ -1,0 +1,49 @@
+\mysection{const correctness}
+\myindex{\CLanguageElements!const}
+\label{const_in_rdata}
+
+Ceci est une fonctionnalité indûment sous-utilisée de nombreux langages de programmation.
+Pour en savoir plus à ce sujet:
+\href{https://isocpp.org/wiki/faq/const-correctness}{1},
+\href{https://stackoverflow.com/questions/136880/sell-me-on-const-correctness}{2}.
+
+Idéalement, tout ce que vous ne modifiez pas devrait avoir le modificateur \emph{const}.
+Il est intéressant de savoir comment le \emph{const correctness} est implémenté
+à bas niveau.
+Il n'y a pas de vérification des variables ni des arguments de fonction  \emph{const}
+lors de l'exécution (seulement des vérifications lors de la compilation).
+Mais les variables globales de ce type sont allouées dans le segment de données en
+lecture seule.
+
+Cet exemple va planter, car il est compilé par MSVC pour win32, la variable globale
+$a$ est allouée dans le segment de données \verb|.rdata| en lecture seule:
+
+\lstinputlisting[style=customc]{\CURPATH/ex1.c}
+
+Les chaînes C \emph{anonymes} (non liées à un nom de variable) ont aussi un type
+\verb|const char*|.
+Vous ne pouvez pas les modifier:
+
+\lstinputlisting[style=customc]{\CURPATH/ex2.c}
+
+Ce code va planter sur Linux (``segmentation fault'') et sur Windows si il compilé
+par MinGW.
+
+GCC pour Linux met toutes les chaînes de texte dans le segment de données \TT{.rodata},
+qui est explicitement en lecture seule (``read only data''):
+
+\lstinputlisting{\CURPATH/ex2.txt}
+
+Lorsque la fonction \verb|alter_string()| essaye d'y écrire, une exception se produit.
+
+Les choses sont différentes dans le code généré par MSVC, les chaînes sont situées
+dans le segment \TT{.data}, qui n'a pas de flag \TT{READONLY}.
+Les développeurs de MSVC ont-ils fait un faux pas?
+
+\lstinputlisting{\CURPATH/ex22.txt}
+
+Toutefois, MinGW n'a pas cette erreur et alloue les chaînes de texte dans le segment
+\verb|.rdata|.
+
+\input{\CURPATH/two_strings_FR}
+

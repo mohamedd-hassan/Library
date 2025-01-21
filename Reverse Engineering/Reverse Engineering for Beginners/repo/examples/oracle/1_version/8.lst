@@ -1,0 +1,24 @@
+.rodata:0803CAC0      dd 9                    ; element number 0x1f6
+.rodata:0803CAC4      dd offset _2__STRING_13113_0 ; \verb|"X$VERSION"|
+.rodata:0803CAC8      dd 4
+.rodata:0803CACC      dd offset _2__STRING_13114_0 ; "kqvt"
+.rodata:0803CAD0      dd 4
+.rodata:0803CAD4      dd 4
+.rodata:0803CAD8      dd 0
+.rodata:0803CADC      dd 4
+.rodata:0803CAE0      dd 0Ch
+.rodata:0803CAE4      dd 0FFFFC075h
+.rodata:0803CAE8      dd 3
+.rodata:0803CAEC      dd 0
+.rodata:0803CAF0      dd 7
+.rodata:0803CAF4      dd offset _2__STRING_13115_0 ; \verb|"X$KQFSZ"|
+.rodata:0803CAF8      dd 5
+.rodata:0803CAFC      dd offset _2__STRING_13116_0 ; "kqfsz"
+.rodata:0803CB00      dd 1
+.rodata:0803CB04      dd 38h
+.rodata:0803CB08      dd 0
+.rodata:0803CB0C      dd 7
+.rodata:0803CB10      dd 0
+.rodata:0803CB14      dd 0FFFFC09Dh
+.rodata:0803CB18      dd 2
+.rodata:0803CB1C      dd 0

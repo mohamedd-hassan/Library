@@ -1,0 +1,23 @@
+\subsection{Molti casi}
+
+Se uno statement \TT{switch()} contiene molti casi, per il compilatore non è molto conveniente emettere codice troppo lungo con un sacco di 
+istruzioni \JE/\JNE.
+
+\lstinputlisting[label=switch_lot_c,style=customc]{patterns/08_switch/2_lot/lot.c}
+
+\input{patterns/08_switch/2_lot/lot_x86_IT}
+\input{patterns/08_switch/2_lot/lot_ARM_IT}
+\input{patterns/08_switch/2_lot/lot_MIPS_IT}
+
+\subsubsection{\Conclusion{}}
+
+Stuttura approssimativa di \emph{switch()}:
+
+% TODO: ARM, MIPS skeleton
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/08_switch/2_lot/skel1_IT.lst}
+
+Il salto agli indirizzi nella tabella di jump può anche essere implementato usando questa istruzione: \\
+\TT{JMP jump\_table[REG*4]}.
+oppure \TT{JMP jump\_table[REG*8]} in x64.
+
+Una \emph{jumptable} è semplicemente un array di puntatori, come quello descritto più avanti: \myref{array_of_pointers_to_strings}.

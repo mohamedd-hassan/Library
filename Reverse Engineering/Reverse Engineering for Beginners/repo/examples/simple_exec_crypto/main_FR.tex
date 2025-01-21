@@ -1,0 +1,302 @@
+\mysection{Casser un simple exécutable de chiffrement de code}
+
+Nous avons un fichier exécutable qui est chiffré par du chiffrement relativement simple.
+\href{\RepoURL/examples/simple_exec_crypto/files/cipher.bin}{Il est ici}
+(seule la section exécutable est laissée ici).
+
+Tout d'abord, tout ce que fait la fonction de chiffrement, c'est d'ajouter l'index
+de la position dans le buffer à l'octet.
+Voici comment ça peut être implémenté:
+
+\begin{lstlisting}[caption=Python script,style=custompy]
+#!/usr/bin/env python
+def e(i, k):
+    return chr ((ord(i)+k) % 256)
+
+def encrypt(buf):
+    return e(buf[0], 0)+ e(buf[1], 1)+ e(buf[2], 2) + e(buf[3], 3)+ e(buf[4], 4)+ e(buf[5], 5)+ e(buf[6], 6)+ e(buf[7], 7)+
+           e(buf[8], 8)+ e(buf[9], 9)+ e(buf[10], 10)+ e(buf[11], 11)+ e(buf[12], 12)+ e(buf[13], 13)+ e(buf[14], 14)+ e(buf[15], 15)
+\end{lstlisting}
+
+Ainsi, si vous chiffrez un buffer avec 16 zéros, vous obtiendrez \emph{0, 1, 2, 3 ... 12, 13, 14, 15}.
+
+\myindex{Propagating Cipher Block Chaining}
+La Propagating Cipher Block Chaining (PCBC) est aussi utilisée, voici comment elle
+fonctionne:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/simple_exec_crypto/601px-PCBC_encryption.png}
+\caption{Chiffrement avec Propagating Cipher Block Chaining (l'image provient d'un article Wikipédia)}
+\end{figure}
+
+Le problème est de retrouver l'\ac{IV}.
+La force brute n'est pas une option, car l'\ac{IV} est trop long (16 octets).
+Voyons s'il est possible de recouvrer l'\ac{IV} pour un fichier binaire exécutable arbitraire?
+
+Essayons la simple analyse de fréquence.
+Ceci est du code exécutable 32-bit x86, donc collectons des statistiques sur les
+octets et les opcodes les plus fréquents.
+J'ai essayé le fichier géant oracle.exe d' Oracle RDBMS version 11.2 pour windows
+x86 et j'ai trouvé que l'octet le plus fréquent (pas de surprise) est zéro (~10\%).
+L'octet suivant le plus fréquent est (encore une fois, sans surprise) 0xFF (~5\%).
+Le suivant est 0x8B (~5\%).
+
+\myindex{x86!\Instructions!MOV}
+0x8B est l'opcode de \INS{MOV}, ceci est en effet l'une des instructions x86 les
+plus fréquentes.
+Maintenant, que dire de la popularité de l'octet zéro?
+Si le compilateur doit encoder une valeur plus grande que 127, il doit utiliser un
+déplacement 32-bit au lieu d'un de 8-bit, mais les grandes valeurs sont très rares (\myref{MostPopularNumbers}),
+donc il est complété par des zéros.
+\myindex{x86!\Instructions!LEA}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!CALL}
+C'est le cas au moins avec \INS{LEA}, \INS{MOV}, \INS{PUSH}, \INS{CALL}.
+
+Par exemple:
+
+\begin{lstlisting}[style=customasmx86]
+8D B0 28 01 00 00                 lea     esi, [eax+128h]
+8D BF 40 38 00 00                 lea     edi, [edi+3840h]
+\end{lstlisting}
+
+Les déplacements plus grand que 127 sont très fréquents, mais ils excèdent rarement
+0x10000 (en effet, des buffers mémoire/structures aussi grands sont aussi rares).
+
+Même chose avec \INS{MOV}, les grandes constantes sont rares, les plus utilisées sont
+0, 1, 10, 100, $2^n$, et ainsi de suite.
+Le compilateur doit compléter les petites constantes avec des zéros pour les encoder
+comme des valeurs 32-bit:
+
+\begin{lstlisting}[style=customasmx86]
+BF 02 00 00 00                    mov     edi, 2
+BF 01 00 00 00                    mov     edi, 1
+\end{lstlisting}
+
+Maintenant parlons des octets 00 et 0xFF combinés: les sauts (conditionnels inclus)
+et appels peuvent transférer le flux d'exécution en avant ou en arrière, mais très
+souvent, dans les limites du module exécutable courant.
+Si c'est en avant, le déplacement n'est pas très grand et il y a des zéros ajoutés.
+Si c'est en arrière, le déplacement est représenté par une valeur négative, donc
+complétée par des octets 0xFF.
+Par exemple, transfert du flux d'exécution en avant:
+
+\begin{lstlisting}[style=customasmx86]
+E8 43 0C 00 00                    call    _function1
+E8 5C 00 00 00                    call    _function2
+0F 84 F0 0A 00 00                 jz      loc_4F09A0
+0F 84 EB 00 00 00                 jz      loc_4EFBB8
+\end{lstlisting}
+
+En arrière:
+
+\begin{lstlisting}[style=customasmx86]
+E8 79 0C FE FF                    call    _function1
+E8 F4 16 FF FF                    call    _function2
+0F 84 F8 FB FF FF                 jz      loc_8212BC
+0F 84 06 FD FF FF                 jz      loc_FF1E7D
+\end{lstlisting}
+
+L'octet 0xFF se rencontre aussi très souvent dans des déplacements négatifs, comme
+ceux-ci:
+
+\begin{lstlisting}[style=customasmx86]
+8D 85 1E FF FF FF                 lea     eax, [ebp-0E2h]
+8D 95 F8 5C FF FF                 lea     edx, [ebp-0A308h]
+\end{lstlisting}
+
+Jusqu'ici, tout va bien. Maintenant nous devons essayer diverses clefs 16-octet, déchiffrer
+la section exécutable et mesurer les occurences des octets 0, 0xFF et 0x8B.
+Gardons en vue la façon dont le déchiffrement PCBC fonctionne:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/simple_exec_crypto/640px-PCBC_decryption.png}
+\caption{Propagating Cipher Block Chaining decryption (l'image provient d'un article Wikipédia)}
+\end{figure}
+
+La bonne nouvelle est que nous n'avons pas vraiment besoin de déchiffrer l'ensemble
+des données, mais seulement slice par slice, ceci est exactement comment j'ai procédé
+dans mon exemple précédent: \myref{XOR_mask_2}.
+
+Maintenant j'essaye tous les octets possible (0..255) pour chaque octet dans la clef
+et je prends l'octet produisant le plus grande nombre d'octets 0x0/0xFF/0x8B dans le slice
+déchiffré:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys, hexdump, array, string, operator
+
+KEY_LEN=16
+
+def chunks(l, n):
+    # split n by l-byte chunks
+    # https://stackoverflow.com/q/312443
+    n = max(1, n)
+    return [l[i:i + n] for i in range(0, len(l), n)]
+
+def read_file(fname):
+    file=open(fname, mode='rb')
+    content=file.read()
+    file.close()
+    return content
+
+def decrypt_byte (c, key):
+    return chr((ord(c)-key) % 256)
+
+def XOR_PCBC_step (IV, buf, k):
+    prev=IV
+    rt=""
+    for c in buf:
+	new_c=decrypt_byte(c, k)
+        plain=chr(ord(new_c)^ord(prev))
+	prev=chr(ord(c)^ord(plain))
+	rt=rt+plain
+    return rt
+
+each_Nth_byte=[""]*KEY_LEN
+
+content=read_file(sys.argv[1])
+# split input by 16-byte chunks:
+all_chunks=chunks(content, KEY_LEN)
+for c in all_chunks:
+    for i in range(KEY_LEN):
+        each_Nth_byte[i]=each_Nth_byte[i] + c[i]
+
+# try each byte of key
+for N in range(KEY_LEN):
+    print "N=", N
+    stat={}
+    for i in range(256):
+        tmp_key=chr(i)
+	tmp=XOR_PCBC_step(tmp_key,each_Nth_byte[N], N)
+        # count 0, FFs and 8Bs in decrypted buffer:
+	important_bytes=tmp.count('\x00')+tmp.count('\xFF')+tmp.count('\x8B')
+	stat[i]=important_bytes
+    sorted_stat = sorted(stat.iteritems(), key=operator.itemgetter(1), reverse=True)
+    print sorted_stat[0]
+\end{lstlisting}
+
+(Le code source peut être téléchargé
+\href{\RepoURL/examples/simple_exec_crypto/files/decrypt.py}{ici}.)
+
+Je le lance et voici une clef pour laquelle le nombre d'octets 0/0xFF/0x8B dans le buffer
+déchiffré est maximum:
+
+\begin{lstlisting}
+N= 0
+(147, 1224)
+N= 1
+(94, 1327)
+N= 2
+(252, 1223)
+N= 3
+(218, 1266)
+N= 4
+(38, 1209)
+N= 5
+(192, 1378)
+N= 6
+(199, 1204)
+N= 7
+(213, 1332)
+N= 8
+(225, 1251)
+N= 9
+(112, 1223)
+N= 10
+(143, 1177)
+N= 11
+(108, 1286)
+N= 12
+(10, 1164)
+N= 13
+(3, 1271)
+N= 14
+(128, 1253)
+N= 15
+(232, 1330)
+\end{lstlisting}
+
+Écrivons un utilitaire de déchiffrement avec la clef obtenue:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys, hexdump, array
+
+def xor_strings(s,t):
+    # \verb|https://en.wikipedia.org/wiki/XOR_cipher#Example_implementation|
+    """xor two strings together"""
+    return "".join(chr(ord(a)^ord(b)) for a,b in zip(s,t))
+
+IV=array.array('B', [147, 94, 252, 218, 38, 192, 199, 213, 225, 112, 143, 108, 10, 3, 128, 232]).tostring()
+
+def chunks(l, n):
+    n = max(1, n)
+    return [l[i:i + n] for i in range(0, len(l), n)]
+
+def read_file(fname):
+    file=open(fname, mode='rb')
+    content=file.read()
+    file.close()
+    return content
+
+def decrypt_byte(i, k):
+    return chr ((ord(i)-k) % 256)
+
+def decrypt(buf):
+    return "".join(decrypt_byte(buf[i], i) for i in range(16))
+
+fout=open(sys.argv[2], mode='wb')
+
+prev=IV
+content=read_file(sys.argv[1])
+tmp=chunks(content, 16)
+for c in tmp:
+    new_c=decrypt(c)
+    p=xor_strings (new_c, prev)
+    prev=xor_strings(c, p)
+    fout.write(p)
+fout.close()
+\end{lstlisting}
+
+(Le code source peut être téléchargé
+\href{\RepoURL/examples/simple_exec_crypto/files/decrypt2.py}
+{ici}.)
+
+Vérifions le fichier résultant:
+
+\lstinputlisting{examples/simple_exec_crypto/objdump_result.txt}
+
+Oui, ceci semble être un morceau correctement désassemblé de code x86.
+Le fichier déchiffré entier peut être téléchargé
+\href{\RepoURL/examples/simple_exec_crypto/files/decrypted.bin}{ici}.
+
+En fait, ceci est la section text du regedit.exe de Windows 7.
+Mais cet exemple est basé sur un cas réel que j'ai rencontré, seul l'exécutable est
+différent (et la clef), l'algorithme est le même.
+
+\subsection{Autres idées à prendre en considération}
+
+Et si j'avais échoué avec cette simple analyse des fréquences?
+Il y a d'autres idées sur la façon de mesurer l'exactitude de code x86 déchiffré/décompressé:
+
+\begin{itemize}
+
+\item De nombreux compilateurs modernes alignent le début des fonctions sur une limite 16-bits.
+Donc l'espace libre avant est rempli avec de NOPs (0x90) ou d'autres instructions
+avec des opcodes connus: \myref{sec:npad}.
+Ou des instructions INT3 (0xCC).
+
+\item Peut-être que le pattern le plus fréquent dans tout langage d'assemblage est
+l'appel de fonction:\\
+\TT{PUSH chain / CALL / ADD ESP, X}.
+Cette séquence peut facilement être détectée et trouvée.
+J'ai même collecté des statistiques sur le nombre moyen d'arguments des fonctions: \myref{args_stat}.
+(Ainsi, ceci est la longueur moyenne d'une série d'instructions PUSH.)
+
+\end{itemize}
+
+En savoir plus sur le code désassemblé incorrectement/correctement: \myref{ISA_detect}.
+

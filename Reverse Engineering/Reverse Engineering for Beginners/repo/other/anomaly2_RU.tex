@@ -1,0 +1,24 @@
+\subsection{MSVC 6.0}
+
+Нашел такое в каком-то старом коде:
+
+\begin{lstlisting}[style=customasmx86]
+                 fabs
+                 fild    [esp+50h+var_34]
+                 fabs
+                 fxch    st(1) ; первая инструкция
+                 fxch    st(1) ; вторая инструкция
+                 faddp   st(1), st
+                 fcomp   [esp+50h+var_3C]
+                 fnstsw  ax
+                 test    ah, 41h
+                 jz      short loc_100040B7
+\end{lstlisting}
+
+\myindex{x86!\Instructions!FXCH}
+Первая инструкция \INS{FXCH} просто меняет \TT{ST(0)} и \TT{ST(1)}, вторая делает то же самое, так что обе ничего не делают.
+Эта программа использует MFC42.dll, так что это может быть MSVC 6.0, 5.0 или даже MSVC 4.2 из 1990-х.
+
+Эта пара ничего не делает, так что это не было обнаружено тестами компилятора MSVC.
+Или я ошибаюсь?
+

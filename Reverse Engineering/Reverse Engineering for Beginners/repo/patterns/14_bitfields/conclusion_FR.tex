@@ -1,0 +1,136 @@
+﻿% TODO: add ROL/ROR
+\subsection{\Conclusion{}}
+
+\myindex{x86!\Instructions!SHR}
+\myindex{x86!\Instructions!SHL}
+\myindex{x86!\Instructions!SAR}
+
+Semblables aux opérateurs de décalage de \CCpp \TT{$\ll$} et \TT{$\gg$}, les instructions
+de décalage en x86 sont \SHR/\SHL (pour les valeurs non-signées) et \SAR/\SHL (pour
+les valeurs signées).
+
+\myindex{ARM!\Instructions!LSR}
+\myindex{ARM!\Instructions!LSL}
+\myindex{ARM!\Instructions!ASR}
+
+Les instructions de décalages en ARM sont \LSR/\LSL (pour les valeurs non-signées)
+et \ASR/\LSL (pour les valeurs signées).
+
+Il est aussi possible d'ajouter un suffixe de décalage à certaines instructions (qui
+sont appelées \q{data processing instructions/instructions de traitement de données}).
+% FIXME: which instructions?
+
+\subsubsection{Tester un bit spécifique (connu à l'étape de compilation)}
+
+Tester si le bit 0b1000000 (0x40) est présent dans la valeur du registre:
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet0.c}
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/14_bitfields/TEST_JNZ_FR.lst}
+
+\lstinputlisting[caption=x86,style=customasmx86]{patterns/14_bitfields/TEST_JZ_FR.lst}
+
+\lstinputlisting[caption=ARM (\ARMMode),style=customasmARM]{patterns/14_bitfields/TST_BNE_FR.lst}
+
+\myindex{x86!\Instructions!AND}
+\myindex{x86!\Instructions!TEST}
+
+Parfois, \AND est utilisé au lieu de \TEST, mais les flags qui sont mis sont les
+même.
+
+\subsubsection{Tester un bit spécifique (spécifié lors de l'exécution)}
+
+Ceci est effectué en général par ce bout de code \CCpp (décaler la valeur de $n$
+bits vers la droite, puis couper le plus petit bit):
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet1.c}
+
+Ceci est en général implémenté en code x86 avec:
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; REG=input\_value
+; CL=n
+SHR REG, CL
+AND REG, 1
+\end{lstlisting}
+
+Ou (décaler 1 bit $n$ fois à gauche, isoler ce bit dans la valeur entrée et tester
+si ce n'est pas zéro):
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet2.c}
+
+Ceci est en général implémenté en code x86 avec:
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+AND input_value, REG
+\end{lstlisting}
+
+\subsubsection{Mettre à 1 un bit spécifique (connu à l'étape de compilation)}
+
+\begin{lstlisting}[caption=\CCpp]
+value=value|0x40;
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+OR REG, 40h
+\end{lstlisting}
+
+\begin{lstlisting}[caption=ARM (\ARMMode) and ARM64,style=customasmARM]
+ORR R0, R0, #0x40
+\end{lstlisting}
+
+\subsubsection{Mettre à 1 un bit spécifique (spécifié lors de l'exécution)}
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet3.c}
+
+Ceci est en général implémenté en code x86 avec:
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+OR input_value, REG
+\end{lstlisting}
+
+\subsubsection{Mettre à 0 un bit spécifique (connu à l'étape de compilation)}
+
+Il suffit d'effectuer l'opération \AND sur la valeur inversée:
+
+\begin{lstlisting}[caption=\CCpp,style=customc]
+value=value&(~0x40);
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+AND REG, 0FFFFFFBFh
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x64,style=customasmx86]
+AND REG, 0FFFFFFFFFFFFFFBFh
+\end{lstlisting}
+
+Ceci laisse tous les bits qui sont à 1 inchangés excepté un.
+
+\myindex{ARM!\Instructions!BIC}
+
+ARM en mode ARM a l'instruction \BIC, qui fonctionne comme la paire d'instructions:
+\NOT+\AND:
+
+\begin{lstlisting}[caption=ARM (\ARMMode),style=customasmARM]
+BIC R0, R0, #0x40
+\end{lstlisting}
+
+\subsubsection{
+Mettre à 0 un bit spécifique (spécifié lors de l'exécution)}
+
+\lstinputlisting[caption=\CCpp,style=customc]{patterns/14_bitfields/c_snippet4.c}
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+; CL=n
+MOV REG, 1
+SHL REG, CL
+NOT REG
+AND input_value, REG
+\end{lstlisting}

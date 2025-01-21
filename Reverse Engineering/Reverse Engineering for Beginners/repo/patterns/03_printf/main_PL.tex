@@ -1,0 +1,100 @@
+\mysection{\PrintfSeveralArgumentsSectionName}
+
+Spróbujmy rozszerzyć przykład \emph{\HelloWorldSectionName}~(\myref{sec:helloworld}):
+
+\lstinputlisting[label=hw_c,style=customc]{patterns/03_printf/1.c}
+
+% sections
+\input{patterns/03_printf/x86/main}
+\input{patterns/03_printf/ARM/main}
+\input{patterns/03_printf/MIPS/main}
+
+\subsection{\Conclusion{}}
+
+Tak wygląda szkielet wywołania funkcji:
+
+\begin{lstlisting}[caption=x86,style=customasmx86]
+...
+PUSH 3. argument
+PUSH 2. argument
+PUSH 1. argument
+CALL funkcja
+; zmodyfikuj wskaźnik stosu (jeśli trzeba)
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x64 (MSVC),style=customasmx86]
+MOV RCX, 1. argument
+MOV RDX, 2. argument
+MOV R8, 3. argument
+MOV R9, 4. argument
+...
+PUSH 5., 6., ... argument ; (jeśli trzeba)
+CALL funkcja
+; zmodyfikuj wskaźnik stosu (jeśli trzeba)
+\end{lstlisting}
+
+\begin{lstlisting}[caption=x64 (GCC),style=customasmx86]
+MOV RDI, 1. argument
+MOV RSI, 2. argument
+MOV RDX, 3. argument
+MOV RCX, 4. argument
+MOV R8, 5. argument
+MOV R9, 6. argument
+...
+PUSH 7., 8., ... argument ; (jeśli trzeba)
+CALL funkcja
+; zmodyfikuj wskaźnik stosu (jeśli trzeba)
+\end{lstlisting}
+
+\begin{lstlisting}[caption=ARM,style=customasmARM]
+MOV R0, 1. argument
+MOV R1, 2. argument
+MOV R2, 3. argument
+MOV R3, 4. argument
+; przekaż 5., 6., ... argument przez stos (jeśli trzeba)
+BL funkcja
+; zmodyfikuj wskaźnik stosu (jeśli trzeba)
+\end{lstlisting}
+
+\begin{lstlisting}[caption=ARM64,style=customasmARM]
+MOV X0, 1. argument
+MOV X1, 2. argument
+MOV X2, 3. argument
+MOV X3, 4. argument
+MOV X4, 5. argument
+MOV X5, 6. argument
+MOV X6, 7. argument
+MOV X7, 8. argument
+; przekaż 9., 10., ... argument przez stos (jeśli trzeba)
+BL funkcja
+; zmodyfikuj wskaźnik stosu (jeśli trzeba)
+\end{lstlisting}
+
+\myindex{MIPS!O32}
+\begin{lstlisting}[caption=MIPS (konwencja wywoływania O32),style=customasmMIPS]
+LI $4, 1. argument ; AKA \$A0
+LI $5, 2. argument ; AKA \$A1
+LI $6, 3. argument ; AKA \$A2
+LI $7, 4. argument ; AKA \$A3
+; przekaż 5., 6., ... argument, przez stos (jeśli trzeba)
+LW temp_reg, adress funkcji
+JALR temp_reg
+\end{lstlisting}
+
+\subsection{Przy okazji}
+
+\myindex{fastcall}
+Różnice między przekazywaniem argumentów funkcji w x86, x64, fastcall, ARM i MIPS pokazują, że procesorowi jest bez różnicy,
+jak będą przekazywane argumenty do funkcji. Można by stworzyć kompilator, który będzie je przekazywał za pomocą wskaźnika na strukturę z argumentami, nie korzystając ze stosu w ogóle.
+
+\myindex{MIPS!O32}
+Rejestry \$A0\dots \$A3 w MIPS są nazwane w ten sposób tylko dla wygody (jest tak w konwencji wywoływania O32).
+Programiści mogą korzystać z jakichkolwiek innych rejestrów (może oprócz \$ZERO) do przekazywania argumentów i dowolnej konwencji wywoływania funkcji.
+
+\ac{CPU} w żaden sposób nie jest świadomy jakiej metody używamy.
+
+Początkujący programiści asemblera często przekazują argumenty do funkcji przez rejestry, bez wyraźnego porządku lub nawet przez zmienne globalne.
+
+To też będzie działać poprawnie.
+
+

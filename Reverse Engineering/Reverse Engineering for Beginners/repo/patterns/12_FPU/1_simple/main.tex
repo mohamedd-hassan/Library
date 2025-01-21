@@ -1,0 +1,45 @@
+\ifdefined\RUSSIAN
+\subsection{Простой пример}
+
+Рассмотрим простой пример:
+\fi
+
+\ifdefined\ENGLISH
+\subsection{Simple example}
+
+Let's consider this simple example:
+\fi
+
+\ifdefined\GERMAN
+\subsection{\DEph{}}
+
+\DEph{}
+
+\fi
+
+\ifdefined\FRENCH
+\subsection{Exemple simple}
+
+Considérons cet exemple simple:
+\fi
+
+\ifdefined\JAPANESE
+\subsection{簡単な例}
+
+この簡単な例を考えてみましょう。
+\fi
+
+\lstinputlisting[style=customc]{patterns/12_FPU/1_simple/simple.c}
+
+\input{patterns/12_FPU/1_simple/x86}
+\input{patterns/12_FPU/1_simple/ARM/main}
+
+\iffalse
+A BUG HERE! to be fixed...
+\EN{\input{patterns/12_FPU/1_simple/MIPS_EN}}
+\RU{\input{patterns/12_FPU/1_simple/MIPS_RU}}
+\DE{\input{patterns/12_FPU/1_simple/MIPS_DE}}
+\FR{\input{patterns/12_FPU/1_simple/MIPS_FR}}
+\JA{\input{patterns/12_FPU/1_simple/MIPS_JA}}
+\fi
+

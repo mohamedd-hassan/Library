@@ -1,0 +1,136 @@
+﻿\subsection{Charger une constante 32-bit dans un registre}
+\label{MIPS_big_constants}
+
+\begin{lstlisting}[style=customc]
+unsigned int f()
+{
+	return 0x12345678;
+};
+\end{lstlisting}
+
+Toutes les instructions MIPS, tout comme en ARM, ont une taille de 32-bit, donc il
+n'est pas possible d'inclure une constante 32-bit dans une instruction.
+\myindex{MIPS!\Instructions!LI}
+\myindex{MIPS!\Instructions!ORI}
+
+Donc il faut utiliser au moins deux instructions:
+la première charge la partie haute du nombre de 32-bit et la seconde effectue une
+opération OR, qui met effectivement la partie 16-bit basse du registre de destination:
+
+\begin{lstlisting}[caption=GCC 4.4.5 -O3 (\assemblyOutput),style=customasmMIPS]
+        li      $2,305397760  # 0x12340000
+        j       $31
+        ori     $2,$2,0x5678 ; slot de délai de branchement
+\end{lstlisting}
+
+\IDA reconnaît ce pattern de code, qui se rencontre fréquemment, donc, par commodité,
+il montre la dernière instruction \INS{ORI} comme la pseudo-instruction \INS{LI} qui
+charge soit disant un nombre entier de 32-bit dans le registre \$V0. % TODO: check allegedly
+
+\myindex{MIPS!\Instructions!LUI}
+
+\begin{lstlisting}[caption=GCC 4.4.5 -O3 (IDA),style=customasmMIPS]
+         lui     $v0, 0x1234
+         jr      $ra
+         li      $v0, 0x12345678 ; slot de délai de branchement
+\end{lstlisting}
+
+La sortie de l'assembleur GCC a la pseudo instruction LI, mais il s'agit en fait
+ici de \INS{LUI} (\q{Load Upper Immediate} charger la valeur immédiate en partie
+haute), qui stocke une valeur 16-bit dans la partie haute du registre.
+
+Regardons la sortie de \emph{objdump}:
+
+\begin{lstlisting}[caption=objdump,style=customasmMIPS]
+00000000 <f>:
+   0:   3c021234        lui     v0,0x1234
+   4:   03e00008        jr      ra
+   8:   34425678        ori     v0,v0,0x5678
+\end{lstlisting}
+
+\subsubsection{Charger une variable globale 32-bit dans un registre}
+
+\begin{lstlisting}[style=customc]
+unsigned int global_var=0x12345678;
+
+unsigned int f2()
+{
+        return global_var;
+};
+\end{lstlisting}
+
+\myindex{MIPS!\Instructions!LW}
+
+Ceci est légèrement différent: \INS{LUI} charge les 16-bit haut de \emph{global\_var}
+dans \$2 (ou \$V0) et ensuite \INS{LW} charge les 16-bit bas en l'ajoutant au contenu
+de \$2:
+
+\begin{lstlisting}[caption=GCC 4.4.5 -O3 (\assemblyOutput),style=customasmMIPS]
+f2:
+        lui     $2,%hi(global_var)
+        lw      $2,%lo(global_var)($2)
+        j       $31
+        nop	; slot de délai de branchement
+
+	...
+
+global_var:
+        .word   305419896
+\end{lstlisting}
+
+\IDA reconnaît cette paire d'instructions fréquemment utilisée, donc il concatène en
+une seule instruction \INS{LW}.
+
+\begin{lstlisting}[caption=GCC 4.4.5 -O3 (IDA),style=customasmMIPS]
+_f2:
+                lw      $v0, global_var
+                jr      $ra
+                or      $at, $zero	; slot de délai de branchement
+
+		...
+
+                .data
+                .globl global_var
+global_var:     .word 0x12345678         # DATA XREF: \_f2
+\end{lstlisting}
+
+La sortie d'\emph{objdump} est la même que la sortie assembleur de GCC:
+Affichons le code de relogement du fichier objet:
+
+\begin{lstlisting}[caption=objdump,style=customasmMIPS]
+objdump -D filename.o
+
+...
+
+0000000c <f2>:
+   c:   3c020000        lui     v0,0x0
+  10:   8c420000        lw      v0,0(v0)
+  14:   03e00008        jr      ra
+  18:   00200825        move    at,at	; slot de délai de branchement
+  1c:   00200825        move    at,at
+
+Désassemblage de la section .data:
+
+00000000 <global_var>:
+   0:   12345678        beq     s1,s4,159e4 <f2+0x159d8>
+
+...
+
+objdump -r filename.o
+
+...
+
+RELOCATION RECORDS FOR [.text]:
+OFFSET   TYPE              VALUE
+0000000c R_MIPS_HI16       global_var
+00000010 R_MIPS_LO16       global_var
+
+...
+
+\end{lstlisting}
+
+Nous voyons que l'adresse de \emph{global\_var} est écrite dans les instructions \INS{LUI}
+et \INS{LW} lors du chargement de l'exécutable:
+la partie haute de \emph{global\_var} se trouve dans la première (\INS{LUI}), la partie
+basse dans la seconde (\INS{LW}).
+

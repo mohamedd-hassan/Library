@@ -1,0 +1,21 @@
+﻿\mysection{Détails spécifiques à ARM}
+
+\subsection{Signe (\#) avant un nombre}
+
+Le compilateur Keil, \IDA et objdump font précéder tous les nombres avec le signe
+\q{\#}, par exemple:
+\lstref{Keil_number_sign}.
+
+Mais lorsque GCC 4.9 génère une sortie en langage d'assemblage, il ne le fait pas,
+par exemple:
+\lstref{GCC_no_number_sign}.
+
+Les listings ARM dans ce livre sont quelque peu mélangés.
+
+Il est difficile de dire quelle méthode est juste.
+On est supposé suivre les règles admises de l'environnement dans lequel on travaille.
+
+% sections
+\input{patterns/ARM/post_pre_index_FR.tex}
+\input{patterns/ARM/big_constants_FR.tex}
+\input{patterns/ARM/relocs_FR.tex}

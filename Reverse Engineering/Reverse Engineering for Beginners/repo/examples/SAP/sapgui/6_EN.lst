@@ -1,0 +1,19 @@
+.text:64411DF1                 cmp     [ebp+compression], esi
+.text:64411DF7                 jz      short set_EAX_to_0
+.text:64411DF9                 mov     al, [ebx+78h]   ; another value may affect compression?
+.text:64411DFC                 cmp     al, '3'
+.text:64411DFE                 jz      short set_EAX_to_1
+.text:64411E00                 cmp     al, '4'
+.text:64411E02                 jnz     short set_EAX_to_0
+.text:64411E04
+.text:64411E04 set_EAX_to_1:
+.text:64411E04                 xor     eax, eax
+.text:64411E06                 inc     eax             ; EAX -> 1
+.text:64411E07                 jmp     short loc_64411E0B
+.text:64411E09
+.text:64411E09 set_EAX_to_0:
+.text:64411E09
+.text:64411E09                 xor     eax, eax        ; EAX -> 0
+.text:64411E0B
+.text:64411E0B loc_64411E0B:
+.text:64411E0B                 mov     [ebx+3A4h], eax ; EBX is pointer to CNetwork object

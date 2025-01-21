@@ -1,0 +1,112 @@
+\subsubsection{ARM: 4 argumenty}
+
+Tradycyjny sposób w ARM na przekazywanie argumentów (tzw. konwencja wywoływania funkcji) wygląda następująco:
+pierwsze 4 argumenty są przekazywane przez rejestry \Reg{0}-\Reg{3}, a pozostałe przez stos.
+Przypomina to konwencję fastcall~(\myref{fastcall}) czy win64~(\myref{sec:callingconventions_win64}).
+
+\myparagraph{32-bitowy ARM}
+
+\mysubparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 40 2D E9   STMFD   SP!, {R4,LR}
+.text:00000004 03 30 A0 E3   MOV     R3, #3
+.text:00000008 02 20 A0 E3   MOV     R2, #2
+.text:0000000C 01 10 A0 E3   MOV     R1, #1
+.text:00000010 08 00 8F E2   ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:00000014 06 00 00 EB   BL      __2printf
+.text:00000018 00 00 A0 E3   MOV     R0, #0          ; zwróć 0
+.text:0000001C 10 80 BD E8   LDMFD   SP!, {R4,PC}
+\end{lstlisting}
+
+Pierwsze 4 argumenty zostały przekazane przez rejestry \Reg{0}-\Reg{3} w następującej kolejności:
+wskaźnik na łańcuch znaków z formatem w \Reg{0}, następnie 1 w \Reg{1}, 2 w \Reg{2} i 3 w \Reg{3}.
+Instrukcja z adresu \GTT{0x18} zapisuje 0 do rejestru \Reg{0}---jest to część instrukcji \emph{return 0} z kodu C.
+Nic nadzwyczajnego.
+
+\OptimizingKeilVI generuje taki sam kod.
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 B5        PUSH    {R4,LR}
+.text:00000002 03 23        MOVS    R3, #3
+.text:00000004 02 22        MOVS    R2, #2
+.text:00000006 01 21        MOVS    R1, #1
+.text:00000008 02 A0        ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:0000000A 00 F0 0D F8  BL      __2printf
+.text:0000000E 00 20        MOVS    R0, #0
+.text:00000010 10 BD        POP     {R4,PC}
+\end{lstlisting}
+
+Porównując do niezoptymalizowanego kodu w trybie ARM, nie widać wyraźnej różnicy.
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode) + usunięty return}
+\label{ARM_B_to_printf}
+
+Zmieńmy nieco przykład, usuwając \emph{return 0}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf("a=%d; b=%d; c=%d", 1, 2, 3);
+};
+\end{lstlisting}
+
+Efekt jest dość nieoczekiwany:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/03_printf/ARM/tmp3.asm}
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!B}
+\myindex{Function epilogue}
+W zoptymalizowanej wersji w trybie ARM widzimy, że ostatnią instrukcją jest \INS{B} zamiast spodziewanej \INS{BL}.
+Inną różnicą jest brak prologu i epilogu (instrukcje zachowujące wartości rejestrów \Reg{0} i \ac{LR}), które wystąpiły w wersji niezoptymalizowanej.
+\myindex{x86!\Instructions!JMP}
+
+Instrukcja \INS{B} skacze pod inny adres, bez zmiany rejestru \ac{LR}, podobnie jak \JMP w x86.
+Dlaczego to działa?
+Nowy kod w działaniu jest równoważny poprzedniej wersji z dwóch powodów:
+
+1) nie jest modyfikowany \ac{SP} (\glslink{stack pointer}{wskaźnik stosu}),
+
+2) wywołanie \printf jest ostatnią instrukcją, nic się dalej nie dzieje.
+
+Funkcja \printf po zakończeniu pracy zwraca sterowanie do adresu z \ac{LR}.
+\ac{LR} przechowuje adres miejsca, z którego nasza funkcja została wywołana, a więc tam też zostanie zwrócone sterowanie.
+Nie musimy zapisywać \ac{LR}, ponieważ nie ma konieczności jego modyfikacji.
+W programie nie ma innych wywołań funkcji niż wywołanie \printf i to z tego powodu nie musimy modyfikować \ac{LR}. Co więcej, po wywołaniu funkcji nie musimy już nic robić!
+To własnie dzięki tym wszystkim okolicznościom optymalizacja była możliwa.
+
+Podobna optymalizacja pojawia się często w funkcjach, których ostatnią instrukcją jest wywołanie innej funkcji.
+Podobny przykład widać tutaj:
+\myref{jump_to_last_printf}.
+
+Nieco prostszy przykład opisywaliśmy już wcześniej: \myref{Boolector}.
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM3_O0_PL.lst}
+
+\myindex{ARM!\Instructions!STP}
+
+Pierwsza instrukcja \INS{STP} (\emph{Store Pair}) zapisuje na stosie \ac{FP} (X29) i \ac{LR} (X30).
+Kolejna ~--- \INS{ADD X29, SP, 0} ~--- tworzy ramkę stosu przez zapisanie wartości \ac{SP} do X29.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+Następnie widać już znaną parę instrukcji \INS{ADRP}/\ADD, która konstruuje wskaźnik na łańcuch znaków.
+\myindex{ARM64!lo12}
+\emph{lo12} oznacza młodsze 12 bitów~--- linker umieści młodsze 12 bitów adresu LC1 w kodzie operacji (opcode) instrukcji \ADD. Trzy ostatnie argumenty funkcji \printf ~--- 1, 2 i 3 ~--- to literały typu \Tint, więc są ładowane do 32-bitowych części rejestru.
+\footnote{Zmiana 1 na 1L (literał \GTT{long long}) spowoduje, że będzie to wartość 64-bitowa i trafi ona do rejestru 64-bitowego.
+Więcej o definiowaniu liczb całkowitych i literałach w \CCpp:
+\href{https://en.cppreference.com/w/c/language/integer_constant}{1},
+\href{https://en.cppreference.com/w/cpp/language/integer_literal}{2}.}
+
+\Optimizing GCC (Linaro) 4.9 generuje taki sam kod.
+

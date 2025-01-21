@@ -1,0 +1,64 @@
+\subsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/145_LCG/MIPS_O3_IDA_FR.lst}
+
+Ouah, ici nous ne voyons qu'une seule constante (0x3C6EF35F ou 1013904223).
+Où est l'autre (1664525)?
+
+Il semble que la multiplication soit effectuée en utilisant seulement des décalages
+et des additions!
+Vérifions cette hypothèse:
+
+\lstinputlisting[style=customc]{patterns/145_LCG/test.c}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/145_LCG/test_O3_MIPS.lst}
+
+En effet!
+
+\subsubsection{Relocations MIPS}
+
+Nous allons nous concentrer sur comment les opérations comme charger et stocker dans
+la mémoire fonctionnent.
+
+Les listings ici sont produits par IDA, qui cache certains détails.
+
+Nous allons lancer objdump deux fois: pour obtenir le listing désassemblé et aussi
+la liste des relogements:
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (objdump)]{patterns/145_LCG/MIPS_O3_objdump.txt}
+
+Considérons les deux relogements pour la fonction \TT{my\_srand()}.
+
+La première, pour l'adresse 0 a un type de \TT{R\_MIPS\_HI16} et la seconde pour
+l'adresse 8 a un type de \TT{R\_MIPS\_LO16}.
+
+Cela implique que l'adresse du début du segment .bss soit écrite dans les instructions
+à l'adresse 0 (partie haute de l'adresse) et 8 (partie basse de l'adresse).
+
+La variable \TT{rand\_state} est au tout début du segment .bss.
+
+Donc nous voyons des zéros dans les opérandes des instructions \LUI et \SW, car il
+n'y a encore rien ici--- le compilateur ne sait pas quoi y écrire.
+
+L'éditeur de liens va arranger cela, et la partie haute de l'adresse sera écrite
+dans l'opérande de \LUI et la partie basse de l'adresse---dans l'opérande de \SW.
+
+\SW va ajouter la partie basse de l'adresse avec le contenu du registre \$V0 (la
+partie haute y est).
+
+C'est la même histoire avec la fonction my\_rand(): la relogement R\_MIPS\_HI16 indique
+à l'éditeur de liens d'écrire la partie haute.
+
+Donc la partie haute de l'adresse de la variable rand\_state se trouve dans le registre
+\$V1.
+
+L'instruction \LW à l'adresse 0x10 ajoute les parties haute et basse et charge la
+valeur de la variable rand\_state dans \$V0.
+
+L'instruction \SW à l'adresse 0x54 fait à nouveau la somme et stocke la nouvelle
+valeur dans la variable globale rand\_state.
+
+IDA traite les relogements pendant le chargement, cachant ainsi ces détails, mais
+nous devons les garder à l'esprit.
+
+% TODO add example of compiled binary, GDB example, etc...

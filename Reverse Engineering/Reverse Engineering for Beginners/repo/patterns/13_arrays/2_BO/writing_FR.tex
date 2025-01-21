@@ -1,0 +1,144 @@
+\subsubsection{Écrire hors des bornes du tableau}
+
+Ok, nous avons lu quelques valeurs de la pile \emph{illégalement}, mais que se passe-t-il
+si nous essayons d'écrire quelque chose?
+
+Voici ce que nous avons:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/2_BO/w.c}
+
+\myparagraph{MSVC}
+
+Et ce que nous obtenons:
+
+\lstinputlisting[caption=MSVC 2008 \NonOptimizing,style=customasmx86]{patterns/13_arrays/2_BO/w_FR.asm}
+
+Le programme compilé plante après le lancement. Pas de miracle. Voyons exactement
+où il plante.
+
+\clearpage
+\myindex{\olly}
+
+Chargeons le dans \olly, et traçons le jusqu'à ce que les 30 éléments du tableau
+soient écrits:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_w1.png}
+\caption{\olly: après avoir restauré la valeur de EBP}
+\label{fig:array_BO_olly_w1}
+\end{figure}
+
+\clearpage
+Exécutons pas à pas jusqu'à la fin de la fonction:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_w2.png}
+\caption{\olly: 
+\TT{EIP} a été restauré, mais \olly ne peut pas désassembler en 0x15}
+\label{fig:array_BO_olly_w2}
+\end{figure}
+
+Maintenant, gardez vos yeux sur les registres.
+
+\EIP contient maintenant 0x15. Ce n'est pas une adresse légale pour du code---au
+moins pour du code win32!
+Nous sommes arrivés ici contre notre volonté.
+Il est aussi intéressant de voir que le registre \EBP contient 0x14, \ECX et \EDX
+contiennent 0x1D.
+
+Étudions un peu plus la structure de la pile.
+
+Après que le contrôle du flux a été passé à \TT{\main}, la valeur du registre \EBP
+a été sauvée sur la pile.
+Puis, 84 octets ont été alloués pour le tableau et la variable $i$.
+C'est \TT{(20+1)*sizeof(int)}.
+\ESP pointe maintenant sur la variable \TT{\_i} dans la pile locale et après l'exécution
+du \TT{PUSH quelquechose} suivant, \emph{quelquechose} apparaît à côté de \TT{\_i}.
+
+C'est la structure de la pile pendant que le contrôle est dans \main:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+  \TT{ESP}    & 4 octets alloués pour la variable $i$ \\
+\hline
+  \TT{ESP+4}  & 80 octets alloués pour le tableau \TT{a[20]} \\
+\hline
+  \TT{ESP+84} & valeur sauvegardée de \EBP \\
+\hline
+  \TT{ESP+88} & adresse de retour \\
+\hline
+\end{tabular}
+\end{center}
+
+L'expression \TT{a[19]=quelquechose} écrit le dernier \Tint dans des bornes du tableau
+(dans les limites jusqu'ici!)
+
+L'expression \TT{a[20]=quelquechose} écrit \emph{quelquechose} à l'endroit où la valeur
+sauvegardée de \EBP se trouve.
+
+S'il vous plaît, regardez l'état du registre lors du plantage. Dans notre cas,
+20 a été écrit dans le 20ème élément.
+À la fin de la fonction, l'épilogue restaure la valeur d'origine de \EBP.
+(20 en décimal est \TT{0x14} en hexadécimal).
+Ensuite \RET est exécuté, qui est équivalent à l'instruction \TT{POP EIP}.
+
+L'instruction \RET prend la valeur de retour sur la pile (c'est l'adresse dans \ac{CRT}),
+qui a appelé \main), et 21 est stocké ici (\TT{0x15} en hexadécimal).
+% TODO: clarifier trap
+Le CPU trape à l'adresse \TT{0x15}, mais il n'y a pas de code exécutable ici, donc
+une exception est levée.
+
+\myindex{\BufferOverflow}
+
+Bienvenu! Ça s'appelle un \emph{buffer overflow (débordement de tampon)}\footnote{\href{http://en.wikipedia.org/wiki/Stack_buffer_overflow}{Wikipédia}}.
+
+Remplacez la tableau de \Tint avec une chaîne (\Tchar array), créez délibérément
+une longue chaîne et passez-là au programme, à la fonction, qui ne teste pas la longueur
+de la chaîne et la copie dans un petit buffer et vous serez capable de faire pointer
+le programme à une adresse où il devra sauter.
+C'est pas aussi simple dans la réalité, mais c'est comme cela que ça a apparu.
+L'article classique à propos de ça: \AlephOne.
+
+\myparagraph{GCC}
+
+Essayons le même code avec GCC 4.4.1. Nous obtenons:
+
+\lstinputlisting[style=customasmx86]{patterns/13_arrays/2_BO/w_gcc.asm}
+
+Lancer ce programme sous Linux donnera: \TT{Segmentation fault}.
+
+\myindex{GDB}
+
+Si nous le lançons dans le débogueur GDB, nous obtenons ceci:
+
+\begin{lstlisting}
+(gdb) r
+Starting program: /home/dennis/RE/1
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00000016 in ?? ()
+(gdb) info registers
+eax            0x0	0
+ecx            0xd2f96388	-755407992
+edx            0x1d	29
+ebx            0x26eff4	2551796
+esp            0xbffff4b0	0xbffff4b0
+ebp            0x15	0x15
+esi            0x0	0
+edi            0x0	0
+eip            0x16	0x16
+eflags         0x10202	[ IF RF ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb)
+\end{lstlisting}
+
+Les valeurs des registres sont légèrement différentes de l'exemple win32, puisque
+la structure de la pile est également légèrement différente.

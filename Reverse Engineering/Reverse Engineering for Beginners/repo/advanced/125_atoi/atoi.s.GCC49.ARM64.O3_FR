@@ -1,0 +1,31 @@
+my_atoi:
+; charger le caractère en entrée dans W1
+	ldrb	w1, [x0]
+	mov	x2, x0
+; X2=adresse de la chaîne en entrée
+; est-ce que le caractère chargé est zéro?
+: sauter à la sortie si oui
+; W1 contiendra 0 dans ce cas
+; il sera rechargé dans W0 en L4.
+	cbz	w1, .L4
+; W0 contiendra la variable "rt"
+; initialisons-la à zéro
+	mov	w0, 0
+.L3:
+; soustraire 48 ou '0' de la variable en entrée et mettre le résultat dans W3:
+	sub	w3, w1, #48
+; charger le caractère suivant à l'adresse X2+1 dans W1 avec pré-incrémentation:
+	ldrb	w1, [x2,1]!
+	add	w0, w0, w0, lsl 2
+; W0=W0+W0<<2=W0+W0*4=rt*5
+	add	w0, w3, w0, lsl 1
+; W0=chiffre entrée + W0<<1 = chiffre entrée + rt*5*2 = chiffre entrée + rt*10
+; si le caractère que nous venons de charger n'est pas l'octet nul,
+; sauter au début de la boucle
+	cbnz	w1, .L3
+; la variable qui doit être retournée (rt) est dans W0, prête à être utilisée
+; dans la fonction appelante
+	ret
+.L4:
+	mov	w0, w1
+	ret

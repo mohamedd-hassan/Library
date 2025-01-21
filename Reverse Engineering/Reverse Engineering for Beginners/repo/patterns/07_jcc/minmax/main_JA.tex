@@ -1,0 +1,71 @@
+﻿\subsection{最小値と最大値の取得}
+
+\subsubsection{32-bit}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/minmax/minmax.c}
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2013,style=customasmx86]{patterns/07_jcc/minmax/minmax_MSVC_2013_JA.asm}
+
+\myindex{x86!\Instructions!Jcc}
+
+これらの2つの機能は条件ジャンプ命令でのみ異なります。
+最初の命令では\INS{JGE} (\q{Jump if Greater or Equal})が使用され、
+2番目の場合は\INS{JLE} (\q{Jump if Less or Equal})が使用されます。
+
+\myindex{\CompilerAnomaly}
+\label{MSVC_double_JMP_anomaly}
+
+各関数には不必要な \JMP 命令が1つありますが、おそらく誤って残っています。
+
+\myparagraph{分岐}
+
+ThumbモードのARMは、x86コードを思い起こします。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/minmax/minmax_Keil_Thumb_O3_JA.s}
+
+\myindex{ARM!\Instructions!Bcc}
+
+関数は分岐命令が異なります。\INS{BGT} と \INS{BLT}です。
+ARMモードでは条件付きの接尾辞を使用することができるため、コードは短くなります。
+
+\myindex{ARM!\Instructions!MOVcc}
+\INS{MOVcc}は、条件が満たされた場合にのみ実行されます。
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/minmax/minmax_Keil_ARM_O3_JA.s}
+
+\myindex{x86!\Instructions!CMOVcc}
+\Optimizing GCC 4.8.1とMSVC 2013の最適化では、ARMの\INS{CMOVcc}に似た\INS{MOVcc}命令を使用できます。
+
+\lstinputlisting[caption=\Optimizing MSVC 2013,style=customasmx86]{patterns/07_jcc/minmax/minmax_GCC481_O3_JA.s}
+
+\subsubsection{64-bit}
+
+\lstinputlisting[style=customc]{patterns/07_jcc/minmax/minmax64.c}
+
+いくつかの不要な値のシャッフルがありますが、コードは理解できます。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,style=customasmARM]{patterns/07_jcc/minmax/minmax64_GCC_49_ARM64_O0.s}
+
+\myparagraph{分岐なし}
+
+スタックから関数の引数をロードする必要はありません。レジスタにすでに入っています。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 x64,style=customasmx86]{patterns/07_jcc/minmax/minmax64_GCC_49_x64_O3_JA.s}
+
+MSVC 2013はほぼ同じです。
+
+\myindex{ARM!\Instructions!CSEL}
+
+ARM64にはARMの\INS{MOVcc}またはx86の\INS{CMOVcc}と同じように機能する\INS{CSEL}命令がありますが、
+その名前は\q{Conditional SELect}とは異なります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9.1 ARM64,style=customasmARM]{patterns/07_jcc/minmax/minmax64_GCC_49_ARM64_O3_JA.s}
+
+\subsubsection{MIPS}
+
+残念ながら、MIPS用のGCC 4.4.5はあまり良くありません。
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/07_jcc/minmax/minmax_MIPS_O3_IDA_JA.lst}
+
+\emph{分岐遅延スロット}を忘れないでください。最初の\INS{MOVE}は\INS{BEQZ}の\emph{前に}実行され、
+2番目の\INS{MOVE}は分岐が実行されなかった場合にのみ実行されます。

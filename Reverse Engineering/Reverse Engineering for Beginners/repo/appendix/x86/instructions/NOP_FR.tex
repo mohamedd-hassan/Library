@@ -1,0 +1,17 @@
+\myindex{x86!\Instructions!NOP}
+\myindex{x86!\Instructions!XCHG}
+  \item[NOP] \ac{NOP}. Son opcode est 0x90, qui est en fait l'instruction sans effet
+  \TT{XCHG EAX,EAX}.
+  Ceci implique que le x86 n'a pas d'instruction \ac{NOP} dédiée (comme dans de nombreux \ac{RISC}).
+  Ce livre contient au moins un listing où GDB affiche NOP comme l'instruction 16-bit XCHG:
+  \myref{NOP_as_XCHG_example}.
+
+  Plus d'exemples de telles opérations:
+  (\myref{sec:npad}).
+
+  \ac{NOP} peut être généré par le compilateur pour aligner des labels sur une limite
+  de 16-octets.
+  Un autre usage très répandu de \ac{NOP} est de remplacer manuellement (patcher)
+  une instruction, comme un saut conditionnel, par \ac{NOP}, afin de désactiver cette
+  exécution.
+

@@ -1,0 +1,79 @@
+\subsubsection{ARM64}
+
+\myparagraph{\Optimizing GCC (Linaro) 4.9}
+
+\myindex{Fused multiply–add}
+\myindex{ARM!\Instructions!MADD}
+Wynik kompilacji jest bardzo prosty.
+Instrukcja \TT{MADD} przeprowadza jednoczesne mnożenie i dodawanie (podobnie jak \TT{MLA}, którą widzieliśmy wcześniej).
+Wszystkie 3 argumenty są w 32-bitowych częściach rejestrów X, ponieważ są one 32-bitowymi liczbami typu \emph{int}.
+Wynik jest zwracana przez \TT{W0}.
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/05_passing_arguments/ARM/ARM64_O3_PL.s}
+
+Rozszerzmy typ danych do 64-bitowych liczb typu \TT{uint64\_t}:
+
+\lstinputlisting[style=customc]{patterns/05_passing_arguments/ex64.c}
+
+\begin{lstlisting}[style=customasmARM]
+f:
+	madd	x0, x0, x1, x2
+	ret
+main:
+	mov	x1, 13396
+	adrp	x0, .LC8
+	stp	x29, x30, [sp, -16]!
+	movk	x1, 0x27d0, lsl 16
+	add	x0, x0, :lo12:.LC8
+	movk	x1, 0x122, lsl 32
+	add	x29, sp, 0
+	movk	x1, 0x58be, lsl 48
+	bl	printf
+	mov	w0, 0
+	ldp	x29, x30, [sp], 16
+	ret
+
+.LC8:
+	.string	"%lld\n"
+\end{lstlisting}
+
+Funkcja \ttf{} jest niemal taka sama, używa jednak pełnych 64-bitowych rejestrów X.
+Duże 64-bit wartości są zapisywane do rejestrów w cześciach, patrz: \myref{ARM_big_constants_loading}.
+
+\myparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+Kompilator z wyłączoną optymalizacją generuje dłuższy kod:
+
+\begin{lstlisting}[style=customasmARM]
+f:
+	sub	sp, sp, #16
+	str	w0, [sp,12]
+	str	w1, [sp,8]
+	str	w2, [sp,4]
+	ldr	w1, [sp,12]
+	ldr	w0, [sp,8]
+	mul	w1, w1, w0
+	ldr	w0, [sp,4]
+	add	w0, w1, w0
+	add	sp, sp, 16
+	ret
+\end{lstlisting}
+
+Kod zapisuje swoje argumenty wejściowe na stosie lokalnym,
+na wypadek gdyby coś w funkcji musiało użyć rejestrów \TT{W0...W2}.
+Dzięki temu unikniemy nadpisywania oryginalnych wartości
+argumentów funkcji, które mogą być potrzebne w przyszłości.
+
+Jest to nazywane \emph{Register Save Area.} \ARMPCS.
+Funkcja wywoływana nie ma obowiązku tego robić.
+Przypomina to \q{Shadow Space}: \myref{shadow_space}.
+
+Dlaczego optymalizujący GCC 4.9 pominął kod zapisujący argumenty?
+Ponieważ przeprowadził analizę i wywnioskował,
+że argumenty funkcji nie będą potrzebne w przyszłości i rejestry
+\TT{W0...W2} nie będą używane.
+
+\myindex{ARM!\Instructions!MUL}
+\myindex{ARM!\Instructions!ADD}
+
+Widać również parę instrukcji \TT{MUL}/\TT{ADD} zamiast pojedynczej \TT{MADD}.

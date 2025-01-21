@@ -1,0 +1,243 @@
+\chapter{Strumenti}
+
+\epigraph{Ora che Dennis Yurichev ha reso questo libro free (libre), è un
+contributo a tutto il mondo della libera informazione ed educazione.
+Comunque, per il bene della nostra libertà, abbiamo bisogno di strumenti free (libre) per il reverse
+engineering in modo da rimpiazzare quelli proprietari descritti in questo libro.}{Richard M. Stallman}
+
+\mysection{Analisi di Binari}
+
+Strumenti da utilizzare senza eseguire nessun processo:
+
+\myindex{Hiew}
+\myindex{UNIX!strings}
+\myindex{UNIX!xxd}
+\myindex{UNIX!od}
+
+\begin{itemize}
+\item
+(Free, open-source) \emph{ent}\footnote{\url{http://www.fourmilab.ch/random/}}: strumento per analizzare l'entropia.
+Leggi di più riguardo l'entropia: \myref{entropy}.
+
+\item
+\label{Hiew}
+\emph{Hiew}\footnote{\href{http://www.hiew.ru/}{hiew.ru}}:
+per piccole modifiche del codice dei file binari.
+
+\item (Free, open-source) \emph{xxd} e \emph{od}: standard UNIX utility per effettuare il dump nel formato desiderato.
+
+\item (Free, open-source) \emph{strings}: strumento *NIX per cercare stringhe ASCII all'interno di file binari, eseguibili compresi.
+Sysinternals ha un'alternativa\footnote{\url{https://technet.microsoft.com/en-us/sysinternals/strings}}
+che supporta la stringhe con caratteri di tipo "wide" (UTF-16, ampiamente utilizzati in Windows).
+
+\item (Free, open-source) \emph{Binwalk}\footnote{\url{http://binwalk.org/}}: analisi di immagini firmware.
+
+\item
+\myindex{binary grep}
+(Free, open-source) \emph{binary grep}:
+piccola utility per cercare una sequenza di byte in molti file,
+incluso file non eseguibili: \BGREPURL.
+\myindex{rafind2}
+C'è anche rafind2 in rada.re allo stesso scopo.
+\end{itemize}
+
+\subsection{Disassemblers}
+
+\myindex{IDA}
+\myindex{Binary Ninja}
+\myindex{BinNavi}
+\myindex{objdump}
+
+\begin{itemize}
+\item \emph{IDA}. Una versione più vecchia è liberamente disponibile per lo scaricamento
+\footnote{\href{http://www.hex-rays.com/idapro/idadownfreeware.htm}{hex-rays.com/products/ida/support/download\_freeware.shtml}}.
+\ShortHotKeyCheatsheet: \myref{sec:IDA_cheatsheet}
+
+% TBT \item \emph{Ghidra}\footnote{\url{https://ghidra-sre.org/}} --- free alternative to IDA from \ac{NSA}.
+
+\item \emph{Binary Ninja}\footnote{\url{http://binary.ninja/}}
+
+\item (Free, open-source) \emph{zynamics BinNavi}\footnote{\url{https://www.zynamics.com/binnavi.html}}
+
+\item (Free, open-source) \emph{objdump}: semplice utility command-line per effettuare il dump e il disassembling.
+
+\item (Free, open-ssource) \emph{readelf}\footnote{\url{https://sourceware.org/binutils/docs/binutils/readelf.html}}:
+dump delle informazioni dei file ELF.
+\end{itemize}
+
+\subsection{Decompilers}
+
+C'è solo un decompiler conosciuto, pubblicamente disponibile e di elevata qualità per decompilare in C: \emph{Hex-Rays}:
+\href{https://www.hex-rays.com/products/decompiler/}{hex-rays.com/products/decompiler/}
+
+Più informazioni su: \myref{hex_rays}.
+% TBT: to be synced with EN version
+
+\subsection{Comparazione Patch/diffing}
+
+Potresti voler utilizzare questi strumenti quando devi comparare la versione originale di un eseguibile con quella patchata,
+in modo da trovare cos'è stato patchato e perchè.
+
+\begin{itemize}
+\item (Free) \emph{zynamics BinDiff}\footnote{\url{https://www.zynamics.com/software.html}}
+
+\item (Free, open-source) \emph{Diaphora}\footnote{\url{https://github.com/joxeankoret/diaphora}}
+\end{itemize}
+
+\mysection{Analisi live}
+
+Strumenti da utilizzare per effettuare un'analisi live del sistema o di un processo in esecuzione.
+
+\subsection{Debuggers}
+
+\myindex{\olly}
+\myindex{Radare}
+\myindex{GDB}
+\myindex{tracer}
+\myindex{LLDB}
+\myindex{WinDbg}
+
+\begin{itemize}
+\item (Free) \emph{OllyDbg}.
+Popolare win32 debugger\footnote{\href{http://www.ollydbg.de/}{ollydbg.de}}.
+\ShortHotKeyCheatsheet: \myref{sec:Olly_cheatsheet}
+
+\item (Free, open-source) \emph{GDB}.
+Strumento non molto popolare tra reverse engineers perchè è per lo più inteso per programmatori.
+Alcuni comandi: \myref{sec:GDB_cheatsheet}.
+C'è anche un'interfaccia per GDB, ``GDB dashboard''\footnote{\url{https://github.com/cyrus-and/gdb-dashboard}}.
+
+\item (Free, open-source) \emph{LLDB}\footnote{\url{http://lldb.llvm.org/}}.
+
+\item \emph{WinDbg}\footnote{\url{https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit}}:
+kernel debugger per Windows.
+
+\item (Free, open-source) \emph{Radare} \ac{AKA} rada.re \ac{AKA} r2\footnote{\url{http://rada.re/r/}}.
+Esiste anche una GUI: \emph{ragui}\footnote{\url{http://radare.org/ragui/}}.
+
+\item (Free, open-source) \emph{tracer}.
+\label{tracer}
+L'autore usa spesso \emph{tracer}
+\footnote{\href{http://yurichev.com/tracer-en.html}{yurichev.com}}
+invece di un debugger.
+
+L'autore di queste righe ha smesso di utilizzare un debugger dato che l'unica cosa di cui aveva bisogno era di trovare gli
+argomenti delle funzioni durante l'esecuzione o lo stato dei registri ad un determinato punto.
+Caricare un debugger ogni volta risultava essere non ottimale, perciò è nacque una nuova utility chiamata \emph{tracer}.
+Funziona dalla linea di comando e permette di intercettare l'esecuzione di funzioni,
+impostare breakpoint in posizioni arbitrarie, leggere e modificare lo stato dei registri, ecc.
+
+N.B.: \emph{tracer} non sta evolvendo perchè è nato principalmente come strumento di dimostrazione per questo libro, non come strumento di ogni giorno.
+\end{itemize}
+
+\subsection{Tracciare chiamate alle librerie}
+
+\emph{ltrace}\footnote{\url{http://www.ltrace.org/}}.
+
+\subsection{Tracciare chiamate di sistema}
+
+\label{strace}
+\myindex{strace}
+\myindex{dtruss}
+\subsubsection{strace / dtruss}
+
+\myindex{syscall}
+Mostra quali chiamate di sistema sono chiamate da un processo. (syscalls(\myref{syscalls}))
+
+Per esempio:
+
+\begin{lstlisting}
+# strace df -h
+
+...
+
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+open("/lib/i386-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0\220\232\1\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=1770984, ...}) = 0
+mmap2(NULL, 1780508, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xb75b3000
+\end{lstlisting}
+
+\myindex{\MacOSX}
+\MacOSX ha dtruss per lo stesso compito.
+
+\myindex{Cygwin}
+Cygwin ha strace ma, per quanto ne so, funziona solo per file .exe compilati all'interno dell'ambiente
+cygwin.
+
+\subsection{Network sniffing}
+
+\emph{Sniffing} significa intercettare informazioni di cui si potrebbe essere interessati.
+
+(Free, open-source) \emph{Wireshark}\footnote{\url{https://www.wireshark.org/}} per lo sniffing di rete.
+Puà sniffare anche USB\footnote{\url{https://wiki.wireshark.org/CaptureSetup/USB}}.
+
+Wireshark ha un fratello chiamato \emph{tcpdump}\footnote{\url{http://www.tcpdump.org/}}, un semplice strumento a linea di comando.
+
+\subsection{Sysinternals}
+
+\myindex{Sysinternals}
+(Free) Sysinternals (developed by Mark Russinovich)
+\footnote{\url{https://technet.microsoft.com/en-us/sysinternals/bb842062}}.
+Questi strumenti sono importanti e vale la pena studiarli: Process Explorer, Handle, VMMap, TCPView, Process Monitor.
+
+\subsection{Valgrind}
+
+(Free, open-source) strumento per rilevare memory leak: \url{http://valgrind.org/}.
+A causa del suo potente meccanismo \ac{JIT}, Valgrind è utilizzato come framework per altri strumenti.
+
+% TODO network fuzzing
+
+\subsection{Emulatori}
+
+\begin{itemize}
+\item (Free, open-source) \emph{QEMU}\footnote{\url{http://qemu.org}}: emulatore per differenti tipi di CPU e architetture.
+
+\item (Free, open-source) \emph{DosBox}\footnote{\url{https://www.dosbox.com/}}: emulatore MS-DOS, usato soprattutto per il retro-gaming.
+
+\item (Free, open-source) \emph{SimH}\footnote{\url{http://simh.trailing-edge.com/}}: emulatore di antichi computer, mainframe, ecc.
+\end{itemize}
+
+\mysection{Altri strumenti}
+
+\emph{Microsoft Visual Studio Express}
+\footnote{\href{http://www.microsoft.com/express/Downloads/}{visualstudio.com/en-US/products/visual-studio-express-vs}}:
+Versione gratuita di Visual Studio, conveniente per semplici esperimenti.
+
+Alcune opzioni utili: \myref{sec:MSVC_options}.
+
+C'è un sito chiamato ``Compiler Explorer'', che permette di compilare piccoli pezzi di codice e vederne l'output
+in varie versioni di GCC ed architetture differenti
+(almeno x86, ARM, MIPS): \url{http://godbolt.org/}---lo avrei utilizzato io stesso per il libro se lo avessi saputo!
+
+% TBT
+%\subsection{SMT solvers}
+
+%From the reverse engineer's perspective, SMT solvers are used when dealing with
+%amateur cryptography,
+%symbolic/concolic execution,
+%ROP chains generation.
+
+%For more information, read: \url{https://yurichev.com/writings/SAT_SMT_by_example.pdf}.
+
+\subsection{Calcolatrici}
+
+Una buona calcolatrice, per le esigenze del reverse engineer, dovrebbe supportare almeno le basi decimale, esadecimale e binaria,
+ed operazioni importanti come XOR e gli shift.
+
+\begin{itemize}
+
+\item IDA ha una calcolatrice integrata (``?'').
+
+\item rada.re ha \emph{rax2}.
+
+\item \ProgCalcURL
+
+\item Come ultima opzione, la calcolatrice standard di Windows ha una modalità programmatore.
+
+\end{itemize}
+
+\mysection{Manca qualcosa qui?}
+
+Se conosci qualche strumento non elencato qui, per favore segnalamelo tramite e-mail al seguente indirizzo:\\
+\TT{\EMAILS}.

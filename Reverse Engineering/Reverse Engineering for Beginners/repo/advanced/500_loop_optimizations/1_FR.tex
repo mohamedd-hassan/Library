@@ -1,0 +1,71 @@
+\subsection{Optimisation étrange de boucle}
+
+Ceci est une des fonctions memcpy() les plus simple jamais implémentée:
+
+\begin{lstlisting}[style=customc]
+void memcpy (unsigned char* dst, unsigned char* src, size_t cnt)
+{
+	size_t i;
+	for (i=0; i<cnt; i++)
+		dst[i]=src[i];
+};
+\end{lstlisting}
+
+Au moins MSVC 6.0 de la fin des années 1990 jusqu'à MSVC 2013 peuvent produire du
+code vraiment étrange (ce listing est généré par MSVC 2013 x86):
+
+\lstinputlisting[style=customasmx86]{advanced/500_loop_optimizations/1_1_FR.lst}
+
+Ceci est étrange, car comment travaille les humains avec deux pointeurs? Ils stockent
+les deux adresses dans deux registres ou deux emplacements mémoire.
+Dans ce cas, le compilateur MSVC stocke les deux pointeurs comme un pointeur (\emph{dst glissant} dans \EAX)
+et la différence entre les pointeurs \emph{src} et \emph{dst} (qui reste inchangée lors
+de l'exécution du corps de la boucle) dans \ESI.
+\myindex{\CLanguageElements!ptrdiff\_t}
+(À propos, ceci est un des rare cas où le type de donnée ptrdiff\_t peut être utilisé.)
+Lorsqu'il doit charger un octet depuis \emph{src}, il le charge en \emph{diff + dst glissant}
+et stocke l'octet juste en \emph{dst glissant}.
+
+Ceci est plus une astuce d'optimisation. Mais j'ai récrit cette fonction en:
+
+\lstinputlisting[style=customasmx86]{advanced/500_loop_optimizations/1_2.lst}
+
+\dots et ça fonctionne aussi efficacement que la version \emph{optimisée} sur mon Intel
+Xeon E31220 @ 3.10GHz.
+Peut-être que cette optimisation ciblait des vieux CPUs x86 des années 1990, puisque
+ce truc est utilisé au moins par l'ancien MS VC 6.0?
+
+Une idée?
+
+\myindex{Hex-Rays}
+Hex-Rays 2.2 a du mal à reconnaître des schémas comme ça (avec de la chance, temporairement?):
+
+\begin{lstlisting}[style=customc]
+void __cdecl f1(char *dst, char *src, size_t size)
+{
+  size_t counter; // edx@1
+  char *sliding_dst; // eax@2
+  char tmp; // cl@3
+
+  counter = size;
+  if ( size )
+  {
+    sliding_dst = dst;
+    do
+    {
+      tmp = (sliding_dst++)[src - dst];         // difference (src-dst) is calculated once, at the beginnning
+      *(sliding_dst - 1) = tmp;
+      --counter;
+    }
+    while ( counter );
+  }
+}
+\end{lstlisting}
+
+Néanmoins, cette astuce d'optimisation est souvent utilisée par MSVC (pas uniquement
+dans des routines \emph{memcpy()} \ac{DIY} maison, mais dans de nombreuses boucles
+qui utilisent deux tableaux ou plus).
+Donc, ça vaut le coup pour les rétro-ingénieurs de la garder à l'esprit.
+
+% <!-- As of why writting occurred after <b>dst</b> incrementing? -->
+

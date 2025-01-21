@@ -1,0 +1,22 @@
+\myindex{x86!\Instructions!ROL}
+\myindex{x86!\Instructions!ROR}
+\label{ROL_ROR}
+\item[ROL/ROR] (M) décalage cyclique
+
+ROL: rotation à gauche:
+
+\input{rotate_left}
+
+ROR: rotation à droite:
+
+\input{rotate_right}
+
+En dépit du fait que presque presque tous les \ac{CPU}s aient ces instructions, il n'y
+a pas d'opération correspondante en \CCpp, donc les compilateurs de ces \ac{PL}s
+ne génèrent en général pas ces instructions.
+
+Par commodité pour le programmeur, au moins \ac{MSVC} fourni les pseudo-fonctions
+(fonctions intrinsèques du compilateur)
+\emph{\_rotl()} et \emph{\_rotr()}\FNMSDNROTxURL{},
+qui sont traduites directement par le compilateur en ces instructions.
+

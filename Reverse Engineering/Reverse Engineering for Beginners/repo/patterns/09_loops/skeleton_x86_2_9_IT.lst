@@ -1,0 +1,12 @@
+﻿    MOV [counter], 2 ; inizializzazione
+    JMP check
+body:
+    ; corpo del ciclo
+    ; fai qualcosa qui
+    ; utilizza la variabile contatore nello stack locale
+    MOV REG, [counter] ; incrementa
+    INC REG 
+    MOV [counter], REG
+check:
+    CMP [counter], 9
+    JLE body

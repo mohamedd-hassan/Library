@@ -1,0 +1,13 @@
+\mysection{An Empty Function: redux}
+
+Let's back to the empty function example \myref{empty_func}.
+Now that we know about function prologue and epilogue,
+this is an empty function \myref{lst:empty_func} compiled by non-optimizing GCC:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/016_empty_redux/1.s}
+
+It's \INS{RET}, but function prologue and epilogue, probably, wasn't optimized and left as is.
+\INS{NOP} is seems another compiler artifact.
+Anyway, the only effective instruction here is \INS{RET}.
+All other instructions can be removed (or optimized).
+

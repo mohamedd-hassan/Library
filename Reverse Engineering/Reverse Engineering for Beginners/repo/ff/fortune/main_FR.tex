@@ -1,0 +1,314 @@
+\mysection{\emph{fortune} programme d'indexation de fichier}
+
+(Cette partie est tout d'abord apparue sur mon blog le 25 avril 2015.)
+
+\emph{fortune} est un programme UNIX bien connu qui affiche une phrase aléatoire depuis
+une collection.
+Certains geeks ont souvent configuré leur système de telle manière que \emph{fortune}
+puisse être appelé après la connexion.
+\emph{fortune} prend les phrases depuis des fichiers texte se trouvant dans \emph{/usr/share/games/fortunes}
+(sur Ubuntu Linux).
+Voici un exemple (fichier texte \q{fortunes}):
+
+\begin{lstlisting}
+A day for firm decisions!!!!!  Or is it?
+%
+A few hours grace before the madness begins again.
+%
+A gift of a flower will soon be made to you.
+%
+A long-forgotten loved one will appear soon.
+
+Buy the negatives at any price.
+%
+A tall, dark stranger will have more fun than you.
+%
+...
+\end{lstlisting}
+
+Donc, il s'agit juste de phrases, parfois sur plusieurs lignes, séparées par le
+signe pourcent.
+La tâche du programme \emph{fortune} est de trouver une phrase aléatoire et de l'afficher.
+Afin de réaliser ceci, il doit scanner le fichier texte complet, compter les phrases,
+en choisir une aléatoirement et l'afficher.
+Mais le fichier texte peut être très gros, et même sur les ordinateurs modernes, cet
+algorithme naïf est du gaspillage de ressource.
+La façon simple de procéder est de garder un fichier index binaire contenant l'offset
+de chaque phrase du fichier texte.
+Avec le fichier index, le programme \emph{fortune} peut fonctionner beaucoup plus vite:
+il suffit de choisir un index aléatoirement, prendre son offset, se déplacer à cet
+offset dans le fichier texte et d'y lire la phrase.
+C'est ce qui est effectivement fait dans le programme \emph{fortune}.
+Examinons ce qu'il y a dans ce fichier index (ce sont les fichiers .dat dans le même
+répertoire) dans un éditeur hexadécimal.
+Ce programme est open-source bien sûr, mais intentionnellement, je ne vais pas jeter
+un coup d'\oe{}il dans le code source.
+
+\lstinputlisting{ff/fortune/1.lst}
+
+Sans aide particulière, nous pouvons voir qu'il y a quatre éléments de 4 octets sur
+chaque ligne de 16 octets.
+Peut-être que c'est notre tableau d'index.
+J'essaye de charger tout le fichier comme un tableau d'entier 32-bit dans Wolfram
+Mathematica:
+
+\begin{lstlisting}[style=custommath]
+In[]:= BinaryReadList["c:/tmp1/fortunes.dat", "UnsignedInteger32"]
+
+Out[]= {33554432, 2936078336, 3137339392, 251658240, 0, 37, 0, \
+721420288, 1610612736, 2399141888, 3741319168, 335609856, 1208025088, \
+2080440320, 2868969472, 3858825216, 537001984, 989986816, 2046951424, \
+3305242624, 67305472, 1023606784, 1745027072, 2801991680, 3775070208, \
+419692544, 755236864, 2130968576, 2902720512, 3573809152, 84213760, \
+990183424, 1678049280, 2181365760, 2902786048, 3456434176, \
+4144300032, 470155264, 1627783168, 2047213568, 3506831360, 168230912, \
+1392967680, 2584150016, 4161208320, 654835712, 1493696512, \
+2332557312, 2684878848, 3288858624, 3775397888, 4178051072, \
+...
+\end{lstlisting}
+
+Nope, quelque chose est faux, les nombres sont étrangement gros.
+Mais retournons à la sortie de \emph{od}: chaque élément de 4 octets a deux octets nuls
+et deux octets non nuls.
+Donc les offsets (au moins au début du fichier) sont au maximum 16-bit.
+Peut-être qu'un endianness différent est utilisé dans le fichier?
+L'endianness par défaut dans Mathematica est little-endian, comme utilisé dans les
+CPUs Intel.
+Maintenant, je le change en big-endian:
+
+\begin{lstlisting}[style=custommath]
+In[]:= BinaryReadList["c:/tmp1/fortunes.dat", "UnsignedInteger32", 
+ ByteOrdering -> 1]
+
+Out[]= {2, 431, 187, 15, 0, 620756992, 0, 43, 96, 143, 223, 276, \
+328, 380, 427, 486, 544, 571, 634, 709, 772, 829, 872, 935, 993, \
+1049, 1069, 1151, 1197, 1237, 1285, 1339, 1380, 1410, 1453, 1486, \
+1527, 1564, 1633, 1658, 1745, 1802, 1875, 1946, 2040, 2087, 2137, \
+2187, 2208, 2244, 2273, 2297, 2343, 2371, 2425, 2467, 2531, 2581, \
+2637, 2654, 2698, 2726, 2751, 2799, 2840, 2883, 2913, 2958, 3023, \
+3066, 3131, 3174, 3205, 3257, 3282, 3330, 3387, 3431, 3500, 3552, \
+...
+\end{lstlisting}
+
+Oui, c'est quelque chose de lisible.
+Je choisi un élément au hasard (3066) qui s'écrit 0xBFA en format hexadécimal.
+J'ouvre le fichier texte 'fortunes' dans un éditeur hexadécimal, je met l'offset
+0xBFA et je vois cette phrase:
+
+\lstinputlisting{ff/fortune/2.lst}
+
+Ou:
+
+\begin{lstlisting}
+Do what comes naturally.  Seethe and fume and throw a tantrum.
+%
+\end{lstlisting}
+
+D'autres offsets peuvent aussi être essayés, oui, ils sont valides.
+
+Je peux aussi vérifier dans Mathematica que chaque élément consécutif est plus grand
+que le précédent.
+I.e., les éléments du tableau sont croissants.
+Dans le jargon mathématiques, ceci est appelé \emph{fonction monotone strictement croissante}.
+
+\begin{lstlisting}[style=custommath]
+In[]:= Differences[input]
+
+Out[]= {429, -244, -172, -15, 620756992, -620756992, 43, 53, 47, \
+80, 53, 52, 52, 47, 59, 58, 27, 63, 75, 63, 57, 43, 63, 58, 56, 20, \
+82, 46, 40, 48, 54, 41, 30, 43, 33, 41, 37, 69, 25, 87, 57, 73, 71, \
+94, 47, 50, 50, 21, 36, 29, 24, 46, 28, 54, 42, 64, 50, 56, 17, 44, \
+28, 25, 48, 41, 43, 30, 45, 65, 43, 65, 43, 31, 52, 25, 48, 57, 44, \
+69, 52, 62, 73, 62, 53, 37, 68, 71, 50, 41, 57, 69, 58, 70, 45, 54, \
+38, 45, 50, 42, 61, 47, 43, 62, 189, 61, 56, 30, 85, 63, 48, 61, 58, \
+81, 50, 55, 63, 83, 80, 49, 42, 94, 54, 67, 81, 52, 57, 68, 43, 28, \
+120, 64, 53, 81, 33, 82, 88, 29, 61, 32, 75, 63, 70, 47, 101, 60, 79, \
+33, 48, 65, 35, 59, 47, 55, 22, 43, 35, 102, 53, 80, 65, 45, 31, 29, \
+69, 32, 25, 38, 34, 35, 49, 59, 39, 41, 18, 43, 41, 83, 37, 31, 34, \
+59, 72, 72, 81, 77, 53, 53, 50, 51, 45, 53, 39, 70, 54, 103, 33, 70, \
+51, 95, 67, 54, 55, 65, 61, 54, 54, 53, 45, 100, 63, 48, 65, 71, 23, \
+28, 43, 51, 61, 101, 65, 39, 78, 66, 43, 36, 56, 40, 67, 92, 65, 61, \
+31, 45, 52, 94, 82, 82, 91, 46, 76, 55, 19, 58, 68, 41, 75, 30, 67, \
+92, 54, 52, 108, 60, 56, 76, 41, 79, 54, 65, 74, 112, 76, 47, 53, 61, \
+66, 53, 28, 41, 81, 75, 69, 89, 63, 60, 18, 18, 50, 79, 92, 37, 63, \
+88, 52, 81, 60, 80, 26, 46, 80, 64, 78, 70, 75, 46, 91, 22, 63, 46, \
+34, 81, 75, 59, 62, 66, 74, 76, 111, 55, 73, 40, 61, 55, 38, 56, 47, \
+78, 81, 62, 37, 41, 60, 68, 40, 33, 54, 34, 41, 36, 49, 44, 68, 51, \
+50, 52, 36, 53, 66, 46, 41, 45, 51, 44, 44, 33, 72, 40, 71, 57, 55, \
+39, 66, 40, 56, 68, 43, 88, 78, 30, 54, 64, 36, 55, 35, 88, 45, 56, \
+76, 61, 66, 29, 76, 53, 96, 36, 46, 54, 28, 51, 82, 53, 60, 77, 21, \
+84, 53, 43, 104, 85, 50, 47, 39, 66, 78, 81, 94, 70, 49, 67, 61, 37, \
+51, 91, 99, 58, 51, 49, 46, 68, 72, 40, 56, 63, 65, 41, 62, 47, 41, \
+43, 30, 43, 67, 78, 80, 101, 61, 73, 70, 41, 82, 69, 45, 65, 38, 41, \
+57, 82, 66}
+\end{lstlisting}
+
+Comme on le voit, excepté les 6 premières valeurs (qui appartiennent sans doute à
+l'entête du fichier d'index), tous les nombres sont en fait la longueur des phrases
+de texte (l'offset de la phrase suivante moins l'offset de la phrase courante est
+la longueur de la phrase courante).
+
+Il est très important de garder à l'esprit que l'endianness peut être confondu avec
+un début de tableau incorrect.
+En effet, dans la sortie d'\emph{od} nous voyons que chaque élément débutait par deux
+zéros.
+Mais lorsque nous décalons les des octets de chaque côté, nous pouvons interpréter
+ce tableau comme little-endian:
+
+\lstinputlisting{ff/fortune/3.lst}
+
+Si nous interprétons ce tableau en little-endian, le premier élément est 0x4801,
+le second est 0x7C01, etc.
+La partie 8-bit haute de chacune de ces valeurs 16-bit nous semble être aléatoire,
+et la partie 8-bit basse semble être ascendante.
+
+Mais je suis sûr que c'est un tableau en big-endian, car le tout dernier élément
+32-bit du fichier est big-endian.
+(\emph{00 00 5f c4} ici):
+
+\lstinputlisting{ff/fortune/4.lst}
+
+Peut-être que le développeur du programme \emph{fortune} avait un ordinateur big-endian
+ou peut-être a-t-il été porté depuis quelque chose comme ça.
+
+Ok, donc le tableau est big-endian, et, à en juger avec bon sens, la toute première
+phrase dans le fichier texte doit commencer à l'offset zéro. Donc la valeur zéro
+doit se trouver dans le tableau quelque part au tout début.
+Nous avons un couple d'élément à zéro au début. Mais le second est plus tentant:
+43 se trouve juste après et 43 est un offset valide sur une phrase anglaise correcte
+dans le fichier texte.
+
+Le dernier élément du tableau est 0x5FC4, et il n'y a pas de tel octet à cet offset
+dans le fichier texte.
+Donc le dernier élément du tableau pointe au delà de la fin du fichier.
+C'est probablement ainsi car la longueur de la phrase est calculée comme la différence
+entre l'offset de la phrase courante et l'offset de la phrase suivante.
+Ceci est plus rapide que de lire la chaîne à la recherche du caractère pourcent.
+Mais ceci ne fonctionne pas pour le dernier élément.
+Donc un élément \emph{fictif} est aussi ajouté à la fin du tableau.
+
+Donc les 6 première valeur entière 32-bit sont une sorte d'en-tête.
+
+Oh, j'ai oublié de compter les phrases dans le fichier texte:
+
+\lstinputlisting{ff/fortune/5.lst}
+
+Le nombre de phrases peut être présent dans dans l'index, mais peut-être pas.
+Dans le cas de fichiers d'index simples, le nombre d'éléments peut être facilement
+déduit de la taille du fichier d'index.
+Quoiqu'il en soit, il y a 432 phrases dans le fichier texte.
+Et nous voyons quelque chose de très familier dans le second élément (la valeur 431).
+J'ai vérifié dans d'autres fichiers (literature.dat et riddles.dat sur Ubuntu Linux)
+et oui, le second élément 32-bit est bien le nombre de phrases moins 1.
+Pourquoi \emph{moins 1}? Peut-être que ceci n'est pas le nombre de phrases, mais plutôt
+le numéro de la dernière phrase (commençant à zéro)?
+
+Et il y a d'autres éléments dans l'entête.
+Dans Mathematica, je charge chacun des trois fichiers disponible et je regarde leur en-tête:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{ff/fortune/mathematica.png}
+\end{figure}
+
+Je n'ai aucune idée de la signification des autres valeurs, excepté la taille du
+fichier d'index.
+Certains champs sont les même pour tous les fichiers, d'autres non.
+D'après mon expérience, ils peuvent être:
+
+\begin{itemize}
+\item signature de fichier;
+\item version de fichier;
+\item checksum;
+\item des flags;
+\item peut-être même des identifiants de langages;
+\item timestamp du fichier texte, donc le programme \emph{fortune} regénèrerait le
+fichier d'index isi l'utilisateur modifiait le fichier texte.
+\end{itemize}
+
+Par exemple, les fichiers Oracle .SYM (\myref{Oracle_SYM_files_example}) qui contiennent
+la table des symboles pour les fichiers DLL, contiennent aussi un timestamp correspondant
+au fichier DLL, afin d'être sûr qu'il est toujours valide.
+
+D'un autre côté, les timestamps des fichiers textes et des fichiers d'index peuvent
+être désynchronisés après archivage/désarchivage/installation/déploiement/etc.
+
+Mais ce ne sont pas des timestamps, d'après moi. La manière la plus compacte de représenter
+la date et l'heure est la valeur UNIX, qui est un nombre 32-bit. Nous ne voyons rien
+de tel ici. D'autres façons de les représenter sont encore moins compactes.
+
+Donc, voici supposément comment fonctionne l'algorithme de \emph{fortune}:
+
+\begin{itemize}
+\item prendre le nombre du second élément de la dernière phrase;
+\item générer un nombre aléatoire dans l'intervalle 0..number\_of\_last\_phrase;
+\item trouver l'élément correspondant dans le tableau des offsets, prendre aussi
+l'offset suivant;
+\item écrire sur \emph{stdout} tous les caractères depuis le fichier texte en commençant
+à l'offset jusqu'à l'offset suivant moins 2 (afin d'ignorer le caractère pourcent
+terminal et le caractère de la phrase suivante).
+\end{itemize}
+
+\subsection{Hacking}
+
+Effectuons quelques essais afin de vérifier nos hypothèses.
+Je vais créer ce fichier texte dans le chemin et le nom \emph{/usr/share/games/fortunes/fortunes}:
+
+\begin{lstlisting}
+Phrase one.
+%
+Phrase two.
+%
+\end{lstlisting}
+
+Puis, ce fichier fortunes.dat. Je prend l'entête du fichier original fortunes.dat,
+j'ai mis à zéro changé le second champ (nombre de phrases) et j'ai laissé deux éléments
+dans le tableau: 0 et 0x1c, car la longueur totale du fichier texte \emph{fortunes}
+est 28 (0x1c) octets:
+
+\lstinputlisting{ff/fortune/6.lst}
+
+Maintenant, je le lance:
+
+\lstinputlisting{ff/fortune/7.lst}
+
+Quelque chose ne va pas. Mettons le second champ à 1:
+
+\lstinputlisting{ff/fortune/8.lst}
+
+Maintenant, ça fonctionne. Il affiche seulement la première phrase:
+
+\lstinputlisting{ff/fortune/9.lst}
+
+Hmmm. Laissons seulement un élément dans le tableau (0) sans le terminer:
+
+\lstinputlisting{ff/fortune/10.lst}
+
+Le programme Fortune montre toujours seulement la première phrase.
+
+De cet essai nous apprenons que la signe pourcent dans le fichier texte est analysé
+et la taille n'est pas calculée comme je l'avais déduit avant, peut-être que même
+l'élément terminal du tableau n'est pas utilisé.
+Toutefois, il peut toujours l'être. Et peut-être qu'il l'a été dans le passé?
+
+% TODO second phrase!
+
+\subsection{Les fichiers}
+
+Pour les besoins de la démonstration, je ne regarde toujours pas dans le code source
+de \emph{fortune}.
+Si vous soulez essayer de comprendre la signification des autres valeurs dans l'entête
+du fichier d'index, vous pouvez essayer de le faire sans regarder dans le code source.
+Les fichiers que j'ai utilisé sous Ubuntu Linux 14.04 sont ici: \url{http://beginners.re/examples/fortune/},
+les fichiers bricolés le sont aussi.
+
+Oh, j'ai pris les fichiers de la version x64 d'Ubuntu, mais les éléments du tableau
+ont toujours une taille de 32 bit.
+C'est parce que les fichiers de texte de \emph{fortune} ne vont sans doute jamais dépasser
+une taille de 4\ac{GiB}.
+Mais s'ils le devaient, tous les éléments devraient avoir une taille de 64 bit afin
+de pouvoir stocker un offset de dans un fichier texte plus gros que 4GiB.
+
+Pour les lecteurs impatients, le code source de \emph{fortune} est ici:
+\url{https://launchpad.net/ubuntu/+source/fortune-mod/1:1.99.1-3.1ubuntu4}.
+

@@ -1,0 +1,123 @@
+﻿\clearpage
+\mysubparagraph{最初の \olly の例： a=1.2 と b=3.4}
+\myindex{\olly}
+
+\FLD が両方とも実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_1.png}
+\caption{\olly: \FLD が両方とも実行される}
+\label{fig:FPU_comparison_Ox_case1_olly1}
+\end{figure}
+
+\FCOM が実行されます。
+\olly は便利なことに、\ST{0} と \ST{1}の内容を表示します。
+
+\clearpage
+\FCOM が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_2.png}
+\caption{\olly: \FCOM が実行される}
+\label{fig:FPU_comparison_Ox_case1_olly2}
+\end{figure}
+
+\Czero がセットされ、他の条件フラグはすべてクリアされます。
+
+\clearpage
+\FNSTSW が実行され、 \GTT{AX}=0x3100 になります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_3.png}
+\caption{\olly: \FNSTSW が実行される}
+\label{fig:FPU_comparison_Ox_case1_olly3}
+\end{figure}
+
+\clearpage
+\TEST が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_4.png}
+\caption{\olly: \TEST が実行される}
+\label{fig:FPU_comparison_Ox_case1_olly4}
+\end{figure}
+
+ZF=0の場合、条件ジャンプは実行されます。
+
+\clearpage
+\INS{FSTP ST} (または \FSTP \ST{0})が実行されます。1.2がスタックからポップされ、3.4がスタックのトップに残ります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly1_5.png}
+\caption{\olly: \FSTP が実行される}
+\label{fig:FPU_comparison_Ox_case1_olly5}
+\end{figure}
+
+\INS{FSTP ST} を見てみます。
+
+命令は値を1つFPUスタックからポップするだけのように働きます。
+
+\clearpage
+\mysubparagraph{次の \olly の例： a=5.6 と b=-4}
+
+\FLD が両方とも実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_1.png}
+\caption{\olly: \FLD が両方とも実行される}
+\label{fig:FPU_comparison_Ox_case2_olly1}
+\end{figure}
+
+\FLD が実行されます。
+
+\clearpage
+\FCOM が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_2.png}
+\caption{\olly: \FCOM が終了する}
+\label{fig:FPU_comparison_Ox_case2_olly2}
+\end{figure}
+
+条件フラグはすべてクリアされます。
+
+\clearpage
+\FNSTSW が完了し、 \GTT{AX}=0x3000 になります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_3.png}
+\caption{\olly: \FNSTSW が実行される}
+\label{fig:FPU_comparison_Ox_case2_olly3}
+\end{figure}
+
+\clearpage
+\TEST が実行されます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_4.png}
+\caption{\olly: \TEST が実行される}
+\label{fig:FPU_comparison_Ox_case2_olly4}
+\end{figure}
+
+ZF=1の場合、ジャンプは発生しません。
+
+\clearpage
+\FSTP \ST{1}が実行されます。5.6はFPUスタックのトップにあります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC_Ox/olly2_5.png}
+\caption{\olly: \FSTP が実行される}
+\label{fig:FPU_comparison_Ox_case2_olly5}
+\end{figure}
+
+\FSTP \ST{1}命令が以下のように動作することがわかります。値がスタックのトップの残り、\ST{1}がクリアされる。

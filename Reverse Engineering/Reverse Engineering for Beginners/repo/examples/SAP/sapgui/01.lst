@@ -1,0 +1,82 @@
+.text:64413F20 ; \verb|int __cdecl chk_env(char *VarName, int)|
+.text:64413F20 chk_env         proc near
+.text:64413F20
+.text:64413F20 DstSize         = dword ptr -0Ch
+.text:64413F20 var_8           = dword ptr -8
+.text:64413F20 DstBuf          = dword ptr -4
+.text:64413F20 VarName         = dword ptr  8
+.text:64413F20 arg_4           = dword ptr  0Ch
+.text:64413F20
+.text:64413F20                 push    ebp
+.text:64413F21                 mov     ebp, esp
+.text:64413F23                 sub     esp, 0Ch
+.text:64413F26                 mov     [ebp+DstSize], 0
+.text:64413F2D                 mov     [ebp+DstBuf], 0
+.text:64413F34                 push    offset unk_6444C88C
+.text:64413F39                 mov     ecx, [ebp+arg_4]
+
+; (demangled name) ATL::CStringT::operator=(char const *)
+.text:64413F3C                 call    ds:mfc90_820 
+.text:64413F42                 mov     eax, [ebp+VarName]
+.text:64413F45                 push    eax             ; VarName
+.text:64413F46                 mov     ecx, [ebp+DstSize]
+.text:64413F49                 push    ecx             ; DstSize
+.text:64413F4A                 mov     edx, [ebp+DstBuf]
+.text:64413F4D                 push    edx             ; DstBuf
+.text:64413F4E                 lea     eax, [ebp+DstSize]
+.text:64413F51                 push    eax             ; ReturnSize
+.text:64413F52                 call    ds:getenv_s
+.text:64413F58                 add     esp, 10h
+.text:64413F5B                 mov     [ebp+var_8], eax
+.text:64413F5E                 cmp     [ebp+var_8], 0
+.text:64413F62                 jz      short loc_64413F68
+.text:64413F64                 xor     eax, eax
+.text:64413F66                 jmp     short loc_64413FBC
+.text:64413F68
+.text:64413F68 loc_64413F68:
+.text:64413F68                 cmp     [ebp+DstSize], 0
+.text:64413F6C                 jnz     short loc_64413F72
+.text:64413F6E                 xor     eax, eax
+.text:64413F70                 jmp     short loc_64413FBC
+.text:64413F72
+.text:64413F72 loc_64413F72:
+.text:64413F72                 mov     ecx, [ebp+DstSize]
+.text:64413F75                 push    ecx
+.text:64413F76                 mov     ecx, [ebp+arg_4]
+
+; demangled name: ATL::CSimpleStringT<char, 1>::Preallocate(int)
+.text:64413F79                 call    ds:mfc90_2691
+.text:64413F7F                 mov     [ebp+DstBuf], eax
+.text:64413F82                 mov     edx, [ebp+VarName]
+.text:64413F85                 push    edx             ; VarName
+.text:64413F86                 mov     eax, [ebp+DstSize]
+.text:64413F89                 push    eax             ; DstSize
+.text:64413F8A                 mov     ecx, [ebp+DstBuf]
+.text:64413F8D                 push    ecx             ; DstBuf
+.text:64413F8E                 lea     edx, [ebp+DstSize]
+.text:64413F91                 push    edx             ; ReturnSize
+.text:64413F92                 call    ds:getenv_s
+.text:64413F98                 add     esp, 10h
+.text:64413F9B                 mov     [ebp+var_8], eax
+.text:64413F9E                 push    0FFFFFFFFh
+.text:64413FA0                 mov     ecx, [ebp+arg_4]
+
+; demangled name: ATL::CSimpleStringT::ReleaseBuffer(int)
+.text:64413FA3                 call    ds:mfc90_5835
+.text:64413FA9                 cmp     [ebp+var_8], 0
+.text:64413FAD                 jz      short loc_64413FB3
+.text:64413FAF                 xor     eax, eax
+.text:64413FB1                 jmp     short loc_64413FBC
+.text:64413FB3
+.text:64413FB3 loc_64413FB3:
+.text:64413FB3                 mov     ecx, [ebp+arg_4]
+
+; demangled name: const char* ATL::CSimpleStringT::operator PCXSTR 
+.text:64413FB6                 call    ds:mfc90_910
+.text:64413FBC
+.text:64413FBC loc_64413FBC:
+.text:64413FBC
+.text:64413FBC                 mov     esp, ebp
+.text:64413FBE                 pop     ebp
+.text:64413FBF                 retn
+.text:64413FBF chk_env         endp

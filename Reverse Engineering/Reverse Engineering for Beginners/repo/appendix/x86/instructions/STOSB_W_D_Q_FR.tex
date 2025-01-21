@@ -1,0 +1,25 @@
+\myindex{\CStandardLibrary!memset()}
+\myindex{x86!\Instructions!STOSB}
+\myindex{x86!\Instructions!STOSW}
+\myindex{x86!\Instructions!STOSD}
+\myindex{x86!\Instructions!STOSQ}
+\item[STOSB/STOSW/STOSD/STOSQ] stocke un octet/
+un mot 16-bit/
+un mot 32-bit/
+un mot 64-bit de AX/EAX/RAX à l'adresse se trouvant dans DI/EDI/RDI.
+
+\label{REP_STOSx}
+\myindex{x86!\Prefixes!REP}
+Couplée avec le préfixe REP, elle est répétée en boucle, le compteur étant dans le
+registre CX/ECX/RCX:
+elle fonctionne comme memset() en C.
+Si la taille du bloc est connue lors de la compilation, memset() est souvent mise
+en ligne dans un petit morceau de code en utilisant REP MOVSx, parfois même avec
+plusieurs instructions.
+
+\myindex{\CStandardLibrary!memset()}
+memset(EDI, 0xAA, 15) est équivalent à:
+
+\lstinputlisting[style=customasmx86]{appendix/x86/instructions/STOSB_ex1_FR.asm}
+
+(Apparemment, ça fonctionne plus vite que de de stocker 15 octets avec un seul REP STOSB).

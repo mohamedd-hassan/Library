@@ -1,0 +1,282 @@
+% FIXME1 divide this file into separate ones...
+\mysection{Travailler avec des nombres à virgule flottante en utilisant SIMD}
+
+\label{floating_SIMD}
+\myindex{IEEE 754}
+\myindex{SIMD}
+\myindex{SSE}
+\myindex{SSE2}
+
+Bien sûr. le \ac{FPU} est resté dans les processeurs compatible x86 lorsque les extensions
+\ac{SIMD} ont été ajoutées.
+
+L'extension \ac{SIMD} (SSE2) offre un moyen facile de travailler avec des nombres
+à virgule flottante.
+
+Le format des nombres reste le même (IEEE 754).
+
+\myindex{x86-64}
+Donc, les compilateurs modernes (incluant ceux générant pour x86-64) utilisent les
+instructions \ac{SIMD} au lieu de celles pour FPU.
+
+On peut dire que c'est une bonne nouvelle, car il est plus facile de travailler avec
+elles.
+
+Nous allons ré-utiliser les exemples de la section FPU ici: \myref{sec:FPU}.
+
+\subsection{Simple exemple}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/1_simple/simple.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x64_Ox.asm}
+
+Les valeurs en virgule flottante entrées sont passées dans les registres \XMM{0}-\XMM{3},
+tout le reste---via la pile
+\footnote{\href{http://msdn.microsoft.com/en-us/library/zthk2dkh.aspx}{MSDN: Parameter Passing}}.
+
+$a$ est passé dans \XMM{0}, $b$---via \XMM{1}.
+
+Les registres XMM font 128-bit (comme nous le savons depuis la section à propos de
+\ac{SIMD}: \myref{SIMD_x86}), mais les valeurs \Tdouble font 64-bit, donc seulement
+la moitié basse du registre est utilisée.
+
+\myindex{x86!\Instructions!DIVSD}
+\TT{DIVSD} est une instruction SSE qui signifie \q{Divide Scalar Double-Precision
+Floating-Point Values} (Diviser des nombres flottants double-précision), elle divise
+une valeur de type \Tdouble par une autre, stockées dans la moitié basse des opérandes.
+
+Les constantes sont encodées par le compilateur au format IEEE 754.
+
+\myindex{x86!\Instructions!MULSD}
+\myindex{x86!\Instructions!ADDSD}
+\TT{MULSD} et \TT{ADDSD} fonctionnent de même, mais font la multiplication et l'addition.
+
+Le résultat de l'exécution de la fonction de type \Tdouble est laissé dans le registre
+\XMM{0}.\\
+\\
+C'est ainsi que travaille MSVC sans optimisation:
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x64.asm}
+
+\myindex{Shadow space}
+Légèrement redondant.
+Les arguments en entrée sont sauvés dans le \q{shadow space} (\myref{shadow_space}),
+mais seule leur moitié inférieure, i.e., seulement la valeur 64-bit de type \Tdouble.
+GCC produit le même code.
+
+\subsubsection{x86}
+
+Compilons cet exemple pour x86. Bien qu'il compile pour x86, MSVC 2012 utilise des
+instructions SSE2:
+
+\lstinputlisting[caption=MSVC 2012 x86 \NonOptimizing,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x86.asm}
+
+\lstinputlisting[caption=MSVC 2012 x86 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/simple_MSVC_2012_x86_Ox.asm}
+
+C'est presque le même code, toutefois, il y a quelques différences relatives aux
+conventions d'appel:
+1) les arguments ne sont pas passés dans des registres XMM, mais par la pile, comme
+dans les exemples FPU (\myref{sec:FPU});
+2) le résultat de la fonction est renvoyé dans \ST{0} --- afin de faire cela, il
+est copié (à travers la variable locale \TT{tv}) depuis un des registres XMM dans
+\ST{0}.
+
+\clearpage
+Essayons l'exemple optimisé dans \olly:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly1.png}
+\caption{\olly: \TT{MOVSD} charge la valeur de $a$ dans \XMM{1}}
+\label{fig:FPU_SIMD_simple_olly1}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly2.png}
+\caption{\olly: \TT{DIVSD} a calculé le \gls{quotient} 
+et l'a stocké dans \XMM{1}}
+\label{fig:FPU_SIMD_simple_olly2}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly3.png}
+\caption{\olly: \TT{MULSD} a calculé le \glslink{product}{produit} et l'a stocké
+dans \XMM{0}}
+\label{fig:FPU_SIMD_simple_olly3}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly4.png}
+\caption{\olly: \TT{ADDSD} ajoute la valeur dans \XMM{0} à celle dans \XMM{1}}
+\label{fig:FPU_SIMD_simple_olly4}
+\end{figure}
+
+\clearpage
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/simple_olly5.png}
+\caption{\olly: \FLD laisse le résultat de la fonction dans \ST{0}}
+\label{fig:FPU_SIMD_simple_olly5}
+\end{figure}
+
+Nous voyons qu'\olly montre les registres XMM comme des paires de nombres \Tdouble,
+mais seule la partie \emph{basse} est utilisée.
+
+Apparemment, \olly les montre dans ce format car les instructions SSE2 (suffixées
+avec \TT{-SD}) sont exécutées actuellement.
+
+Mais bien sûr, il est possible de changer le format du registre et de voir le contenu
+comme 4 nombres \Tfloat{} ou juste comme 16 octets.
+
+\clearpage
+\subsection{Passer des nombres à virgule flottante via les arguments}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/2_passing_floats/pow.c}
+
+Ils sont passés dans la moitié basse des registres \XMM{0}-\XMM{3}.
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/pow_MSVC_2012_x64_Ox.asm}
+
+\myindex{x86!\Instructions!MOVSD}
+\myindex{x86!\Instructions!MOVSDX}
+Il n'y a pas d'instruction \TT{MOVSDX} dans les manuels Intel et AMD (\myref{x86_manuals}),
+elle y est appelée \TT{MOVSD}.
+Donc il y a deux instructions qui partagent le même nom en x86 (à propos de l'autre
+lire: \myref{REP_MOVSx}).
+Apparemment, les développeurs de Microsoft voulaient arrêter cette pagaille, donc
+ils l'ont renommée \TT{MOVSDX}.
+Elle charge simplement une valeur dans la moitié inférieure d'un registre XMM.
+
+\TT{pow()} prends ses arguments de \XMM{0} et \XMM{1}, et renvoie le résultat dans
+\XMM{0}.
+Il est ensuite déplacé dans \RDX pour \printf.
+Pourquoi?
+Peut-être parce que \printf{}---est une fonction avec un nombre variable d'arguments?
+
+\lstinputlisting[caption=GCC 4.4.6 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/pow_GCC446_x64_O3_FR.s}
+
+GCC génère une sortie plus claire.
+La valeur pour \printf est passée dans \XMM{0}.
+À propos, il y a un cas lorsque 1 est écrit dans \EAX pour \printf ---ceci implique
+qu'un argument sera passé dans des registres vectoriels, comme le requiert le standard
+\SysVABI.
+
+\subsection{Exemple de comparaison}
+
+\lstinputlisting[style=customc]{patterns/12_FPU/3_comparison/d_max.c}
+
+\subsubsection{x64}
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x64_Ox.asm}
+
+MSVC \Optimizing génère un code très facile à comprendre.
+
+\myindex{x86!\Instructions!COMISD}
+\TT{COMISD} is \q{Compare Scalar Ordered Double-Precision Floating-Point Values and
+Set EFLAGS} (comparer des valeurs double précision en virgule flottante scalaire
+ordrées et mettre les EFLAGS). Pratiquement, c'est ce qu'elle fait.\\
+\\
+MSVC \NonOptimizing génère plus de code redondant, mais il n'est toujours pas très
+difficile à comprendre:
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x64.asm}
+
+\myindex{x86!\Instructions!MAXSD}
+Toutefois, GCC 4.4.6 effectue plus d'optimisations et utilise l'instruction \TT{MAXSD}
+(\q{Return Maximum Scalar Double-Precision Floating-Point Value}) qui choisit la
+valeur maximum!
+
+\lstinputlisting[caption=GCC 4.4.6 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/d_max_GCC446_x64_O3.s}
+
+\clearpage
+\subsubsection{x86}
+
+Compilons cet exemple dans MSVC 2012 avec l'optimisation activée:
+
+\lstinputlisting[caption=MSVC 2012 x86 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/d_max_MSVC_2012_x86_Ox.asm}
+
+Presque la même chose, mais les valeurs de $a$ et $b$ sont prises depuis la pile
+et le résultat de la fonction est laissé dans \ST{0}.
+
+Si nous chargeons cet exemple dans \olly, nous pouvons voir comment l'instruction
+\TT{COMISD} compare les valeurs et met/efface les flags \CF et \PF:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/205_floating_SIMD/d_max_olly.png}
+\caption{\olly: \TT{COMISD} a changé les flags \CF et \PF}
+\label{fig:FPU_SIMD_d_max_olly}
+\end{figure}
+
+\subsection{Calcul de l'epsilon de la machine: x64 et SIMD}
+\label{machine_epsilon_x64_and_SIMD}
+
+Revoyons l'exemple \q{calcul de l'epsilon de la machine} pour \Tdouble\ \lstref{machine_epsilon_double_c}.
+
+Maintenant nous compilons pour x64:
+
+\lstinputlisting[caption=MSVC 2012 x64 \Optimizing,style=customasmx86]{patterns/205_floating_SIMD/epsilon_double_MSVC_2012_x64_Ox.asm}
+
+Il n'y a pas moyen d'ajouter 1 à une valeur dans un registre XMM 128-bit, donc il
+doit être placé en mémoire.
+
+Il y a toutefois l'instruction \INS{ADDSD} (\emph{Add Scalar Double-Precision Floating-Point
+Values} ajouter des valeurs scalaires à virgule flottante double-précision), qui
+peut ajouter une valeur dans la moitié 64-bit basse d'un registre XMM en ignorant
+celle du haut, mais MSVC 2012 n'est probablement pas encore assez bon \footnote{À
+titre d'exercice, vous pouvez retravailler ce code pour éliminer l'usage de la pile
+locale}.
+
+Néanmoins, la valeur est ensuite rechargée dans un registre XMM et la soustraction
+est effectuée.
+\INS{SUBSD} est \q{Subtract Scalar Double-Precision Floating-Point Values} (soustraire
+des valeurs en virgule flottante double-précision), i.e., elle opère sur la partie
+64-bit basse d'un registre XMM 128-bit.
+Le résultat est renvoyé dans le registre XMM0.
+
+\input{patterns/205_floating_SIMD/FPU_PRNG/main_FR}
+
+\subsection{Résumé}
+
+Seule la moitié basse des registres XMM est utilisée dans tous les exemples ici,
+pour stocker un nombre au format IEEE 754.
+
+Pratiquement, toutes les instructions préfixées par \TT{-SD} (\q{Scalar Double-Precision})---sont
+des instructions travaillant avec des nombres à virgule flottante au format IEEE
+754, stockés dans la moitié 64-bit basse d'un registre XMM.
+
+Et c'est plus facile que dans le FPU, sans doute parce que les extensions SIMD ont
+évolué dans un chemin moins chaotique que celles FPU dans le passé.
+Le modèle de pile de registre n'est pas utilisé.
+
+\myindex{x86!\Instructions!ADDSS}
+\myindex{x86!\Instructions!MOVSS}
+\myindex{x86!\Instructions!COMISS}
+% TODO1: do this!
+Si vous voulez, essayez de remplacer \Tdouble avec \Tfloat
+
+% FIXME1 ... but their -SS versions
+dans ces exemples, la même instruction sera utilisée, mais préfixée avec \TT{-SS}
+(\q{Scalar Single-Precision} scalaire simple-précision), par exemple, \TT{MOVSS},
+\TT{COMISS}, \TT{ADDSS}, etc.
+
+\q{Scalaire} 
+implique que le registre SIMD contienne seulement une valeur au lieu de plusieurs.
+
+Les instructions travaillant avec plusieurs valeurs dans un registre simultanément
+ont \q{Packed} dans leur nom.
+
+Inutile de dire que les instructions SSE2 travaillent avec des nombres 64-bit au
+format IEEE 754 (\Tdouble), alors que la représentation interne des nombres à virgule
+flottante dans le FPU est sur 80-bit.
+
+C'est pourquoi la FPU produit moins d'erreur d'arrondi et par conséquent, le FPU
+peut donner des résultats de calcul plus précis.

@@ -1,0 +1,40 @@
+\clearpage
+\subsubsection{MSVC: x86 + \olly}
+\myindex{\olly}
+
+Teraz jest nawet prościej:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/2_global/ex2_olly_1.png}
+\caption{\olly: po wykonaniu \scanf}
+\label{fig:scanf_ex2_olly_1}
+\end{figure}
+
+Zmienna jest umieszczona w segmencie danych.
+Po wykonaniu instrukcji \PUSH (odłożenie adresu $x$),
+adres pojawia się w oknie stosu. Kliknij prawym przyciskiem na ten wiersz i wybierz \q{Follow in dump}.
+Zmienna pojawi się w oknie pamięci, po lewej stroniej.
+Po wprowadzeniu 123 w konsoli,
+\TT{0x7B} pojawi się w oknie pamięci (patrz miejsca zaznaczane na zrzucie ekranu).
+
+Ale dlaczego pierwszy bajt to \TT{7B}?
+Przecież logicznie rzecz biorąc, powinno być \TT{00 00 00 7B}!
+Przyczyną jest tzw. \glslink{endianness}{kolejność bajtów (ang. \emph{endianess})}, a x86 używa kolejności od najmniej znaczącego bajtu (tzw. \emph{cienkokońcowość}, ang. \emph{little-endian}).
+Więcej o tym przeczytasz tutaj:: \myref{sec:endianness}.
+Wracając do przykładu, wartość 32-bitowa jest ładowana z adresu w pamięci do \EAX a następnie przekazywana do funkcji \printf.
+
+$x$ znajduje się pod adresem \TT{0x00C53394}.
+
+\clearpage
+W \olly można sprawdzić mapę pamięci procesu (Alt-M).
+Widzimy, że ten adres znajduje się w segmencie PE \TT{.data} programu.:
+
+\label{olly_memory_map_example}
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/04_scanf/2_global/ex2_olly_2.png}
+\caption{\olly: mapa pamięci procesu}
+\label{fig:scanf_ex2_olly_2}
+\end{figure}
+

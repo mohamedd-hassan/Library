@@ -1,0 +1,32 @@
+my_strlen:
+; prologue de la fonction
+	sub	sp, sp, #32
+; le premier argument (str) va être stocké dans [sp,8]
+	str	x0, [sp,8]
+	ldr	x0, [sp,8]
+; copier "str" dans la variable "eos"
+	str	x0, [sp,24]
+	nop
+.L62:
+; eos++
+	ldr	x0, [sp,24]  ; charger "eos" dans X0
+	add	x1, x0, 1    ; incrémenter X0
+	str	x1, [sp,24]  ; sauver X0 dans "eos"
+; charger dans W0 un octet de la mémoire à l'adresse dans X0
+	ldrb	w0, [x0]
+; est-ce zéro? (WZR est le registre 32-bit qui contient toujours zéro)
+	cmp	w0, wzr
+; sauter si différent de zéro (Branch Not Equal)
+	bne	.L62
+; octet à zéro trouvé. calculer maintenant la différence
+; charger "eos" dans X1
+	ldr	x1, [sp,24]
+; charger "str" dans X0
+	ldr	x0, [sp,8]
+; calculer la différence
+	sub	x0, x1, x0
+; décrémenter le résultat
+	sub	w0, w0, #1
+; épilogue de la fonction
+	add	sp, sp, 32
+	ret

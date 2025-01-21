@@ -1,0 +1,67 @@
+﻿\subsection{Division}
+
+\subsubsection{Division en utilisant des décalages}
+\label{division_by_shifting}
+
+Exemple de division par 4:
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a/4;
+};
+\end{lstlisting}
+
+Nous obtenons (MSVC 2010):
+
+\begin{lstlisting}[caption=MSVC 2010,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	shr	eax, 2
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+\label{SHR}
+\myindex{x86!\Instructions!SHR}
+
+L'instruction \SHR (\emph{SHift Right} décalage à droite) dans cet exemple décale un
+nombre de 2 bits vers la droite.
+Les deux bits libérés à gauche (i.e., les deux bits les plus significatifs) sont
+mis à zéro.
+Les deux bits les moins significatifs sont perdus.
+En fait, ces deux bits perdus sont le reste de la division.
+
+\myindex{x86!\Instructions!SHR}
+
+L'instruction \SHR fonctionne tout comme \SHL, mais dans l'autre direction.
+
+\input{shift_right}
+
+Il est facile de comprendre si vous imaginez le nombre 23 dans le système décimal.
+23 peut être facilement divisé par 10, juste en supprimant le dernier chiffre (3---le
+reste de la division).
+Il reste 2 après l'opération, qui est le \gls{quotient}.
+
+Donc, le reste est perdu, mais c'est OK, nous travaillons de toutes façons sur des
+valeurs entières, ce sont sont pas des \glslink{real number}{nombres réels}!
+
+Division par 4 en ARM:
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSR      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+Division par 4 en MIPS:
+
+\begin{lstlisting}[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]
+        jr      $ra
+        srl     $v0, $a0, 2 ; slot de délai de branchement
+\end{lstlisting}
+
+\myindex{MIPS!\Instructions!SRL}
+L'instruction SLR est \q{Shift Right Logical} (décalage logique à droite).

@@ -1,0 +1,61 @@
+﻿\mysection{Modification de fichier exécutable}
+\label{patching}
+
+\subsection{code x86}
+\label{x86_patching}
+
+Les tâches de modification courantes sont:
+
+\myindex{x86!\Instructions!NOP}
+\begin{itemize}
+
+\item Une des tâches la plus fréquente est de désactiver une instruction en l'écrasant
+avec des octets \TT{0x90} (\ac{NOP}).
+
+\item Les branchements conditionnels qui utilisent un code instruction tel que \TT{74 xx} (\JZ),
+peuvent être réécrits avec deux instructions \ac{NOP}.
+
+Une autre technique consiste à désactiver un branchement conditionnel en écrasant le second octet
+avec la valeur 0 (\emph{jump offset}).
+
+\myindex{x86!\Instructions!JMP}
+\item
+Une autre tâche courante consiste à faire en sorte qu'un branchement conditionnel soit effectué
+systématiquement. On y parvient en remplaçant le code instruction par \TT{0xEB} qui correspond à
+l'instruction \JMP.
+
+\myindex{x86!\Instructions!RET}
+\myindex{stdcall}
+\item L'exécution d'une fonction peut être désactivée en remplaçant le premier octet par \RETN (0xC3).
+Les fonctions dont la convention d'appel est \TT{stdcall} (\myref{sec:stdcall}) font exception.
+Pour les modifier, il faut déterminer le nombre d'arguments (par exemple en trouvant une instruction
+\RETN au sein de la fonction), puis en utilisant l'instruction \RETN accompagnée d'un argument sur
+deux octets (0xC2).
+
+\myindex{x86!\Instructions!MOV}
+\myindex{x86!\Instructions!XOR}
+\myindex{x86!\Instructions!INC}
+\item Il arrive qu'une fonction que l'on a désactivée doive retourner une valeur 0 ou 1. Certes on
+peut utiliser \TT{MOV EAX, 0} ou \TT{MOV EAX, 1}, mais cela occupe un peu trop d'espace.\\
+Une meilleure approche consiste à utiliser \TT{XOR EAX, EAX} (2 octets \TT{0x31 0xC0}) ou
+\TT{XOR EAX, EAX / INC EAX} (3 octets \TT{0x31 0xC0 0x40}).
+
+\end{itemize}
+
+Un logiciel peut être protégé contre les modifications. Le plus souvent la protection consiste à
+lire le code du programme (en mémoire) et à en calculer une valeur de contrôle.
+Cette technique nécessite que la protection lise le code avant de pouvoir agir. Elle peut donc être
+détectée en positionnant un point d'arrêt déclenché par la lecture de la mémoire contenant le code.
+
+\myindex{tracer}
+\tracer possède l'option BPM pour ce faire.
+
+La partie du fichier au format PE qui contient les informations de relogement (\myref{subsec:relocs})
+ne doivent pas être modifiées par les patchs car le chargeur Windows risquerait d'écraser les
+modifications apportées.
+\myindex{Hiew}
+(Ces parties sont présentées sous forme grisées dans Hiew, par exemple:
+\figref{fig:scanf_ex3_hiew_1}).
+
+En dernier ressort, il est possible d'effectuer des modifications qui contournent les relogements,
+ou de modifier directement la table des relogements.

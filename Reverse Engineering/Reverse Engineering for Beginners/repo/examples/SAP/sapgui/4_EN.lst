@@ -1,0 +1,7 @@
+.text:6440B0BF loc_6440B0BF:
+.text:6440B0BF                 mov     eax, [ebp+arg_0]
+.text:6440B0C2                 push    [ebp+arg_4]
+.text:6440B0C5                 mov     [esi+2844h], eax
+.text:6440B0CB                 lea     eax, [esi+28h] ; ESI is pointer to CDwsGui object
+.text:6440B0CE                 push    eax
+.text:6440B0CF                 call    CDwsGui__CopyOptions

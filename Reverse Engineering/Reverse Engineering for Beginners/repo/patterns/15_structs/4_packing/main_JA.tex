@@ -1,0 +1,31 @@
+﻿\subsection{\StructurePackingSectionName}
+\label{structure_packing}
+
+1つ重要なことは、構造内のフィールドのパッキングです.
+
+簡単な例を考えてみましょう：
+
+\lstinputlisting[style=customc]{patterns/15_structs/4_packing/packing.c}
+
+見てきたように、2つの \Tchar フィールド（それぞれ1バイト）と2つの \Tint（それぞれ4バイト）があります。
+
+% subsections:
+\input{patterns/15_structs/4_packing/x86_JA}
+\input{patterns/15_structs/4_packing/ARM_JA}
+\input{patterns/15_structs/4_packing/MIPS_JA}
+
+\subsubsection{もう一言}
+
+関数の引数として構造体を渡すのは（構造体へのポインタを渡すのではなく）構造体のフィールドを
+1つ1つ渡すのと同じです。
+
+構造体のフィールドがデフォルトでパックされる場合、f()関数は以下のように書き換える可能です。
+
+\begin{lstlisting}[style=customc]
+void f(char a, int b, char c, int d)
+{
+    printf ("a=%d; b=%d; c=%d; d=%d\n", a, b, c, d);
+};
+\end{lstlisting}
+
+そして同じコードになります。

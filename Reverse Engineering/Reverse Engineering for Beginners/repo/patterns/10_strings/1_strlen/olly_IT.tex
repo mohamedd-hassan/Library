@@ -1,0 +1,67 @@
+﻿\clearpage
+\myparagraph{\Optimizing MSVC + \olly}
+\myindex{\olly}
+
+Testiamo questo esempio (ottimizzato) in \olly.  Questa è la prima iterazione:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly1.png}
+\caption{\olly: inizio prima iterazione}
+\label{fig:strlen_olly_1}
+\end{figure}
+
+Notiamo che \olly ha trovato un ciclo e per convenienza, ha \emph{avvolto} le sue istruzioni dentro le parentesi.
+Cliccando con il tasto destro su \EAX e scegliendo 
+\q{Follow in Dump}, la finestra della memoria scorrerà fino al punto giusto.
+Possiamo vedere la stringa \q{hello!} in memoria.
+C'è almeno
+uno zero byte dopo la stringa e poi spazzatura casuale.
+
+Se \olly vede un registro contenente un indirizzo valido, che punta ad una stringa,  
+lo mostra come stringa.
+
+\clearpage
+Premiamo F8 (\stepover) un paio di volte, per arrivare all' inizio del corpo del ciclo:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly2.png}
+\caption{\olly: inizio seconda iterazione}
+\label{fig:strlen_olly_2}
+\end{figure}
+
+Notiamo che \EAX contiene l'indirizzo del secondo carattere nella stringa.
+
+\clearpage
+
+Dobbiamo premere F8 un numero di volte sufficente per uscire dal ciclo:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly3.png}
+\caption{\olly: differenza di puntatori da calcolare}
+\label{fig:strlen_olly_3}
+\end{figure}
+
+Notiamo che ora \EAX contiene l'indirizzo dello zero byte che si trova subito dopo la stringa più 1 (perché INC EAX è stato eseguito indipendentemente dal fatto che siamo usciti o meno dal ciclo).
+Nel frattempo, \EDX non è cambiato,
+quindi sta ancora puntando all' inizio della stringa.
+
+La differenza tra questi due indirizzi verrà calcolata ora.
+
+\clearpage
+L' istruzione \SUB è stata appena eseguita:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/10_strings/1_strlen/olly4.png}
+\caption{\olly: \EAX  sta venendo decrementato}
+\label{fig:strlen_olly_4}
+\end{figure}
+
+La differenza tra i puntatori, in questo momento, si trova nel registro \EAX---7.
+In realtà, la lunghezza della stringa \q{hello!} è 6, 
+ma con lo zero byte incluso---7.
+Ma \TT{strlen()} deve ritornare il numero di caratteri nella stringa, diversi da zero.
+Quindi viene eseguito un decremento, dopodichè la funziona ritorna.

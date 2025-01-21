@@ -1,0 +1,142 @@
+﻿\clearpage
+\mysubparagraph{Premier exemple sous \olly: a=1.2 et b=3.4}
+\myindex{\olly}
+
+Chargeons l'exemple dans \olly:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_1.png}
+\caption{\olly: la première instruction \FLD a été exécutée}
+\label{fig:FPU_comparison_case1_olly1}
+\end{figure}
+
+Arguments courants de la fonction: $a=1.2$ et $b=3.4$ (Nous pouvons les voir dans
+la pile: deux paires de valeurs 32-bit).
+$b$ (3.4) est déjà chargé dans \ST{0}.
+Maintenant \FCOMP est train d'être exécutée.
+\olly montre le second argument de \FCOMP, qui se trouve sur la pile à ce moment.
+
+\clearpage
+\FCOMP a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_2.png}
+\caption{\olly: \FCOMP a été exécutée}
+\label{fig:FPU_comparison_case1_olly2}
+\end{figure}
+
+Nous voyons l'état des flags de condition du \ac{FPU}: tous à zéro.
+La valeur dépilée est vue ici comme \ST{7}, la raison a été décrite ici:
+\myref{FPU_is_rather_circular_buffer}.
+
+\clearpage
+\FNSTSW a été exécutée:
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_3.png}
+\caption{\olly: \FNSTSW a été exécutée}
+\label{fig:FPU_comparison_case1_olly3}
+\end{figure}
+
+Nous voyons que le registre \GTT{AX} contient des zéro: en effet, tous les flags
+de condition sont à zéro.
+(\olly désassemble l'instruction \FNSTSW comme \INS{FSTSW}---elles sont synonymes).
+
+\clearpage
+\TEST a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_4.png}
+\caption{\olly: \TEST a été exécutée}
+\label{fig:FPU_comparison_case1_olly4}
+\end{figure}
+
+Le flag \GTT{PF} est mis à 1.
+
+En effet: le nombre de bit mis à 0 est 0 et 0 est un nombre pair.
+olly désassemble l'instruction \INS{JP} comme \ac{JPE}---elles sont synonymes.
+Et elle va maintenant se déclencher.
+
+\clearpage
+\ac{JPE} déclenchée, \FLD charge la valeur de $b$ (3.4) dans \ST{0}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly1_5.png}
+\caption{\olly: la seconde instruction \FLD a été exécutée}
+\label{fig:FPU_comparison_case1_olly5}
+\end{figure}
+
+La fonction a fini son travail.
+
+\clearpage
+\mysubparagraph{Second exemple sous \olly: a=5.6 et b=-4}
+
+Chargeons l'exemple dans \olly:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_1.png}
+\caption{\olly: premier \FLD exécutée}
+\label{fig:FPU_comparison_case2_olly1}
+\end{figure}
+
+Arguments de la fonction courante: $a=5.6$ et $b=-4$.
+$b$ (-4) est déjà chargé dans \ST{0}.
+\FCOMP va s'exécuter maintenant.
+\olly montre le second argument de \FCOMP, qui est sur la pile juste maintenant.
+
+\clearpage
+\FCOMP a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_2.png}
+\caption{\olly: \FCOMP exécutée}
+\label{fig:FPU_comparison_case2_olly2}
+\end{figure}
+
+Nous voyons l'état des flags de condition du \ac{FPU}: tous à zéro sauf \Czero.
+
+\clearpage
+\FNSTSW a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_3.png}
+\caption{\olly: \FNSTSW exécutée}
+\label{fig:FPU_comparison_case2_olly3}
+\end{figure}
+
+Nous voyons que le registre \GTT{AX} contient \GTT{0x100}: le flag \Czero est au 8ième bit.
+
+\clearpage
+\TEST a été exécutée:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_4.png}
+\caption{\olly: \TEST exécutée}
+\label{fig:FPU_comparison_case2_olly4}
+\end{figure}
+
+Le flag \GTT{PF} est mis à zéro.
+En effet:
+
+le nombre de bit mis à 1 dans \GTT{0x100} est 1, et 1 est un nombre impair.
+\ac{JPE} est sautée maintenant.
+
+\clearpage
+\ac{JPE} n'a pas été déclenchée, donc \FLD charge la valeur de $a$ (5.6) dans \ST{0}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/12_FPU/3_comparison/x86/MSVC/olly2_5.png}
+\caption{\olly: second \FLD exécutée}
+\label{fig:FPU_comparison_case2_olly5}
+\end{figure}
+
+La fonction a fini son travail.

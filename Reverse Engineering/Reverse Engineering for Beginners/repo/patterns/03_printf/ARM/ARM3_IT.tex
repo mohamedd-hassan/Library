@@ -1,0 +1,118 @@
+\subsubsection{ARM: 3 argomenti}
+% to be sync: \subsubsection{ARM: 3 integer arguments}
+
+Lo schema tradizionale per il passaggio di argomenti (calling convention) di ARM si comporta in questo modo:
+i primi 4 argomenti vengono passati attraverso i registri \Reg{0}-\Reg{3} , i restanti attraverso lo stack.
+Ciò ricorda molto il metodo per il passaggio di argomenti in 
+fastcall~(\myref{fastcall}) o win64~(\myref{sec:callingconventions_win64}).
+
+\myparagraph{32-bit ARM}
+
+\mysubparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 40 2D E9   STMFD   SP!, {R4,LR}
+.text:00000004 03 30 A0 E3   MOV     R3, #3
+.text:00000008 02 20 A0 E3   MOV     R2, #2
+.text:0000000C 01 10 A0 E3   MOV     R1, #1
+.text:00000010 08 00 8F E2   ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:00000014 06 00 00 EB   BL      __2printf
+.text:00000018 00 00 A0 E3   MOV     R0, #0          ; ritorna 0
+.text:0000001C 10 80 BD E8   LDMFD   SP!, {R4,PC}
+\end{lstlisting}
+
+I primi 4 argomenti sono quindi passati attraverso i registri \Reg{0}-\Reg{3} nel seguente ordine:
+un puntatore alla format string di \printf in 
+\Reg{0}, 1 in \Reg{1}, 2 in \Reg{2} e 3 in \Reg{3}.
+L'istruzione a \GTT{0x18} scrive 0 in \Reg{0}---questo equivale allo statement C \emph{return 0}.
+Niente di insolito fino a qui.
+
+\OptimizingKeilVI genera lo stesso codice.
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+.text:00000000 main
+.text:00000000 10 B5        PUSH    {R4,LR}
+.text:00000002 03 23        MOVS    R3, #3
+.text:00000004 02 22        MOVS    R2, #2
+.text:00000006 01 21        MOVS    R1, #1
+.text:00000008 02 A0        ADR     R0, aADBDCD     ; "a=\%d; b=\%d; c=\%d"
+.text:0000000A 00 F0 0D F8  BL      __2printf
+.text:0000000E 00 20        MOVS    R0, #0
+.text:00000010 10 BD        POP     {R4,PC}
+\end{lstlisting}
+
+Non c'è nessuna differenza significativa nel codice non ottimizzato per modo ARM.
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode) + rimozione di return}
+\label{ARM_B_to_printf}
+
+Modifichiamo leggermente l'esempio rimuovendo \emph{return 0}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void main()
+{
+	printf("a=%d; b=%d; c=%d", 1, 2, 3);
+};
+\end{lstlisting}
+
+Il risultato è alquanto insolito:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/03_printf/ARM/tmp3.asm}
+
+\myindex{ARM!\Registers!Link Register}
+\myindex{ARM!\Instructions!B}
+\myindex{Function epilogue}
+Questa è la versione ottimizzata (\Othree) per ARM mode e stavolta notiamo \INS{B} come ultima istruzione, al posto della familiare \INS{BL}.
+Un'altra differenza tra questa versione ottimizzata e la precedente (compilata senza ottimizzazione)
+è la mancanza di prologo ed epilogo della funzione (le istruzioni che preservano i valori dei registri \Reg{0} e \ac{LR}).
+\myindex{x86!\Instructions!JMP}
+L'istruzione \INS{B} salta semplicemente ad un altro indirizzo, senza alcuna manipolazione del registro \ac{LR}, in modo simile
+a \JMP in x86.
+Perchè funziona? Perchè questo codice è infatti equivalente al precedente.
+Principalmente per due motivi: 1) nè lo stack nè \ac{SP} (lo \gls{stack pointer}) vengono modificati;
+2) la chiamata a \printf è l'ultima istruzione, quindi non succede niente dopo di essa.
+Al completamento, \printf restituisce semplicemente il controllo all'indirizzo memorizzato in \ac{LR}.
+Poichè \ac{LR} attualmente contiene l'indirizzo del punto da cui la nostra funzione era stata chiamata, 
+il controllo verrà restituito da \printf a quello stesso punto.
+Pertanto non c'è alcun bisogno di salvare \ac{LR} in quanto non abbiamo necessità di modificare \ac{LR}.
+E non vogliamo affatto modificare \ac{LR} poichè non ci sono altre chiamate a funzione ad eccezzione di \printf. Inoltre, dopo
+questa chiamata non abbiamo nient'altro da fare!
+Queste sono le ragioni per cui una simile ottimizzazione è possibile.
+
+Questa ottimizzazione è spesso usata in funzioni in cui l'ultimo statement è una chiamata ad un'altra funzione.
+Un esempio simile è fornito di seguito:
+\myref{jump_to_last_printf}.
+
+% TBT
+% A somewhat simpler case was described above: \myref{Boolector}.
+
+\myparagraph{ARM64}
+
+\mysubparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\NonOptimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/03_printf/ARM/ARM3_O0_IT.lst}
+
+\myindex{ARM!\Instructions!STP}
+
+La prima istruzione \INS{STP} (\emph{Store Pair}) salva \ac{FP} (X29) e \ac{LR} (X30) nello stack.
+La seconda istruzione \INS{ADD X29, SP, 0} forma lo stack frame.
+Scrive semplicemente il valore di \ac{SP} in X29.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+Successivamente vediamo la familiare coppia di istruzioni \INS{ADRP}/\ADD , che forma un puntatore alla stringa.
+\myindex{ARM64!lo12}
+\emph{lo12} indica 12 bit bassi (low 12 bits), ovvero, il linker scriverà i 12 bit bassi dell'indirizzo di LC1 nell'opcode dell'istruzione \ADD .
+\GTT{\%d} nella format string di \printf è un \Tint a 32-bit, quindi u valori 1, 2 e 3 sono caricati nelle parti a 32-bit dei registri.
+% to be synced:
+%1, 2 and 3 are 32-bit \Tint{} values, so they are loaded into 32-bit register parts
+%\footnote{Changing 1 to 1L will make it a 64-bit value that would be loaded into 64-bit register.
+%See more about integer constants/literals:
+%\href{https://en.cppreference.com/w/c/language/integer_constant}{1},
+%\href{https://en.cppreference.com/w/cpp/language/integer_literal}{2}.}
+
+\Optimizing GCC (Linaro) 4.9 genera lo stesso codice.

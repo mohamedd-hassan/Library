@@ -1,0 +1,120 @@
+% FIXME comparison!
+\subsection{Comparer des \q{snapshots} mémoire}
+\label{snapshots_comparing}
+
+La technique consistant à comparer directement deux états mémoire afin de voir les
+changements était souvent utilisée pour tricher avec les jeux sur ordinateurs 8-bit
+et pour modifier le fichiers des \q{meilleurs scores}.
+
+Par exemple, si vous avez chargé un jeu sur un ordinateur 8-bit (il n'y a pas beaucoup
+de mémoire dedans, mais le jeu utilise en général encore moins de mémoire), et que
+vous savez que vous avez maintenant, disons, 100 balles, vous pouvez faire un \q{snapshot}
+de toute la mémoire et le sauver quelque part. Puis, vous tirez une fois, le compteur
+de balles descend à 99, faites un second \q{snapshot} et puis comparer les deux:
+il doit y avoir quelque part un octet qui était à 100 au début, et qui est maintenant
+à 99.
+
+En considérant le fait que ces jeux 8-bit étaient souvent écrits en langage d'assemblage
+et que de telles variables étaient globales, on peut déterminer avec certitude quelle
+adresse en mémoire contenait le compteur de balles. Si vous cherchiez toutes les références
+à cette adresse dans le code du jeu désassemblé, il n'était pas très difficile de
+trouver un morceau de code \glslink{decrement}{décrémentant} le compteur de balles,
+puis d'y écrire une, ou plusieurs, instruction \gls{NOP}, et d'avoir un jeu avec
+toujours 100 balles.
+\myindex{BASIC!POKE}
+Les jeux sur ces ordinateurs 8-bit étaient en général chargés à une adresse constante,
+aussi, il n'y avait pas beaucoup de versions ce chaque jeu (souvent, une seule version
+était répandue pour un long moment), donc les joueurs enthousiastes savaient à quelles
+adresses se trouvaient les octets qui devaient être modifiés (en utilisant l'instruction
+BASIC \gls{POKE}) pour le bidouiller. Ceci à conduit à des listes de \q{cheat} qui
+contenaient les instructions \gls{POKE} publiées dans des magazines relatifs aux
+jeux 8-bit.
+
+\myindex{MS-DOS}
+
+De même, il est facile de modifier le fichier des \q{meilleurs scores}, ceci ne fonctionne
+pas seulement avec des jeux 8-bit. Notez votre score et sauvez le fichier quelque part.
+Lorsque le décompte des \q{meilleurs scores} devient différent, comparez juste les
+deux fichiers, ça peut même être fait avec l'utilitaire DOS FC\footnote{Utilitaire
+MS-DOS pour comparer des fichiers binaires.} (les fichiers des \q{meilleurs scores}
+sont souvent au format binaire).
+
+Il y aura un endroit où quelques octets seront différents et il est facile de voir
+lesquels contiennent le score.
+Toutefois, les développeurs de jeux étaient conscient de ces trucs et pouvaient protéger
+le programme contre ça.
+
+Exemple quelque peu similaire dans ce livre: \myref{Millenium_DOS_game}.
+
+% TODO: пример с какой-то простой игрушкой?
+
+\subsubsection{Une histoire vraie de 1999}
+
+\myindex{ICQ}
+C'était un temps de l'engouement pour la messagerie ICQ, au moins dans les pays de
+l'ex-URSS.
+Cette messagerie avait une particularité --- certains utilisateurs ne voulaient pas
+partager leur état en ligne avec tout le monde.
+Et vous deviez demander une \emph{autorisation} à cet utilisateur.
+Il pouvait vous autoriser à voir son état, ou pas.
+
+Voici ce que j'ai fait:
+
+\begin{itemize}
+\item Ajouté un utilisateur.
+\item Un utiliseur est apparu dans la liste de contact, dans la section ``attente d'autorisation''.
+\item Fermé ICQ.
+\item Sauvegardé la base de données ICQ.
+\item Ouvert à nouveau ICQ.
+\item L'utilisateur m'a \emph{autorisé}.
+\item Refermé ICQ et comparé les deux base de données.
+\end{itemize}
+
+Il s'est avéré que: les deux bases de données ne différaient que d'un octet.
+Dans la première version: \verb|RESU\x03|, dans la seconde: \verb|RESU\x02|.
+(``RESU'', signifie probablement ``USER'', i.e., un entête d'une structure où toutes
+les informations à propos d'un utilisateur étaient stockées.)
+Cela signifie que l'information sur l'autorisation n'était pas stockée sur le serveur,
+mais sur le client. Vraisemblablement, la valeur 2/3 reflétait l'état de l'\q{autorisation}.
+
+\subsubsection{Registres de Windows}
+
+Il est aussi possible de comparer les registres de Windows avant et après l'installation
+d'un programme.
+
+C'est une méthode courante  que de trouver quels sont les éléments des registres
+utilisés par le programme. Peut-être que ceci est la raison pour laquelle le shareware
+de \q{nettoyage des registres windows} est si apprécié.
+
+À propos, voici comment sauver les registres de Windows dans des fichiers texte:
+
+\begin{lstlisting}
+reg export HKLM HKLM.reg
+reg export HKCU HKCU.reg
+reg export HKCR HKCR.reg
+reg export HKU HKU.reg
+reg export HKCC HKCC.reg
+\end{lstlisting}
+
+\myindex{UNIX!diff}
+Ils peuvent être comparés en utilisant diff...
+
+\subsubsection{Logiciels d'ingénierie, de CAO, etc.}
+
+Si un logiciel utilise des fichiers propriétaires, vous pouvez aussi les examiner.
+Sauvez un fichier.
+Puis, ajouter un point ou une ligne ou une autre primitive.
+Sauvez le fichier, comparez.
+Ou déplacez un point, sauvez le fichier, comparez.
+
+\subsubsection{Comparateur à clignotement}
+
+La comparaison de fichiers ou d'images mémoire nous rappelle le comparateur à clignotement
+\footnote{\url{https://en.wikipedia.org/wiki/Blink_comparator}}:
+Un dispositif utilisé autrefois par les astronomes pour trouver les objets célestes
+changeant de position.
+
+Les comparateurs à clignotement permettent d'alterner rapidement entre deux photographies
+prisent à des moments différents, de façon à faire apparaître les différences visuellement.
+
+À propos, Pluton a été découverte avec un comparateur à clignotement en 1930.

@@ -1,0 +1,71 @@
+\subsubsection{Łatanie (patching) adresów (Win64)}
+
+Jeśli nasz przykład skompilujemy za pomocą MSVC 2013 z opcją \TT{/MD}
+(dynamiczne linkowanie, mniejszy plik wykonywalny dzięki zewnętrznym odwoływaniom do bibliotek \TT{MSVCR*.DLL}),
+funkcja \main będzie łatwa do znalezienia, gdyż wystąpi jako pierwsza:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr1.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Możemy spróbować \glslink{increment}{inkrementować} adres:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/01_helloworld/hiew_incr2.png}
+\caption{Hiew}
+\label{}
+\end{figure}
+
+Hiew wyświetla teraz \q{ello, world} (obok instrukcji `\LEA \RCX ...`, która ładuje adres łańucha znaków, przekazywany jako argument do funkcji \printf).
+Kiedy uruchomimy plik wykonywalny, właśnie ten ciąg znaków zostnie wypisany na ekran.
+
+\subsubsection{Wyświetlanie różnych ciągów znaków z pliku wykonywalnego (Linux x64)}
+
+Plik wykonywalny po skompilowaniu za pomocą GCC 5.4.0 na systemie Linux x64, ma wiele innych łańcuchów znaków:
+głównie są to nazwy importowanych funkcjii oraz nazwy bibliotek.
+
+Uruchamiamy objdump, żeby podejrzeć zawartość wszystkich sekcji skompilowanego pliku:
+
+\begin{lstlisting}
+% objdump -s a.out
+
+a.out:     file format elf64-x86-64
+
+Contents of section .interp:
+ 400238 2f6c6962 36342f6c 642d6c69 6e75782d  /lib64/ld-linux-
+ 400248 7838362d 36342e73 6f2e3200           x86-64.so.2.
+Contents of section .note.ABI-tag:
+ 400254 04000000 10000000 01000000 474e5500  ............GNU.
+ 400264 00000000 02000000 06000000 20000000  ............ ...
+Contents of section .note.gnu.build-id:
+ 400274 04000000 14000000 03000000 474e5500  ............GNU.
+ 400284 fe461178 5bb710b4 bbf2aca8 5ec1ec10  .F.x[.......^...
+ 400294 cf3f7ae4                             .?z.
+
+...
+\end{lstlisting}
+
+Łatwo przekazać adres łańcucha znaków \q{/lib64/ld-linux-x86-64.so.2} do funkcji \TT{printf()}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+int main()
+{
+    printf(0x400238);
+    return 0;
+}
+\end{lstlisting}
+
+Trudno uwierzyć, ale program wyświetli ten łańcuch znaków na ekran.
+
+Jeśli zmienimy adres na \TT{0x400260}, to wyświetli się napis \q{GNU}.
+Adres jest prawidłowy dla konkretnej wersji GCC, GNU toolset, etc.
+W waszym systemie plik wykonywalny może wyglądać trochę inaczej i wszystkie adresy także będą inne.
+Podobnie, usuwanie lub dodawanie kodu do kodu źródłowego może przesunąć wszystkie adresy w programie wykonywalnym do przodu lub do tyłu.
+
+

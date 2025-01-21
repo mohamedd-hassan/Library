@@ -1,0 +1,47 @@
+﻿\clearpage
+\myparagraph{\olly et les champs alignés par défaut}
+\myindex{\olly}
+
+Examinons dans \olly notre exemple lorsque les champs sont alignés par défaut sur des frontières de 4 octets:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/4_packing/olly_packing_4.png}
+\caption{\olly: Before \printf execution}
+\label{fig:packing_olly_4}
+\end{figure}
+
+Nous voyons nos quatre champs dans la fenêtre de données.
+
+Mais d'où viennent ces octets aléatoires (0x30, 0x37, 0x01) situé à côté des premier (a) et troisième (c)
+champs ?
+
+Si nous revenons à notre listing \myref{src:struct_packing_4}, nous constatons que ces deux champs sont de
+type \Tchar. Seul un octet est écrit pour chacun d'eux: 1 et 3 respectivement (lignes 6 et 8).
+
+Les trois autres octets des deux mots de 32 bits ne sont pas modifiés en mémoire! Des débris aléatoires des 
+précédentes opérations demeurent donc là.
+
+\myindex{x86!\Instructions!MOVSX}
+
+Ces débris n'influencent nullement le résultat de la fonction \printf parce que les valeurs qui lui sont 
+passées sont préparés avec l'instruction \MOVSX qui opère sur des octets et non pas sur des mots: 
+\lstref{src:struct_packing_4} (lignes 34 et 38).
+
+L'instruction \MOVSX (extension de signe) est utilisée ici car le type \Tchar est par défaut une valeur 
+signée pour MSVC et GCC. Si l'un des types \TT{unsigned char} ou \TT{uint8\_t} était utilisé ici, ce serait 
+l'instruction \MOVZX que le compilateur aurait choisi.
+
+\clearpage
+\myparagraph{\olly et les champs alignés sur des frontières de 1 octet}
+\myindex{\olly}
+
+Les choses sont beaucoup plus simples ici. Les 4 champs occupent 10 octets et les valeurs sont stockées 
+côte-à-côte.
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/4_packing/olly_packing_1.png}
+\caption{\olly: Avant appel de la fonction \printf}
+\label{fig:packing_olly_1}
+\end{figure}

@@ -1,0 +1,97 @@
+﻿\subsubsection{x64}
+\label{subsec:popcnt}
+
+例を64ビットに拡張するように少し変更してみましょう。
+
+\lstinputlisting[label=popcnt_x64_example,style=customc]{patterns/14_bitfields/4_popcnt/shifts64.c}
+
+\myparagraph{\NonOptimizing GCC 4.8.2}
+
+ここまでは簡単です。
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.8.2,style=customasmx86]{patterns/14_bitfields/4_popcnt/shifts64_GCC_O0_JA.s}
+
+\myparagraph{\Optimizing GCC 4.8.2}
+
+\lstinputlisting[caption=\Optimizing GCC 4.8.2,numbers=left,label=shifts64_GCC_O3,style=customasmx86]{patterns/14_bitfields/4_popcnt/shifts64_GCC_O3_JA.s}
+
+コードは簡潔ですが、曖昧なところがあります。
+
+これまでのすべての例では、特定のビットを比較した後に \q{rt}値をインクリメントしていましたが、
+ここでコードは \q{rt}を先に増やして（6行目）、新しい値をレジスタ \EDX に書き込みます。
+したがって、最後のビットが1である場合、 \CMOVNE\footnote{Conditional MOVe if Not Equal} 命令
+（\CMOVNZ\footnote{Conditional MOVe if Not Zero}と同義）は、 \EDX （\q{提案されたrt値}）
+を \EAX （最後にリターンされる\q{現在のrt}）に戻すことによって新しい値\q{rt}を\emph{コミット}します。
+
+したがって、ループの各ステップで、言い換えると64回入力値に関係なく、インクリメントが実行されます。
+
+このコードの利点は、2つのジャンプ（ ループの最後で\q{rt}値のインクリメントをスキップする）ではなく、
+条件ジャンプを1つだけ（ループの最後に）含むことです。
+そして、それは分岐予測を持つ現代のCPUでより速く動作するでしょう：\myref{branch_predictors}
+
+\label{FATRET}
+\myindex{x86!\Instructions!FATRET}
+最後の命令は、MSVCによって\INS{FATRET}とも呼ばれる
+\INS{REP RET} (オペコード \TT{F3 C3})です。
+これは、 \RET のいくらか最適化されたバージョンであり、
+\RET が条件ジャンプの直後にある場合、AMDは関数の最後に置くことを推奨しています：
+\InSqBrackets{\AMDOptimization p.15}
+\footnote{詳細はこちら: \url{http://repzret.org/p/repzret/}}.
+
+\myparagraph{\Optimizing MSVC 2010}
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/14_bitfields/4_popcnt/MSVC_2010_x64_Ox_JA.asm}
+
+\myindex{x86!\Instructions!ROL}
+ここでは、 \SHL の代わりに 
+\ROL 命令が使用されています。
+実際には、 \q{shift left}ではなく 
+\q{rotate left}ですが、
+この例では \SHL と同じように動作します。
+
+ローテート命令の詳細については、こちらをご覧ください：\myref{ROL_ROR}
+
+ここの\Reg{8}は64から0まで数えています。
+$i$を逆にしたようなものです。
+
+実行中のレジスタのテーブルを以下に示します。
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\HeaderColor RDX & \HeaderColor R8 \\
+\hline
+0x0000000000000001 & 64 \\
+\hline
+0x0000000000000002 & 63 \\
+\hline
+0x0000000000000004 & 62 \\
+\hline
+0x0000000000000008 & 61 \\
+\hline
+... & ... \\
+\hline
+0x4000000000000000 & 2 \\
+\hline
+0x8000000000000000 & 1 \\
+\hline
+\end{tabular}
+\end{center}
+
+\myindex{x86!\Instructions!FATRET}
+最後に、\INS{FATRET}命令がありますが、それは\myref{FATRET}で説明します。
+
+\myparagraph{\Optimizing MSVC 2012}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/14_bitfields/4_popcnt/MSVC_2012_x64_Ox_JA.asm}
+
+\myindex{\CompilerAnomaly}
+\label{MSVC2012_anomaly}
+\Optimizing MSVC 2012 は最適化されたMSVC 2010とほとんど同じことをしますが、
+どういうわけか、2つの同じループボディを生成して、ループカウントが64ではなく32です。
+
+正直なところ、なぜかはわかりません。何か最適化のトリックでしょうか。ループボディを
+もう少し長くしたほうがよいのかもしれません。
+
+とにかく、コンパイラの出力が本当に奇妙で非論理的なことがありますが、
+このようなコードは完全に動作することを示すためにあげました。

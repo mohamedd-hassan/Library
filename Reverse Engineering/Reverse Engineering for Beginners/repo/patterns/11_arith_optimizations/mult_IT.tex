@@ -1,0 +1,137 @@
+﻿\subsection{Moltiplicazioni}
+
+\subsubsection{Moltiplicare usando addizioni}
+
+Ecco un semplice esempio:
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*8;
+};
+\end{lstlisting}
+
+La moltiplicazione per 8 è stata rimpiazzata con 3 istruzioni di addizione, che fanno la stessa cosa.
+Apparentemente, l' ottimizzatore di MSVC ha deciso che questo codice potrebbe essere più veloce.
+
+\begin{lstlisting}[caption=\Optimizing MSVC 2010,style=customasmx86]
+_TEXT	SEGMENT
+_a$ = 8		; size = 4
+_f	PROC
+	mov	eax, DWORD PTR _a$[esp-4]
+	add	eax, eax
+	add	eax, eax
+	add	eax, eax
+	ret	0
+_f	ENDP
+_TEXT	ENDS
+END
+\end{lstlisting}
+
+\subsubsection{Moltiplicare usando "shift"}
+\label{subsec:mult_using_shifts}
+
+Le istruzioni di moltiplicazione e divisione con numeri che sono potenze di 2 sono spesso rimpiazzate con istruzioni "shift".
+
+\begin{lstlisting}[style=customc]
+unsigned int f(unsigned int a)
+{
+	return a*4;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[caption=\NonOptimizing MSVC 2010,style=customasmx86]
+_a$ = 8		; size = 4
+_f	PROC
+	push	ebp
+	mov	ebp, esp
+	mov	eax, DWORD PTR _a$[ebp]
+	shl	eax, 2
+	pop	ebp
+	ret	0
+_f	ENDP
+\end{lstlisting}
+
+
+Moltiplicare per 4, significa semplicemente traslare il numero a sinistra di 2 bit
+e inserire due bit zero a destra (ultimi 2 bit).
+Esattamente come moltiplicare 3 per 100~---dobbiamo solo aggiungere due zeri a destra.
+
+Questo è il funzionamento dell' istruzione "shift" a sinistra:
+
+\myindex{x86!\Instructions!SHL}
+\input{shift_left}
+
+I bit aggiunti a destra sono sempre zeri.
+
+Moltiplicazione per 4 in ARM:
+
+\begin{lstlisting}[caption=\NonOptimizingKeilVI (\ARMMode),style=customasmARM]
+f PROC
+        LSL      r0,r0,#2
+        BX       lr
+        ENDP
+\end{lstlisting}
+
+Moltiplicazione per 4 in MIPS:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/MIPS_SLL.lst}
+
+\myindex{MIPS!\Instructions!SLL}
+\INS{SLL} corrisponde a \q{Shift Left Logical}.
+
+\subsubsection{Moltiplicare usando shift, sottrazioni e addizioni}
+\label{multiplication_using_shifts_adds_subs}
+
+È anche  possibile eliminare l'operazione di moltiplicazione quando si moltiplica  per numeri come 
+7 o 17 utilizzando nuovamente lo shift.
+La matematica utilizzata è relativamente semplice.
+
+\myparagraph{32-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts.c}
+
+\mysubparagraph{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_MSVC_2012_Ox.asm}
+
+\mysubparagraph{ARM}
+
+Keil in modalità ARM sfrutta i modificatori dello shift del secondo operando:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_ARM_O3.s}
+
+Tali modificatori non sono presenti in modalità Thumb.
+Non si può nemmeno ottimizzare \TT{f2()}:
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_Keil_thumb_O3.s}
+
+\mysubparagraph{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/11_arith_optimizations/mult_shifts_MIPS_O3_IDA.lst}
+
+\myparagraph{64-bit}
+
+\lstinputlisting[style=customc]{patterns/11_arith_optimizations/mult_shifts_64.c}
+
+\mysubparagraph{x64}
+
+\lstinputlisting[caption=\Optimizing MSVC 2012,style=customasmx86]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_x64_O3.s}
+
+\mysubparagraph{ARM64}
+
+Anche GCC 4.9 per ARM64 è conciso, grazie ai modificatori dello "shift":
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9 ARM64,style=customasmARM]{patterns/11_arith_optimizations/mult_shifts_64_GCC49_ARM64.s}
+
+\myparagraph{Algoritmo di moltiplicazione di Booth}
+
+\myindex{Data general Nova}
+\myindex{Booth's multiplication algorithm}
+Ci fu un tempo in cui i computer erano grossi e costosi, per molti di essi mancava il supporto hardware per l' operazione di moltiplicazione
+nella \ac{CPU}, come Data General Nova.
+E quando serviva l' operazione di moltiplicazione, veniva fornita a livello software, per esempio, utilizzando l' algoritmo di moltiplicazione di Booth.
+Esso è un algoritmi di moltiplicazione che usa solamente addizioni e shift.
+
+Ciò che i moderni compilatori ottimizzati fanno, è diverso,
+ma lo scopo (moltiplicare) e le risorse (operazioni veloci) sono le stesse.

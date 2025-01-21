@@ -1,0 +1,78 @@
+﻿\section{Шутка с Маджонгом (Windows 7)}
+
+Маджонг это замечательная игра, однако, можем ли мы усложнить её, запретив пункт меню \emph{Hint} (\emph{подсказка})?
+
+В Windows 7, я могу найти файлы Mahjong.dll и Mahjong.exe в:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..inboxgames-shanghai_31bf3856ad364e35_6.1.7600.16385_none\| \\
+\verb|c07a51d9507d9398|.
+
+Также, файл \verb|Mahjong.exe.mui| в:\\
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_en-us| \\
+\verb|_c430954533c66bf3|
+
+и в
+
+\verb|C:\Windows\winsxs\| \\
+\verb|x86_microsoft-windows-s..-shanghai.resources_31bf3856ad364e35_6.1.7600.16385_ru-ru| \\
+\verb|_0d51acf984cb679a|.
+
+Я использую англоязычную Windows, но с поддержкой русского языка, так что тут могут быть файлы ресурсов для двух языков.
+\myindex{Resource Hacker}
+Открыв файл Mahjong.exe.mui в Resource Hacker, можно увидеть определения меню:
+
+\begin{lstlisting}[caption=Ресурсы меню в Mahjong.exe.mui]
+103 MENU
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+{
+  POPUP "&Game"
+  {
+    MENUITEM "&New Game\tF2",  40000
+    MENUITEM SEPARATOR
+    MENUITEM "&Undo\tCtrl+Z",  40001
+    MENUITEM "&Hint\tH",  40002
+    MENUITEM SEPARATOR
+    MENUITEM "&Statistics\tF4",  40003
+    MENUITEM "&Options\tF5",  40004
+    MENUITEM "Change &Appearance\tF7",  40005
+    MENUITEM SEPARATOR
+    MENUITEM "E&xit",  40006
+  }
+  POPUP "&Help"
+  {
+    MENUITEM "&View Help\tF1",  40015
+    MENUITEM "&About Mahjong Titans",  40016
+    MENUITEM SEPARATOR
+    MENUITEM "Get &More Games Online",  40020
+  }
+}
+\end{lstlisting}
+
+Подменю \emph{Hint} имеет код 40002.
+Открываю Mahjong.exe в IDA и ищу значение 40002.
+
+(Я пишу это в ноябре 2019. Почему-то, IDA не может выкачать PDB-файлы с серверов Microsoft. Может быть, Windows 7 больше не поддерживается?
+Так или иначе, имен ф-ций я не смог установить...)
+
+\lstinputlisting[style=customasmx86,caption=Mahjong.exe]{examples/mahjong/1_RU.lst}
+
+Эта часть кода разрешает или запрещает пункт меню \emph{Hint}.
+
+\myindex{Windows!EnableMenuItem}
+И согласно MSDN\footnote{\url{https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enablemenuitem}}:
+
+\verb$MF_DISABLED | MF_GRAYED = 3$ и \verb|MF_ENABLED = 0|.
+
+Я думаю, эта ф-ция разрешает или запрещает несколько пунктов меню (\emph{Hint}, \emph{Undo}, итд), исходя из значения в \verb|arg_0|.
+Потому что при старте, когда пользователь выбирает тип игры, пункты \verb|Hint| и \verb|Undo| запрещены.
+Они разрешены, когда игра начинается.
+
+Так что я изменяю в файле Mahjong.exe по адресу 0x01020637 байт 0x75 на 0xEB, делая так, что переход \INS{JNZ} всегда будет работать.
+Эффект в том, что ф-ция всегда будет вызываться как \verb|EnableMenuItem(..., ..., 3)|.
+Теперь подменю \emph{Hint} всё время запрещено.
+
+Также, почему-то, ф-ция \verb|EnableMenuItem()| вызывается дважды, для \verb|hMenu| и для \verb|hmenu|.
+Может быть, в программе два меню, и может быть, они переключаются?
+
+В качестве домашней работы, попробуйте запретить подменю \emph{Undo}, чтобы сделать игру еще труднее.

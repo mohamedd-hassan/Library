@@ -1,0 +1,123 @@
+﻿\subsection{CRT (win32)}
+\label{sec:CRT}
+\myindex{CRT}
+
+L'exécution du programme débute donc avec la fonction \main{}?
+Non, pas du tout.
+
+Ouvrez un exécutable dans \IDA ou HIEW, et vous constaterez que l'\ac{OEP} pointe sur un bloc de
+code qui se situe ailleurs.
+
+Ce code prépare l'environnement avant de passer le contrôle à notre propre code. Ce fragment de code
+initial est dénommé CRT (pour C RunTime). \\
+\\
+La fonction \main{} accepte en arguments un tableau des paramètres passés en ligne de commande, et
+un autre contenant les variables d'environnement.
+En réalité, ce qui est passé au programme est une simple chaîne de caractères. Le code du CRT repère
+les espaces dans la chaîne et découpe celle-ci en plusieurs morceaux qui constitueront le tableau des
+paramètres.
+Le CRT est également responsable de la préparation du tableau des variables d'environnement \TT{envp}.
+
+En ce qui concerne les applications win32 dotées d'un interface graphique (\ac{GUI}). La fonction
+principale est nommée \TT{WinMain} et non pas \main{}. Elle possède aussi ses propres arguments:
+
+\begin{lstlisting}[style=customc]
+int CALLBACK WinMain(
+  _In_  HINSTANCE hInstance,
+  _In_  HINSTANCE hPrevInstance,
+  _In_  LPSTR lpCmdLine,
+  _In_  int nCmdShow
+);
+\end{lstlisting}
+
+C'est toujours le CRT qui est responsable de leurs préparation.
+
+La valeur retournée par la fonction \main{} est également ce qui constitue le code retour du
+programme.
+
+Le CRT peut utiliser cette valeur lors de l'appel de la fonction \TT{ExitProcess()} qui prend le code
+retour du programme en paramètre. \\
+\\
+En règle générale, le code du CRT est propre à chaque compilateur. \\
+\\
+Voici celui du MSVC 2008.
+
+\lstinputlisting[numbers=left,style=customasmx86]{OS/win32_CRT/crt_msvc_2008.asm}
+
+Nous y trouvons des appels à \TT{GetCommandLineA()} (line 62),
+puis \TT{setargv()} (line 66) et \TT{setenvp()} (line 74),
+qui semblent être utilisés pour initialiser les variables globales
+\TT{argc}, \TT{argv}, \TT{envp}.
+
+Enfin, \main{} est invoqué avec ces arguments (line 97).
+
+Nous observons également des appels à des fonctions au nom évocateur telles que \TT{heap\_init()}
+(line 35), \TT{ioinit()} (line 54).
+
+Le tas \glslink{heap}{heap} est lui aussi initialisé par le \ac{CRT}.
+Si vous tentez d'utiliser la fonction \TT{malloc()} dans un programme ou le CRT n'a pas été ajouté,
+le programme va s'achever de manière anormale avec l'erreur suivante:
+
+\begin{lstlisting}
+runtime error R6030
+- CRT not initialized
+\end{lstlisting}
+
+L'initialisation des objets globaux en \Cpp est également de la responsabilité du \ac{CRT} avant
+qu'il ne passe la main à \main{}:
+\myref{sec:std_string_as_global_variable}.
+
+La valeur retournée par \main{} est passée soit à la fonction \TT{cexit()}, soit à \TT{\$LN32} qui
+à son tour invoque \TT{doexit()}.
+
+Mais pourrait-on se passe du \ac{CRT}?
+Oui, si vous savez ce que vous faites.
+
+L'éditeur de lien \ac{MSVC} accepte une option \TT{/ENTRY} qui permet de définir le point d'entrée
+du programme.
+
+\begin{lstlisting}[style=customc]
+#include <windows.h>
+
+int main()
+{
+	MessageBox (NULL, "hello, world", "caption", MB_OK);
+};
+\end{lstlisting}
+
+Compilons ce programme avec MSVC 2008.
+
+\begin{lstlisting}
+cl no_crt.c user32.lib /link /entry:main
+\end{lstlisting}
+
+Nous obtenons un programme exécutable .exe de 2560 octets qui contient en tout et pour tout l'en-tête
+PE, les  instructions pour invoquer \TT{MessageBox} et deux chaînes de caractères dans le segment de
+données:  le nom de la fonction \TT{MessageBox} et celui de sa DLL d'origine \TT{user32.dll}.
+
+Cela fonctionne, mais vous ne pouvez pas déclarer \TT{WinMain} et ses 4 arguments à la place de
+\main{}.
+
+Pour être précis, vous pourriez, mais les arguments ne seraient pas préparés au moment de
+l'exécution du programme.
+
+Cela étant, il est possible de réduire encore la taille de l'exécutable en utilisant une valeur
+pour l'alignement des sections du fichier au format \ac{PE} une valeur inférieur à celle par
+défaut de 4096 octets.
+
+\begin{lstlisting}
+cl no_crt.c user32.lib /link /entry:main /align:16
+\end{lstlisting}
+
+L'éditeur de lien prévient cependant:
+
+\begin{lstlisting}
+LINK : warning LNK4108: /ALIGN specified without /DRIVER; image may not run
+\end{lstlisting}
+
+Nous pouvons ainsi obtenir un exécutable de 720 octets.
+Son exécution est possible sur Windows 7 x86, mais pas en environnement x64
+(un message d'erreur apparaîtra alors si vous tentez de l'exécuter).
+
+Avec des efforts accrus il est possible de réduire encore la taille, mais avec des problèmes de
+compatibilité comme vous le voyez.

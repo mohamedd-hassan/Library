@@ -1,0 +1,136 @@
+\subsection{戻り値}
+
+ポインターは関数から値を返すためによく使用されます（ \scanf 関数の呼び出し（\myref{label_scanf}））。 
+
+たとえば、関数が2つの値を返す必要がある場合などです。
+
+\subsubsection{グローバル変数の例}
+
+\lstinputlisting[style=customc]{patterns/061_pointers/2/global.c}
+
+次のようにコンパイルされます。
+
+\lstinputlisting[caption=\Optimizing MSVC 2010 (/Ob0),style=customasmx86]{patterns/061_pointers/2/global.asm}
+
+\myindex{\olly}
+\clearpage
+\olly で見てみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_global1.png}
+\caption{\olly: 
+グローバル変数のアドレスは \ttfone に渡されます}
+\label{fig:pointers_olly_global_1}
+\end{figure}
+
+まず、グローバル変数のアドレスが \ttfone に渡されます。
+スタック要素に\q{Follow in dump}をクリックすると、
+2つの変数に割り当てられたデータセグメント内の場所を見ることができます。
+
+\clearpage
+これらの変数は、初期化されていないデータ（\ac{BSS}から）が実行開始前にクリアされるため、
+ゼロにされます。[see \CNineNineStd{} 6.7.8p10]
+
+それらはデータセグメントにあり、Alt-Mを押してメモリマップを確認することで確認できます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_global5.png}
+\caption{\olly: メモリマップ}
+\label{fig:pointers_olly_global_5}
+\end{figure}
+
+\clearpage
+\ttfone の先頭にをトレース（F7）しましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_global2.png}
+\caption{\olly: \ttfone が開始}
+\label{fig:pointers_olly_global_2}
+\end{figure}
+
+2つの値がスタック456（\TT{0x1C8}）と
+123（\TT{0x7B}）に表示され、2つのグローバル変数のアドレスも表示されます。
+
+\clearpage
+\ttfone の終わりまでトレースしましょう。
+左下のウィンドウで、計算結果がグローバル変数にどのように表示されるかを確認します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_global3.png}
+\caption{\olly: \ttfone 実行完了}
+\label{fig:pointers_olly_global_3}
+\end{figure}
+
+\clearpage
+
+グローバル変数の値は、（スタックを介して） \printf に渡す準備が整ったレジスタにロードされます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_global4.png}
+\caption{\olly: 
+グローバル変数の値は \printf に渡されます}
+\label{fig:pointers_olly_global_4}
+\end{figure}
+
+\subsubsection{ローカル変数の例}
+
+私たちの例を少し修正しましょう。
+
+\lstinputlisting[caption=now the \TT{sum} and \TT{product} variables are local,style=customc]{patterns/061_pointers/2/local_JA.c}
+
+\ttfone コードは変更されません。 
+\main のコードだけが行います：
+
+\lstinputlisting[caption=\Optimizing MSVC 2010 (/Ob0),style=customasmx86]{patterns/061_pointers/2/local.asm}
+
+\newcommand{\PtrsAddresses}{\TT{0x2EF854} and \TT{0x2EF858}\xspace}
+
+\clearpage
+\olly をもう一度見てみましょう。
+スタック内のローカル変数のアドレスは \PtrsAddresses です。
+これらがスタックにどのようにプッシュされるのかを確認します。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_stk1.png}
+\caption{\olly: ローカル変数のアドレスがスタックにプッシュされる}
+\label{fig:pointers_olly_stk_1}
+\end{figure}
+
+\clearpage
+\ttfone が開始します。
+今のところ \PtrsAddresses のスタックにランダムなゴミだけがあります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_stk2.png}
+\caption{\olly: \ttfone 開始}
+\label{fig:pointers_olly_stk_2}
+\end{figure}
+
+\clearpage
+\ttfone が完了。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/061_pointers/2/olly_stk3.png}
+\caption{\olly: \ttfone 実行完了}
+\label{fig:pointers_olly_stk_3}
+\end{figure}
+
+ここで、アドレス \PtrsAddresses に\TT{0xDB18} と \TT{0x243}が見つかります。
+これらの値は \ttfone の結果です。
+
+\subsubsection{\Conclusion{}}
+ 
+\ttfone は、メモリ内の任意の場所にポインタを返すことができます。
+
+これは本質的にポインタの有用性です。
+
+ところで、\Cpp リファレンスはまったく同じように動作します。
+それらの詳細については、（\myref{cpp_references}）を参照してください。

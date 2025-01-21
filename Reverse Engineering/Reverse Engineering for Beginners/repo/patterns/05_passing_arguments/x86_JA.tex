@@ -1,0 +1,41 @@
+\subsection{x86}
+
+\subsubsection{MSVC}
+
+コンパイルして得られるものを次に示します（MSVC 2010 Express）。
+
+\lstinputlisting[label=src:passing_arguments_ex_MSVC_cdecl,caption=MSVC 2010 Express,style=customasmx86]{patterns/05_passing_arguments/msvc_JA.asm}
+
+\myindex{x86!\Registers!EBP}
+
+\main 関数は3つの数値をスタックにプッシュし、\TT{f(int,int,int)}を呼び出すことがわかります。
+
+\ttf 内の引数アクセスは、ローカル変数と同じ方法で
+\TT{\_a\$ = 8}
+のようなマクロの助けを借りて構成されますが、正のオフセット（\emph{プラス}で扱われます）を持ちます。 
+したがって、\TT{\_a\$}マクロを \EBP レジスタの値に追加することによって\gls{stack frame}の\emph{外側}を処理しています。
+
+\myindex{x86!\Instructions!IMUL}
+\myindex{x86!\Instructions!ADD}
+
+次に、 $a$ の値が \EAX に格納されます。 \IMUL 命令実行後、 
+\EAX の値は \EAX の値と\TT{\_b}の内容の\gls{product}です。
+
+その後、 \ADD は\TT{\_c}の値を \EAX に追加します。
+
+\EAX の値は移動する必要はありません。すでに存在している必要があります。 
+\gls{caller}に戻ると、 \EAX 値をとり、 \printf の引数として使用します。
+
+\input{patterns/05_passing_arguments/olly_JA}
+
+\subsubsection{GCC}
+
+GCC 4.4.1で同じものをコンパイルし、 \IDA の結果を見てみましょう。
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/05_passing_arguments/gcc_JA.asm}
+
+結果はほぼ同じで、以前に説明したいくつかの小さな違いがあります。
+
+\gls{stack pointer}は2つの関数呼び出し（fとprintf）の後にセットバックされません。
+最後から2番目の\TT{LEAVE}命令（\myref{x86_ins:LEAVE}）
+命令が最後にこれを処理するためです。

@@ -1,0 +1,297 @@
+\newglossaryentry{tail call}
+{
+  name={tail call},
+  description={C'est lorsque le compilateur (ou l'interpréteur) transforme la récursion (ce qui est possible: \emph{tail recursion})
+  en une itération pour l'efficacité: \href{http://en.wikipedia.org/wiki/Tail_call}{wikipedia}}
+}
+
+\newglossaryentry{endianness}
+{
+  name=endianness,
+  description={Ordre des octets: \myref{sec:endianness}}
+}
+
+\newglossaryentry{caller}
+{
+  name=caller,
+  description={Une fonction en appelant une autre}
+}
+
+\newglossaryentry{callee}
+{
+  name=callee,
+  description={Une fonction appelée par une autre}
+}
+
+\newglossaryentry{debuggee}
+{
+  name=debuggee,
+  description={Un programme en train d'être débogué}
+}
+
+\newglossaryentry{leaf function}
+{
+  name=leaf function,
+  description={Une fonction qui n'appelle pas d'autre fonction}
+}
+
+\newglossaryentry{link register}
+{
+  name=link register,
+  description={(RISC) Un registre où l'adresse de retour est en général stockée. Ceci permet
+  d'appeler une fonction leaf sans utiliser la pile, i.e, plus rapidemment}
+}
+
+\newglossaryentry{anti-pattern}
+{
+  name=anti-pattern,
+  description={En général considéré comme une mauvaise pratique}
+}
+
+\newglossaryentry{stack pointer}
+{
+  name=pointeur de pile,
+  description={Un registre qui pointe dans la pile}
+}
+
+\newglossaryentry{decrement}
+{
+  name=décrémenter,
+  description={Décrémenter de 1}
+}
+
+\newglossaryentry{increment}
+{
+  name=incrémenter,
+  description={Incrémenter de 1}
+}
+
+\newglossaryentry{loop unwinding}
+{
+  name=loop unwinding,
+  description={C'est lorsqu'un compilateur, au lieu de générer du code pour une boucle de
+  $n$ itérations, génère juste $n$ copies du corps de la boucle, afin de supprimer
+  les instructions pour la gestion de la boucle}
+}
+
+\newglossaryentry{register allocator}
+{
+  name=register allocator,
+  description={La partie du compilateur qui assigne des registes du CPU aux variables locales}
+}
+
+\newglossaryentry{quotient}
+{
+  name=quotient,
+  description={Résultat de la division}
+}
+
+\newglossaryentry{product}
+{
+  name=produit,
+  description={Résultat d'une multiplication}
+}
+
+\newglossaryentry{NOP}
+{
+  name=NOP,
+  description={\q{no operation}, instruction ne faisant rien}
+}
+
+\newglossaryentry{POKE}
+{
+  name=POKE,
+  description={instruction du langage BASIC pour écrire un octet à une adresse spécifique}
+}
+
+\newglossaryentry{keygenme}
+{
+  name=keygenme,
+  description={Un programme qui imite la protection des logiciels pour lesquels on a besoin d'un générateur de clef/licence}
+} % TODO clarify: A software which generate key/license value to bypass sotfware protection?
+
+\newglossaryentry{dongle}
+{
+  name=dongle,
+  description={Un dongle est un petit périphérique se connectant sur un port d'imprimante LPT (par le passé) ou USB.
+  Sa fonction est similaire au tokens de sécurité, il a de la mémoire et, parfois, un algorithme secret de (crypto-)hachage.}
+}
+
+\newglossaryentry{thunk function}
+{
+  name=thunk function,
+  description={Minuscule fonction qui a un seul rôle: appeler une autre fonction}
+}
+
+\newglossaryentry{user mode}
+{
+  name=user mode,
+  description={Un mode CPU restreint dans lequel le code de toutes les applications est exécuté. cf. \gls{kernel mode}}
+}
+
+\newglossaryentry{kernel mode}
+{
+  name=kernel mode,
+  description={Un mode CPU sans restriction dans lequel le noyau de l'OS et les drivers sont exécutés. cf. \gls{user mode}}
+}
+
+\newglossaryentry{Windows NT}
+{
+  name=Windows NT,
+  description={Windows NT, 2000, XP, Vista, 7, 8, 10}
+}
+
+\newglossaryentry{atomic operation}
+{
+  name=atomic operation,
+  description={
+  \q{$\alpha{}\tau{}o\mu{}o\varsigma{}$}
+  %\q{atomic}
+  signifie \q{indivisible} en grec, donc il est garantie qu'une opération atomique ne sera pas interrompue par d'autres threads}
+}
+
+% to be proofreaded (begin)
+\newglossaryentry{NaN}
+{
+  name=NaN,
+  description={pas un nombre: un cas particulier pour les nombres à virgule flottante, indiquant généralement une erreur}
+}
+
+\newglossaryentry{NEON}
+{
+  name=NEON,
+  description={\ac{AKA} \q{Advanced SIMD} --- \ac{SIMD} de ARM}
+}
+
+\newglossaryentry{reverse engineering}
+{
+  name=reverse engineering,
+  description={action d'examiner et de comprendre comment quelque chose fonctionne, parfois dans le but de le reproduire}
+}
+
+\newglossaryentry{compiler intrinsic}
+{
+  name=compiler intrinsic,
+  description={Une foncion spécifique d'un compilateur, qui n'est pas une fonction usuelle de bibliothèque.
+    Le compilateur génère du code machine spécifique au lieu d'un appel à celui-ci.
+    Souvent il s'agit d'une pseudo-fonction pour une instruction \ac{CPU} spécifique. Lire plus:
+    (\myref{sec:compiler_intrinsic})}
+}
+
+\newglossaryentry{heap}
+{
+  name={tas},
+  description={Généralement c'est un gros bout de mémoire fournit par l'\ac{OS} et utilisé par
+  les applications pour le diviser comme elles le souhaitent. malloc()/free() fonctionnent en utilisant le tas}
+}
+
+\newglossaryentry{name mangling}
+{
+  name=name mangling,
+  description={utilisé au moins en \Cpp, où le compilateur doit encoder le nom de la classe, la méthode et le type des arguments dans une chaîne,
+  qui devient le nom interne de la fonction. Vous pouvez en lire plus à ce propos ici: \myref{namemangling}}
+}
+
+\newglossaryentry{xoring}
+{
+  name=xoring,
+  description={souvent utilisé en anglais, qui signifie appliquer l'opération \ac{XOR}}
+}
+
+\newglossaryentry{security cookie}
+{
+  name=security cookie,
+  description={Une valeur aléatoire, différente à chaque exécution. Vous pouvez en lire plus à ce propos ici: \myref{subsec:BO_protection}}
+}
+
+\newglossaryentry{tracer}
+{
+  name=tracer,
+  description={Mon propre outil de debugging. Vous pouvez en lire plus à son propos ici: \myref{tracer}}
+}
+
+\newglossaryentry{GiB}
+{
+  name=GiB,
+  description={Gibioctet: $2^{30}$ or 1024 mebioctets ou 1073741824 octets}
+}
+
+\newglossaryentry{CP/M}
+{
+  name=CP/M,
+  description={Control Program for Microcomputers:
+  un \ac{OS} de disque très basique utilisé avant MS-DOS}
+}
+
+\newglossaryentry{stack frame}
+{
+  name=stack frame,
+  description={Une partie de la pile qui contient des informations spécifiques à la fonction courante:
+  variables locales, arguments de la fonction, \ac{RA}, etc.}
+}
+
+\newglossaryentry{jump offset}
+{
+  name=jump offset,
+  description={une partie de l'opcode de l'instruction JMP ou Jcc, qui doit être ajoutée à l'adresse de l'instruction suivante,
+  et c'est ainsi que le nouveau \ac{PC} est calculé. Peut être négatif}
+}
+
+\newglossaryentry{integral type}
+{
+  name={type de donnée intégral},
+  description={nombre usuel, mais pas un réel. peut être utilisé pour passer des variables de type booléen et des énumérations}
+}
+
+\newglossaryentry{real number}
+{
+  name={nombre réel},
+  description={nombre qui peut contenir un point. comme \Tfloat et \Tdouble en \CCpp}
+}
+
+\newglossaryentry{PDB}
+{
+  name=PDB,
+  description={(Win32) Fichier contenant des informations de débogage, en général seulement les noms des fonctions,
+  mais aussi parfois les arguments des fonctions et le nom des variables locales}
+}
+
+\newglossaryentry{NTAPI}
+{
+  name=NTAPI,
+  description={\ac{API} disponible seulement dans la série de Windows NT. Très peu documentée par Microsoft}
+}
+
+\newglossaryentry{stdout}
+{
+  name=stdout,
+  description={standard output, sortie standard}
+}
+
+\newglossaryentry{word}
+{
+  name=word,
+  description={Dans les ordinateurs plus vieux que les PCs, la taille de la mémoire était
+  souvent mesurée en mots plutôt qu'en octet}
+}
+
+\newglossaryentry{arithmetic mean}
+{
+  name={moyenne arithmétique},
+  description={la somme de toutes les valeurs, divisé par leur nombre}
+}
+\newglossaryentry{padding}
+{
+  name=padding,
+  description={\emph{Padding} en anglais signifie rembourrer un oreiller, un matelas, etc. avec quelque chose afin de lui donner la forme désirée.
+  En informatique, padding signifie ajouter des octets à un bloc, afin qu'il ait une certaine taille, comme $2^n$ octets.}
+}
+
+\newglossaryentry{basic block}
+{
+  name=basic block,
+  description={
+	un groupe d'instructions qui n'a pas d'instruction de saut/branchement,
+	et donc n'as pas de saut de l'intérieur du bloc vers l'extérieur.
+	Dans \IDA il ressemble à une liste d'instructions sans ligne vide}
+}

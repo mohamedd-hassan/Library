@@ -1,0 +1,13 @@
+.text:0000AC94       LDR       R2, [R11,#third_argument]
+.text:0000AC98       MOV       R3, #0x51EB851F
+.text:0000ACA0       SMULL     R1, R3, R3, R2 ; \verb|R3=3rg_arg/3.125|
+.text:0000ACA4       MOV       R1, R3,ASR#4 ; \verb|R1=R3/16=3rg_arg/50|
+.text:0000ACA8       MOV       R3, R2,ASR#31 ; \verb|R3=MSB(3rg_arg)|
+.text:0000ACAC       RSB       R3, R3, R1 ; \verb|R3=3rd_arg/50|
+.text:0000ACB0       MOV       R1, #50
+.text:0000ACB4       MUL       R3, R1, R3 ; \verb|R3=50*(3rd_arg/50)|
+.text:0000ACB8       RSB       R3, R3, R2
+.text:0000ACBC       CMP       R3, #0
+.text:0000ACC0       BEQ       loc_ACEC
+.text:0000ACC4
+.text:0000ACC4 errors_with_arguments

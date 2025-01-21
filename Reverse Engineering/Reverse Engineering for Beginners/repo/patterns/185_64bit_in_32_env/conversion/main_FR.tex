@@ -1,0 +1,43 @@
+﻿\subsection{Convertir une valeur 32-bit en 64-bit}
+\label{subsec:sign_extending_32_to_64}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/conversion/4.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=MSVC 2012 \Optimizing,style=customasmx86]{patterns/185_64bit_in_32_env/conversion/MSVC2012_Ox.asm}
+
+Ici, nous nous heurtons à la nécessité d'étendre une valeur 32-bit signée en une
+64-bit signée.
+Les valeurs non signées sont converties directement: tous les bits de la partie haute
+doivent être mis à 0.
+Mais ce n'est pas approprié pour les types de donnée signée: le signe doit être copié
+dans la partie haute du nombre résultant.
+\myindex{x86!\Instructions!CDQ}
+
+L'instruction \INS{CDQ} fait cela ici, elle prend sa valeur d'entrée dans \EAX{},
+étend le signe sur 64-bit et laisse le résultat dans la paire de registres \EDX{}:\EAX{}.
+En d'autres mots, \INS{CDQ} prend le signe du nombre dans \EAX{} (en prenant le bit
+le plus significatif dans \EAX{}), et suivant sa valeur, met tous les 32 bits de
+\EDX{} à 0 ou 1.
+Cette opération est quelque peu similaire à l'instruction \MOVSX{}.
+
+\subsubsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/conversion/Keil_ARM_O3.s}
+
+Keil pour ARM est différent: il décale simplement arithmétiquement de 31 bits vers
+la droite la valeur en entrée.
+Comme nous le savons, le bit de signe est le \ac{MSB}, et le décalage arithmétique
+copie le bit de signe dans les bits \q{apparus}.
+Donc après \q{ASR r1,r0,\#31}, \Reg{1} contient 0xFFFFFFFF si la valeur d'entrée
+était négative et 0 sinon.
+\Reg{1} contient la partie haute de la valeur 64-bit résultante.
+En d'autres mots, ce code copie juste le \ac{MSB} (bit de signe) de la valeur d'entrée
+dans \Reg{0} dans tous les bits de la partie haute 32-bit de la valeur 64-bit résultante.
+
+\subsubsection{MIPS}
+
+GCC pour MIPS fait la même chose que Keil a fait pour le mode ARM:
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/conversion/MIPS_O3_IDA.lst}

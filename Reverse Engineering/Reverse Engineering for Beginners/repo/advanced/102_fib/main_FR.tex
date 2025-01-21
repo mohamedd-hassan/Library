@@ -1,0 +1,146 @@
+\mysection{Suite de Fibonacci}
+
+Un autre exemple très utilisé dans les livres de programmation est la fonction récursive
+qui génère les termes de la suite de Fibonacci\footnote{\url{http://oeis.org/A000045}}.
+Cette suite est très simple: chaque nombre consécutif est la somme des deux précédents.
+Les deux premiers termes sont 0 et 1 ou 1 et 1.
+
+La suite commence comme ceci:
+
+\begin{center}
+$0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181 ...$
+\end{center}
+
+\subsection{Exemple \#1}
+
+L'implémentation est simple. Ce programme génère la suite jusqu'à 21.
+
+\lstinputlisting[style=customc]{\CURPATH/fib.c}
+
+\lstinputlisting[caption=MSVC 2010 x86,style=customasmx86]{\CURPATH/fib.asm}
+
+Nous allons illustrer les frames de pile avec ceci.
+
+\clearpage
+
+Chargeons cet exemple dans \olly et traçons jusqu'au dernier appel de \ttf{}:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{\CURPATH/olly.png}
+\caption{\olly: dernier appel de \ttf{}}
+\label{fig:fib_olly}
+\end{figure}
+
+\clearpage
+Examinons plus attentivement la pile.
+Les commentaires ont été ajoutés par l'auteur de ce livre
+\footnote{ À propos, il est possible de sélectionner plusieurs entrées dans \olly
+et de les copier dans le presse-papier (Crtl-C).
+C'est ce qui a été fait par l'auteur pour cet exemple.}:
+
+\lstinputlisting{\CURPATH/stack_FR.txt}
+
+La fonction est récursive \footnote{i.e., elle s'appelle elle-même}, donc la pile
+ressemble à un \q{sandwich}.
+
+Nous voyons que l'argument \emph{limit} est toujours le même (\TT{0x14} ou 20), mais
+que les arguments $a$ et $b$ sont différents pour chaque appel.
+
+Il y a aussi ici le \ac{RA}-s et la valeur sauvée de \EBP.
+\olly est capable de déterminer les frames basés sur EBP, donc il les dessine ces
+accolades. Les valeurs dans chaque accolade constituent la \glslink{stack frame}{frame de pile},
+autrement dit, la zone de la pile qu'un appel de fonction utilise comme espace dédié.
+
+Nous pouvons aussi dire que chaque appel de fonction ne doit pas accéder les éléments
+de la pile au delà des limites de son bloc (en excluant les arguments de la fonction),
+bien que cela soit techniquement possible.
+
+C'est généralement vrai, à moins que la fonction n'ait des bugs.
+
+Chaque valeur sauvée de \EBP est l'adresse de la \glslink{stack frame}{structure
+de pile locale} précédente:
+c'est la raison pour laquelle certains débogueurs peuvent facilement diviser la pile
+en blocs et afficher chaque argument de la fonction.
+% TODO add about StackWalk (MSDN)
+
+Comme nous le voyons ici, chaque exécution de fonction prépare les arguments pour
+l'appel de fonction suivant.
+
+À la fin, nous voyons les 3 arguments de \main.
+\TT{argc} vaut 1 (oui, en effet, nous avons lancé le programme sans argument sur
+la ligne de commande).
+
+Ceci peut conduire facilement à un débordement de pile: il suffit de supprimer (ou
+commenter) le test de la limite et ça va planter avec l'exception \TT{0xC00000FD} (stack overflow).
+
+\subsection{Exemple \#2}
+
+Ma fonction a quelques redondances, donc ajoutons une nouvelle variable locale \emph{next}
+et remplaçons tout les \q{a+b} avec elle:
+
+\lstinputlisting[style=customc]{\CURPATH/fib2.c}
+
+C'est la sortie de MSVC sans optimisation, donc la variable \emph{next} est allouée
+sur la pile locale:
+
+\lstinputlisting[caption=MSVC 2010 x86,style=customasmx86]{\CURPATH/fib2.asm}
+
+\clearpage
+Chargeons-le à nouveau dans \olly:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{\CURPATH/olly2.png}
+\caption{\olly: dernier appel de \ttf{}}
+\label{fig:fib_olly2}
+\end{figure}
+
+Maintenant, la variable \emph{next} est présente dans chaque frame.
+
+\clearpage
+
+Examinons plus attentivement la pile. L'auteur a de nouveau ajouté ses commentaires:
+
+\lstinputlisting{\CURPATH/stack2_FR.txt}
+
+% FIXME what a word! hmmm...
+Voici ce que l'on voit: la valeur \emph{next} est calculée dans chaque appel de la fonction,
+puis passée comme argument $b$ au prochain appel.
+
+\subsection{Résumé}
+
+\label{Recursion_and_tail_call}
+\myindex{\Recursion}
+Les fonctions récursives sont esthétiquement jolies, mais techniquement elles
+peuvent dégrader les performances à cause de leur usage intensif de la pile.
+Quiconque qui écrit du code dont la perfomance est critique devrait probablement
+éviter la récursion.
+
+Par exemple, j'ai écrit une fois une fonction pour chercher un n\oe{}ud particulier
+dans un arbre binaire.
+Bien que la fonction récursive avait l'air élégante, il y avait du temps passé à
+chaque appel de fonction pour le prologue et l'épilogue, elle fonctionnait deux ou
+trois fois plus lentement que l'implémentation itérative (sans récursion).
+
+\newcommand{\FnFP}{\footnote{LISP, Python, Lua, etc.}}
+\myindex{\Recursion!Tail recursion}
+
+À propos, c'est la raison pour laquelle certains compilateurs fonctionnels \ac{PL}\FnFP{}
+(où la récursion est très utilisée) utilisent les \glslink{tail call}{appels terminaux}.
+Nous parlons d'appel terminal lorsqu'une fonction a un seul appel à elle-même, situé
+à sa fin, comme:
+
+\begin{lstlisting}[caption=Scheme{,} exemple copié/collé depuis Wikipédia]
+;; factorial : nombre -> nombre
+;; pour calculer le produit de tous les entiers
+;; positifs inférieurs ou égaux à n.
+(define (factorial n)
+ (if (= n 1)
+     1
+	 (* n (factorial (- n 1)))))
+\end{lstlisting}
+
+Les appels terminaux sont importants car le compilateur peut retravailler facilement
+ce code en un code itératif, pour supprimer la récursion.
+

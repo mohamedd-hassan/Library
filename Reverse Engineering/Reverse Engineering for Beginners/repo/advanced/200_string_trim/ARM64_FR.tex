@@ -1,0 +1,19 @@
+﻿\subsection{ARM64: GCC (Linaro) 4.9 \NonOptimizing}
+
+Cette implémentation est simple:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 \NonOptimizing,style=customasmARM]{\CURPATH/GCC49_ARM64_O0_FR.s}
+
+\subsection{ARM64: GCC (Linaro) 4.9 \Optimizing}
+
+Ceci est une optimisation plus avancée.
+
+Le premier caractère est chargé au début, et comparé avec 10 (le caractère \ac{LF}).
+
+Les caractères sont ensuite chargés dans la boucle principale, pour les caractères
+après le premier.
+
+Ceci est quelque peu similaire à l'exemple \myref{string_trim_GCC_x64_O3}.
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 \Optimizing,style=customasmARM]{\CURPATH/GCC49_ARM64_O3_FR.s}
+

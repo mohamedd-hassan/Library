@@ -1,0 +1,52 @@
+﻿\subsubsection{配列の範囲外の読み込み}
+
+配列のインデックス化は単に\emph{array\lbrack{}index\rbrack}です。
+生成されたコードを詳しく研究したなら、\emph{20未満であるか}チェックするような
+インデックスの境界チェックがないことに気づくでしょう。
+もしインデックスが20以上だったらどうでしょうか。
+これは \CCpp が批判される1つの特徴です。
+
+コンパイルされて動作するコードがあります。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/2_BO/r.c}
+
+コンパイル結果（MSVC 2008）
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2008,style=customasmx86]{patterns/13_arrays/2_BO/r_msvc.asm}
+
+コードは次の結果を生成します。
+
+\lstinputlisting[caption=\olly: console output]{patterns/13_arrays/2_BO/console.txt}
+
+これは単に配列のそばのスタックにある \emph{何か} です。配列の最初の要素から80バイト離れています。
+
+\clearpage
+\myindex{\olly}
+この値がどこから来るのか \olly を使って見つけてみましょう。
+
+最後の配列の要素のすぐあとに配置された値をロードして見つけましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_r1.png}
+\caption{\olly: 20番目の要素を読み込み、 \printf を実行する}
+\label{fig:array_BO_olly_r1}
+\end{figure}
+
+これは何でしょうか？
+スタックレイアウトで判断すると、
+これは保存されたEBPレジスタの値です。
+\clearpage
+もっとトレースしてどのようにリストアされるか見てみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/13_arrays/2_BO/olly_r2.png}
+\caption{\olly: EBPの値をリストア}
+\label{fig:array_BO_olly_r2}
+\end{figure}
+
+本当に、異なっていますか？
+コンパイラはインデックス値が配列の境界内かを常にチェックする追加のコードを生成するかもしれません。
+（高水準プログラミング言語\footnote{Java, Pythonなど}のように）
+しかし、これはコードを遅くします。

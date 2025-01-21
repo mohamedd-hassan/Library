@@ -1,0 +1,94 @@
+﻿\subsubsection{Win32}
+
+\myparagraph{Données \ac{TLS} non initialisées}
+
+Une solution consiste à déclarer la variable globale avec le modificateur \TT{\_\_declspec( thread )}.
+Elle sera alors allouée dans le \ac{TLS} (ligne 9):
+
+\lstinputlisting[numbers=left,style=customc]{OS/TLS/win32/rand_uninit.c}
+
+Hiew nous montre alors qu'il existe une nouvelle section nommée \TT{.tls} dans le fichier PE.
+% TODO1 hiew screenshot?
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x86,style=customasmx86]{OS/TLS/win32/rand_x86_uninit.asm}
+
+La variable \TT{rand\_state} se trouve donc maintenant dans le segment \ac{TLS} et chaque thread en
+possède sa propre version de cette variable.
+
+Voici comment elle est accédée. L'adresse du \ac{TIB} est chargée depuis FS:2Ch,
+un index est ajouté (si nécessaire), puis l'adresse du segment \ac{TLS} est calculée.
+
+Il est ainsi possible d'accéder la valeur de la variable \TT{rand\_state} au travers du registre
+ECX qui contient une adresse propre à chaque thread.
+
+\myindex{x86!\Registers!FS}
+
+Le sélecteur \TT{FS:} est connu de tous les rétro-ingénieur. Il est spécifiquement utilisé pour
+toujours contenir l'adresse du \ac{TIB} du thread en cours d'exécution. L'accès aux données propres
+à chaque thread est donc une opération performante.
+
+\myindex{x86!\Registers!GS}
+
+En environnement Win64, c'est le sélecteur \TT{GS:} qui est utilisé pour ce faire. L'adresse de
+l'espace \ac{TLS} y est conservé à l'offset 0x58 :
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{OS/TLS/win32/rand_x64_uninit.asm}
+
+\myparagraph{Initialisation des données \ac{TLS}}
+
+Imaginons maintenant que nous voulons nous prémunir des erreurs de programmation en initialisant
+systématiquement la variable \TT{rand\_state} avec une valeur constante (ligne 9):
+
+\lstinputlisting[numbers=left,style=customc]{OS/TLS/win32/rand_init.c}
+
+Le code ne semble pas différent de celui que nous avons étudié. Pourtant dans IDA nous constatons:
+
+\lstinputlisting[style=customasmx86]{OS/TLS/win32/rand_init_IDA.lst}
+
+La valeur 1234 est bien présente. Chaque fois qu'un nouveau thread est créé, un nouvel espace \ac{TLS}
+est alloué pour ses besoins et toutes les données - y compris 1234 - y sont copiées.
+
+Considérons le scénario hypothétique suivant:
+
+\begin{itemize}
+\item Le thread A démarre. Un espace \ac{TLS} est créé pour ses besoins et la valeur 1234 est copiée
+dans \TT{rand\_state}.
+
+\item La fonction \TT{my\_rand()} est invoquée plusieurs fois par le thread A.\\
+La valeur de la variable \TT{rand\_state} est maintenant différente de 1234.
+
+\item Le thread B démarre. Un espace \ac{TLS} est créé pour ses besoins et la valeur 1234 est copiée
+dans \TT{rand\_state}. Dans le thread A, la valeur de \TT{rand\_state} demeure différente de 1234.
+\end{itemize}
+
+\myparagraph{Fonctions de rappel \ac{TLS}}
+\myindex{TLS!Callbacks}
+
+Mais comment procédons-nous si les variables conservées dans l'environnement \ac{TLS} doivent être
+initialisées avec des valeurs qui ne sont pas constantes ?
+
+Imaginons le scénario suivant:
+Il se peut que le programmeur oublie d'invoquer la fonction \TT{my\_srand()} pour initialiser le
+\ac{PRNG}. Malgré cela, le générateur doit être initialisé avec une valeur réellement aléatoire et
+non pas avec 1234. C'est précisément dans ce genre de cas que les fonctions de rappel \ac{TLS}
+sont utilisées.
+
+Le code ci-dessous n'est pas vraiment portable du fait du bricolage, mais vous devriez comprendre
+l'idée.
+
+Nous définissons une fonction (\TT{tls\_callback()}) qui doit être invoquée avant le démarrage du
+processus et/ou d'un thread.
+
+Cette fonction initialise le \ac{PRNG} avec la valeur retournée par la fonction \TT{GetTickCount()}.
+
+\lstinputlisting[style=customc]{OS/TLS/win32/rand_TLS_callback.c}
+
+Voyons cela dans IDA:
+
+\lstinputlisting[caption=\Optimizing MSVC 2013,style=customasmx86]{OS/TLS/win32/rand_TLS_callback.lst}
+
+Les fonctions de rappel TLS sont parfois utilisées par les mécanismes de décompression d'exécutable
+afin d'en rendre le fonctionnement plus obscure.
+
+Cette pratique peut en laisser certains dans le noir parce qu'ils auront omis de considérer qu'un
+fragment de code a pu s'exécuter avant l'\ac{OEP}.

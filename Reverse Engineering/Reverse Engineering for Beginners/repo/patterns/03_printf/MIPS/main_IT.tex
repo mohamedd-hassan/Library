@@ -1,0 +1,58 @@
+\subsection{MIPS}
+
+\subsubsection{3 argomenti}
+% to be sync: \subsubsection{3 integer arguments}
+
+\myparagraph{\Optimizing GCC 4.4.5}
+
+La differenza principale con l'esempio \q{\HelloWorldSectionName} è che in questo caso \printf è chiamata 
+al posto di \puts, e 3 argomenti aggiuntivi sono passati attraverso i registri \$5\dots \$7 (o \$A0\dots \$A2).
+Questo è il motivo per cui questi registri hanno il prefisso A-, che implica il loro uso per il passaggio di argomenti di funzioni.
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O3_IT.s}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O3.IDA_IT.lst}
+
+\IDA ha fuso le coppie di istruzioni \INS{LUI} e \INS{ADDIU} in una unica pseudoistruzione \INS{LA}.
+Questo è il motivo per cui non c'è nessuna istruzione all'indirizzo 0x1C: perchè \INS{LA} \emph{occupa} 8 byte.%
+
+\myparagraph{\NonOptimizing GCC 4.4.5}
+
+\NonOptimizing GCC è più verboso:
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O0_IT.s}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf3.O0.IDA_IT.lst}
+
+\subsubsection{8 argomenti}
+% to be sync: \subsubsection{8 integer arguments}
+
+Usiamo nuovamente l'esempio con 9 argomenti dalla sezione prcedente: \myref{example_printf8_x64}.
+
+\lstinputlisting[style=customc]{patterns/03_printf/2.c}
+
+\myparagraph{\Optimizing GCC 4.4.5}
+
+Solo i primi 4 argomenti sono passati nei registri \$A0 \dots \$A3, gli altri sono passati tramite lo stack.
+\myindex{MIPS!O32}
+
+Questa è la calling convention O32 (che è la più comune nel mondo MIPS).
+Altre calling conventions (come N32) possono usare i registri per scopi diversi.
+% to be sync: Other calling conventions, or manually written assembly code, may use the registers for different purposes.
+
+\myindex{MIPS!\Instructions!SW}
+
+\INS{SW} è l'abbreviazione di \q{Store Word} (da un registro alla memoria).
+MIPS manca di istruzioni per memorizzare un valore in memoria, è quindi necessario usare una coppia di istruzioni (LI/SW).
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O3_IT.s}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O3.IDA_IT.lst}
+
+\myparagraph{\NonOptimizing GCC 4.4.5}
+
+\NonOptimizing GCC è più verboso:
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O0_IT.s}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/03_printf/MIPS/printf8.O0.IDA_IT.lst}

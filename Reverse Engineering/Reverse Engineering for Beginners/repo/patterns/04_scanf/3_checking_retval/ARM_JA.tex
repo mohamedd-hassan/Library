@@ -1,0 +1,31 @@
+\subsubsection{ARM}
+
+\myparagraph{ARM: \OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/04_scanf/3_checking_retval/ex3_ARM_Keil_thumb_O3.asm}
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!BEQ}
+
+ここでの新しい命令は \CMP と\ac{BEQ}です。
+
+\CMP は同じ名前のx86命令に似ていますが、他の引数から引数の1つを減算し、必要に応じて条件フラグを更新します。
+% TODO: в мануале ARM $op1 + NOT(op2) + 1$ вместо вычитания
+
+\myindex{ARM!\Registers!Z}
+\myindex{x86!\Instructions!JZ}
+オペランドが互いに等しい場合、
+または最後の計算の結果が0の場合、またはZフラグが1の場合、
+\ac{BEQ}は別のアドレスにジャンプします。
+これはx86では \JZ として動作します。
+
+それ以外はすべてシンプルです。実行フローが2つの分岐に分岐した後、
+関数の戻り値として0が\Reg{0}に書き込まれた時点で分岐が収束し、関数が終了します。
+
+\myparagraph{ARM64}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 ARM64,numbers=left,style=customasmARM]{patterns/04_scanf/3_checking_retval/ARM64_GCC491_O0_JA.s}
+
+\myindex{ARM!\Instructions!CMP}
+\myindex{ARM!\Instructions!Bcc}
+この場合のコードフローは、\INS{CMP}/\INS{BNE}（Branch if Not Equal）命令のペアを使用して分岐します。

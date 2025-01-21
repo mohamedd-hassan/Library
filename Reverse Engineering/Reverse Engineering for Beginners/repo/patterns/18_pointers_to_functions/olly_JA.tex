@@ -1,0 +1,38 @@
+﻿\clearpage
+\subsubsection{MSVC + \olly}
+\myindex{\olly}
+
+例を \olly にロードし、 \comp にブレークポイントを設定しましょう。
+最初の \comp 呼び出しで値がどのように比較されるかを見ることができます。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/18_pointers_to_functions/olly1.png}
+\caption{\olly: \comp の最初の呼び出し}
+\label{fig:qsort_olly1}
+\end{figure}
+
+便宜上、 \olly はコードウィンドウの下のウィンドウに比較値を表示します。
+また、\ac{SP}が\ac{RA}を指していることがわかります（ \qsort 関数は\TT{MSVCR100.DLL}にあります）。
+
+\clearpage
+\TT{RETN}命令までトレースし（F8）、もう一度F8を押すと、 \qsort 関数に戻ります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/18_pointers_to_functions/olly2.png}
+\caption{\olly: \comp 呼び出し直後の \qsort のコード}
+\label{fig:qsort_olly2}
+\end{figure}
+
+それは比較関数への呼び出しでした。
+
+\clearpage
+これは \comp の2回目の呼び出しの瞬間のスクリーンショットでもあり、比較する必要がある値は異なります。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/18_pointers_to_functions/olly3.png}
+\caption{\olly: \comp の2回目の呼び出し}
+\label{fig:qsort_olly3}
+\end{figure}

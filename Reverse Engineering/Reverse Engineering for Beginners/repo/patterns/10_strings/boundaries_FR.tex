@@ -1,0 +1,39 @@
+\subsection{Limites de chaînes}
+
+\myindex{win32!GetOpenFileName}
+Il est intéressant de noter comment les paramètres sont passés à la fonction win32
+\emph{GetOpenFileName()}. Afin de l'appeler, il faut définir une liste des extensions
+de fichier autorisées:
+
+\begin{lstlisting}[style=customc]
+	OPENFILENAME *LPOPENFILENAME;
+	...
+	char * filter = "Text files (*.txt)\0*.txt\0MS Word files (*.doc)\0*.doc\0\0";
+	...
+	LPOPENFILENAME = (OPENFILENAME *)malloc(sizeof(OPENFILENAME));
+	...
+	LPOPENFILENAME->lpstrFilter = filter;
+	...
+
+	if(GetOpenFileName(LPOPENFILENAME))
+	{
+		...
+\end{lstlisting}
+
+Ce qui se passe ici, c'est que la liste de chaînes est passée à \emph{GetOpenFileName()}.
+Ce n'est pas un problème de l'analyser: à chaque fois que l'on rencontre un octet
+nul, c'est un élément.
+Quand on rencontre deux octets nul, c'est la fin de la liste.
+Si vous passez cette chaîne à \printf, elle traitera le premier élément comme une
+simple chaîne.
+
+Donc, ceci est un chaîne, ou...?
+Il est plus juste de dire que c'est un buffer contenants plusieurs chaînes-C terminées
+par zéro, qui peut être stocké et traité comme un tout.
+
+\myindex{\CStandardLibrary!strtok}
+Un autre exemple est la fonction \emph{strtok()}. Elle prend une chaîne et y écrit
+des octets nul.
+C'est ainsi qu'elle transforme la chaîne d'entrée en une sorte de buffer, qui contient
+plusieurs chaînes-C terminées par zéro.
+

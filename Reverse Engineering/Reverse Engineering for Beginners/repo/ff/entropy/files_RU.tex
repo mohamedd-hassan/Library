@@ -1,0 +1,127 @@
+\subsection{Энтропия различных файлов}
+
+Энтропия случайной информации близка к 8:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | ent
+Entropy = 7.999803 bits per byte.
+\end{lstlisting}
+
+Это означает, что почти всё доступное место внутри байта заполнено информацией.
+
+256 байта в пределах 0..255 дает точное значение 8:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys
+
+for i in range(256):
+    sys.stdout.write(chr(i))
+\end{lstlisting}
+
+\begin{lstlisting}
+% python 1.py | ent
+Entropy = 8.000000 bits per byte.
+\end{lstlisting}
+
+Порядок не важен.
+Это означает, что всё доступное место внутри байта заполнено.
+
+Энтропия любого блока заполненного нулевыми байтами это 0:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/zero | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+Энтропия строки, состоящей из одного (любого) байта это 0:
+
+\begin{lstlisting}
+% echo -n "aaaaaaaaaaaaaaaaaaa" | ent
+Entropy = 0.000000 bits per byte.
+\end{lstlisting}
+
+\myindex{base64}
+Энтропия base64-строки такая же, как и энтропия исходных данных, но умножена на $\frac{3}{4}$.
+Это потому что кодирование в base64 использует 64 символа вместо 256.
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | base64 | ent
+Entropy = 6.022068 bits per byte.
+\end{lstlisting}
+
+Вероятно, 6.02 чуть больше 6 из-за того, что выравнивающий символ (\TT{=}) немного портит статистику.
+
+\myindex{Uuencode}
+Uuencode также использует 64 символа:
+
+\begin{lstlisting}
+% dd bs=1M count=1 if=/dev/urandom | uuencode - | ent
+Entropy = 6.013162 bits per byte.
+\end{lstlisting}
+
+Это означает, что любая строка в base64 и Uuencode может быть передана используя 6-битные байты или символы.
+
+Любая случайная информация в шестнадцатеричном виде имеет энтропию в 4 бита на байт:
+
+\begin{lstlisting}
+% openssl rand -hex $\$$(( 2**16 )) | ent
+Entropy = 4.000013 bits per byte.
+\end{lstlisting}
+
+Энтропия случайно выбранного текста на английском из библиотеки Гутенберга имеет энтропию $\approx 4.5$.
+Это потому что английские тексты используют, в основном, 26 латинских символов, и $log_2(26)=\approx 4.7$, т.е., вам
+нужны 5-битные байты для передачи несжатых английских текстов, это будет достаточно (так это и было в эпоху телетайпов).
+
+Случайно выбранный текст на русском из библиотеки \url{http://lib.ru}
+это Ф.М.Достоевский ``Идиот''\footnote{\url{http://az.lib.ru/d/dostoewskij_f_m/text_0070.shtml}},
+закодированный в CP1251.
+
+И этот файл имеет энтропию в $\approx 4.98$.
+В кириллице 33 буквы, и $log_2(33)=\approx 5.04$.
+Но в русской письменности есть малопопулярная и редкая буква ``ё''.
+% FIXME YO letter isn't rendered in Eng version
+И $log_2(32)=5$ (кирилличный алфавит без этой редкой буквы) --- теперь это близко к тому, что мы получили.
+
+Впрочем, этот текст использует букву ``ё'', но, наверное, и там она встречается не часто.
+
+\myindex{UTF-8}
+Тот же файл перекодированный из CP1251 в UTF-8 дает энтропию в $\approx 4.23$.
+Каждый символ из кириллицы кодируется в UTF-8 при помощи пары, и первый байт всегда один из этих двух: 0xD0 or 0xD1.
+Видимо, это причина перекоса.
+
+Будем генерировать случайные биты и выводить их как символы ``T'' и ``F'':
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    if random.randint(0,1)==1:
+        rt=rt+"T"
+    else:
+        rt=rt+"F"
+print rt
+\end{lstlisting}
+
+Пример: \TT{...TTTFTFTTTFFFTTTFTTTTTTFTTFFTTTFTFTTFTTFFFFFF...}.
+
+Энтропия очень близка к 1 (т.е., 1 бит на байт).
+
+Будем генерировать случайные десятичные цифры:
+
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import random, sys
+
+rt=""
+for i in range(102400):
+    rt=rt+"%d" % random.randint(0,9)
+print rt
+\end{lstlisting}
+
+Например: \TT{...52203466119390328807552582367031963888032...}.
+
+Энтропия близка к 3.32, действительно, это $log_2(10)$.
+

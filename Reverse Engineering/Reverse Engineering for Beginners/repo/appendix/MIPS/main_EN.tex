@@ -1,0 +1,123 @@
+\mysection{MIPS}
+
+\subsection{\Registers}
+\label{MIPS_registers_ref}
+
+\myindex{MIPS!O32}
+( O32 calling convention )
+
+\subsubsection{General purpose registers (\ac{GPR})}
+
+%\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Number & 
+\HeaderColor Pseudoname & 
+\HeaderColor Description \\
+\hline
+\$0             & \$ZERO          & Always zero. Writing to this register is like \ac{NOP}. \\
+\hline
+\$1             & \$AT            & Used as a temporary register \\
+                &                 & for assembly macros and pseudo instructions. \\
+\hline
+\$2 \dots \$3   & \$V0 \dots \$V1 & Function result is returned here. \\
+\hline
+\$4 \dots \$7   & \$A0 \dots \$A3 & Function arguments. \\
+\hline
+\$8 \dots \$15  & \$T0 \dots \$T7 & Used for temporary data. \\
+\hline
+\$16 \dots \$23 & \$S0 \dots \$S7 & Used for temporary data\AsteriskOne{}. \\
+\hline
+\$24 \dots \$25 & \$T8 \dots \$T9 & Used for temporary data. \\
+\hline
+\$26 \dots \$27 & \$K0 \dots \$K1 & Reserved for \ac{OS} kernel. \\
+\hline
+\$28            & \$GP            & Global Pointer\AsteriskTwo{}. \\
+\hline
+\$29            & \$SP            & \ac{SP}\AsteriskOne{}. \\
+\hline
+\$30            & \$FP            & \ac{FP}\AsteriskOne{}. \\
+\hline
+\$31            & \$RA            & \ac{RA}. \\
+\hline
+n/a             & PC              & \ac{PC}. \\
+\hline
+n/a             & HI              & high 32 bit of multiplication or division remainder\AsteriskThree{}. \\
+\hline
+n/a             & LO              & low 32 bit of multiplication and division remainder\AsteriskThree{}. \\
+\hline
+\end{tabular}
+\end{center}
+%\normalsize
+
+\subsubsection{Floating-point registers}
+\label{MIPS_FPU_registers}
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Name & \HeaderColor Description \\
+\hline
+\$F0..\$F1   & Function result returned here. \\
+\hline
+\$F2..\$F3   & Not used. \\
+\hline
+\$F4..\$F11  & Used for temporary data. \\
+\hline
+\$F12..\$F15 & First two function arguments. \\
+\hline
+\$F16..\$F19 & Used for temporary data. \\
+\hline
+\$F20..\$F31 & Used for temporary data\AsteriskOne{}. \\
+\hline
+%fcr31 & Control/status register. \\
+%\hline
+\end{tabular}
+\end{center}
+
+\AsteriskOne{} --- \Gls{callee} must preserve the value.\\
+\AsteriskTwo{} --- \Gls{callee} must preserve the value (except in \ac{PIC} code).\\
+\myindex{MIPS!\Instructions!MFLO}
+\myindex{MIPS!\Instructions!MFHI}
+\AsteriskThree{} --- accessible using the \TT{MFHI} and \TT{MFLO} instructions.\\
+
+\subsection{\Instructions}
+
+There are 3 kinds of instructions:
+
+\begin{itemize}
+
+\item R-type: those which have 3 registers. R-instruction usually have the following form:
+
+\begin{lstlisting}
+instruction destination, source1, source2
+\end{lstlisting}
+
+One important thing to keep in mind is that when the first and second register are the same, 
+IDA may show the instruction in its shorter form:
+
+\begin{lstlisting}
+instruction destination/source1, source2
+\end{lstlisting}
+
+That somewhat reminds us of the Intel syntax for x86 assembly language.
+
+\item I-type: those which have 2 registers and a 16-bit immediate value.
+
+\item J-type: jump/branch instructions, have 26 bits for encoding the offset.
+
+\end{itemize}
+
+\subsubsection{Jump instructions}
+
+What is the difference between B-instructions (\INS{BEQ}, \INS{B}, etc.) and J- ones (\INS{JAL}, \INS{JALR}, etc.)?
+
+The B-instructions have an I-type, hence, the B-instructions' offset is encoded as a 16-bit immediate.
+\INS{JR} and \INS{JALR} are R-type and jump to an absolute address specified in a register.
+\INS{J} and \INS{JAL} are J-type, hence the offset is encoded as a 26-bit immediate.
+
+In short, B-instructions can encode a condition 
+(\INS{B} is in fact pseudo instruction for \TT{BEQ \$ZERO, \$ZERO, LABEL}), 
+while J-instructions can't.
+

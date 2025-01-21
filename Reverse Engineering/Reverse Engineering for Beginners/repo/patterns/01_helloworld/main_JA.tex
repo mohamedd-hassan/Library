@@ -1,0 +1,30 @@
+\mysection{\HelloWorldSectionName}
+\label{sec:helloworld}
+
+[\KRBook]という本の有名な例を使ってみましょう
+
+\lstinputlisting[caption=\CCpp Code,style=customc]{patterns/01_helloworld/hw.c}
+
+\subsection{x86}
+
+\input{patterns/01_helloworld/MSVC_x86}
+\input{patterns/01_helloworld/GCC_x86}
+\input{patterns/01_helloworld/string_patching_JA}
+
+\subsection{x86-64}
+\input{patterns/01_helloworld/MSVC_x64}
+\input{patterns/01_helloworld/GCC_x64}
+\input{patterns/01_helloworld/address_patching_JA}
+
+\input{patterns/01_helloworld/ARM/main}
+\input{patterns/01_helloworld/MIPS/main}
+
+\subsection{\Conclusion{}}
+
+x86/ARMとx64/ARM64コードの主な違いは、文字列へのポインタが64ビット長になったことです。
+確かに、現代の \ac{CPU} は64ビットになりました。これは、現代のアプリケーションではメモリの節約と大きな需要の両方があるからです。
+私たちは32ビットポインタよりもはるかに多くのメモリをコンピュータに追加することができます。
+そのため、すべてのポインタは64ビットになりました。
+
+% sections
+\input{patterns/01_helloworld/exercises}

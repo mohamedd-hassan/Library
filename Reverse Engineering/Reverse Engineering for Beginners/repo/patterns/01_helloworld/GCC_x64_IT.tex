@@ -1,0 +1,35 @@
+\subsubsection{GCC: x86-64}
+
+\myindex{x86-64}
+Proviamo anche GCC in Linux a 64-bit:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,,style=customasmx86]{patterns/01_helloworld/GCC_x64_IT.s}
+
+% I think I got the intent right on the following line - Renaissance
+Linux, *BSD e \MacOSX usano anche un metodo per passare argomenti di funzione nei registri. \SysVABI.
+
+I primi 6 argomenti sono passati nei registri \RDI, \RSI, \RDX, \RCX, \Reg{8}, \Reg{9}, ed il resto---tramite lo stack.
+
+Quindi il puntatore alla stringa viene passato in \EDI (la parte a 32-bit del registro).
+Ma perchè non utilizza la parte a 64-bit, \RDI?
+
+E' importante ricordare che tutte le istruzioni \MOV in modalità 64-bit che scrivono qualcosa nella parte dei 32-bit bassa di un registro, azzera anche la parte a 32-bit alta (come indicato nei manuali Intel: \myref{x86_manuals}).\\
+Ad esempio, \INS{MOV EAX, 011223344h} scrive correttamente un valore in \RAX, poichè i bit della parte alta verranno azzerati.
+
+Se apriamo il file oggetto compilato (.o), possiamo anche vedere gli opcode di tutte le istruzioni
+\footnote{Questo deve essere abilitato in \textbf{Options $\rightarrow$ Disassembly $\rightarrow$ Number of opcode bytes}}:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/01_helloworld/GCC_x64.lst}
+
+\label{hw_EDI_instead_of_RDI}
+Come possiamo notare, l'istruzione che scrive in \EDI all'indirizzo \TT{0x4004D4} occupa 5 byte.
+La stessa istruzione che scrive un valore a 64-bit in \RDI occupa 7 bytes.
+Apparentemente, GCC sta cercando di risparmiare un po' di spazio.
+Inoltre, può essere sicuro che il segmento dati contenente la stringa non sarà allocato ad indirizzi maggiori di 4\gls{GiB}.
+
+\label{SysVABI_input_EAX}
+% There isn't an ABI acronym in acronyms.tex - I figure the intent is to Application Binary Interface,
+% so I put it in there (in the EN section, commented out)
+Notiamo anche che il registro \EAX è stato azzerato prima della chiamata alla funzione \printf.
+Questo viene fatto perché, in base allo standard \ac{ABI} citato in precedenza,
+il numero dei registri vettore usati deve essere passato in \EAX nei sistemi *NIX su x86-64.

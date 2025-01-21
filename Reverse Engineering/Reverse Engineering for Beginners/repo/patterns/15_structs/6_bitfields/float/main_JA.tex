@@ -1,0 +1,33 @@
+﻿\subsubsection{\WorkingWithFloatAsWithStructSubSubSectionName}
+\label{sec:floatasstruct}
+
+FPUについてのセクション（\myref{sec:FPU}）ですでに述べたように、
+\Tfloat と \Tdouble の両方は、\emph{符号}、
+\emph{仮数部}（または\emph{小数部}）、\emph{指数部}で構成されます。 
+しかし、これらのフィールドを直接編集することはでるでしょうか？ \Tfloat で試してみましょう。
+
+\input{float_IEEE754.tex}
+
+\lstinputlisting[style=customc]{patterns/15_structs/6_bitfields/float/float_JA.c}
+
+\TT{float\_as\_struct}構造体は、 \Tfloat と同じ量のメモリ、すなわち4バイトまたは32ビットを占有します。
+
+ここで、入力値に負の符号を設定し、指数に2を加えることによって、
+整数を\TT{$2^2$}、すなわち4で乗算します。
+
+最適化をオンにしないでMSVC 2008でコンパイルしましょう：
+
+\lstinputlisting[caption=\NonOptimizing MSVC 2008,style=customasmx86]{patterns/15_structs/6_bitfields/float/float_msvc_JA.asm}
+
+少し冗長です。
+\Ox フラグを付けてコンパイルした場合、\TT{memcpy()}呼び出しはなく、
+\TT{f}変数が直接使用されます。 
+しかし、最適化されていないバージョンを見れば分かりやすくなります。
+
+GCC 4.4.1を \Othree つきで実行したらどうなりますか？
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.1,style=customasmx86]{patterns/15_structs/6_bitfields/float/float_gcc_O3_JA.asm}
+
+\ttf 関数はほぼ理解できます。 しかし、興味深いのは、GCCが構造体フィールドを持つこのような問題にかかわらず、
+コンパイル時に\TT{f(1.234)}の結果を計算でき、
+コンパイル時に事前計算されて \printf にこの引数を用意したことです。

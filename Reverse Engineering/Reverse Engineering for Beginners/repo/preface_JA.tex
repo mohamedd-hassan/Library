@@ -1,0 +1,101 @@
+\section*{はじめに}
+
+\subsection*{どうしてタイトルが2つあるの？}
+\label{TwoTitles}
+
+2014年～2018年に``Reverse Engineering for Beginners''という名前を付けていましたが、読者層が狭すぎるといつも思っていました。
+
+情報セキュリティの人々は ``リバースエンジニアリング''について知っていますが、私はめったに ``アセンブラ'' という言葉を聞きませんでした。
+
+同様に、``リバースエンジニアリング''という用語は、一般的なプログラマの読者にとってはやや暗黙の言葉ですが、``アセンブラ''については知っています。
+
+2018年7月、実験として``初心者のためのアセンブリ言語''のタイトルを変更し、Hacker Newsのウェブサイトへのリンク\footnote{\url{https://news.ycombinator.com/item?id=17549050}}を掲載しました。
+この本は一般によく受け入れられました。
+
+そんなわけでなすがままにして、タイトルを2つにしてあります。
+
+しかし、2番目のタイトルを``アセンブリ言語を理解する''に変更しました。これは、すでに誰かが``初心者のためのアセンブリ言語''という本を既に書いているからです。 
+また、``初心者のため''という言葉は\textasciitilde{}1000ページ以上ある本だと皮肉に聞こえます。
+
+2つの書籍は、タイトルとファイル名（UAL-XX.pdfに対してRE4B-XX.pdf）、URLと最初の数ページのみ異なります。
+
+\subsection*{リバースエンジニアリングについて}
+
+\q{\gls{reverse engineering}}にはよく知られた意味がいくつかあります。
+
+1）ソフトウェアのリバースエンジニアリング、コンパイルされたプログラムの研究
+
+2）3D構造のスキャンと、それらを複製するために必要なその後のデジタル操作
+
+3）\ac{DBMS} 構造の再構成
+
+本書は最初の意味についての本です。
+
+\subsection*{前提条件}
+
+Cプログラミング言語( \ac{PL} )の基礎知識。
+推奨図書: \myref{CCppBooks}
+
+\subsection*{練習問題やタスク}
+
+\dots
+\url{http://challenges.re} にあります。
+
+\iffalse
+\subsection*{著者について}
+\begin{tabularx}{\textwidth}{ l X }
+
+\raisebox{-\totalheight}{
+\includegraphics[scale=0.60]{Dennis_Yurichev.jpg}
+}
+
+&
+Dennis Yurichevは経験豊富なリバースエンジニアでありまたプログラマです。
+彼には メールアドレス \textbf{\EMAILS{}}.
+
+% FIXME: no link. \tablefootnote doesn't work
+\end{tabularx}
+\fi
+
+% subsections:
+\input{praise_JA}
+% TBT \input{uni_JA}
+\input{thanks}
+\input{FAQ_JA}
+
+\subsection*{韓国語版について}
+
+2015年1月、韓国のAcorn出版社(\href{http://www.acornpub.co.kr}{www.acornpub.co.kr})は、この書籍を2014年8月に韓国語に翻訳して出版する際に膨大な作業をしました。
+
+現在、\href{http://www.acornpub.co.kr/book/reversing-for-beginners}{彼らのウェブサイト}で利用可能です。
+
+\iffalse
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{acorn_cover.jpg}
+\end{figure}
+\fi
+
+翻訳者はByungho Min (\href{https://twitter.com/tais9}{twitter/tais9})です。 カバーアートは、作家の友人Andy Nechaevsky(\href{https://www.facebook.com/andydinka}{facebook/andydinka})によって行われました。 Acornには、韓国語翻訳の著作権もあります。
+
+そして、あなたが韓国語で本棚にリアルな本がほしくて、この作品をサポートしたいなら、現在購入可能です。
+
+\subsection*{ペルシア/ファルシ語版について}
+
+2016年にこの本はMohsen Mostafa Jokar（Radadeのマニュアルを翻訳していて、イランのコミュニティにも知られています）によって翻訳されました。 出版社のウェブサイト（Pendare Pars）で入手できます。
+
+ここに40ページの抜粋へのリンクがあります：\url{https://beginners.re/farsi.pdf}
+
+イラン国立図書館登録情報：\url{http://opac.nlai.ir/opac-prod/bibliographic/4473995}
+
+\subsection*{中国語版について}
+
+2017年4月、中国語への翻訳は中国のPTPressによって完了しました。 中国語の著作権者でもあります。
+
+中国語版はこちらから注文できます：\url{http://www.epubit.com.cn/book/details/4174}
+
+翻訳の背後にある部分的なレビューと履歴は、ここにあります：\url{http://www.cptoday.cn/news/detail/3155}
+
+主な翻訳者はArcherです。 彼は非常に細心の注意を払っており、この本のような文献では非常に重要な既知の間違いやバグのほとんどを報告していました。 私は彼のサービスを他の著者に推薦します！
+
+\href{http://www.antiy.net/}{Antiy Labs}のスタッフも翻訳を手伝ってくれました。 \href{http://www.epubit.com.cn/book/onlinechapter/51413}{ここ}に彼らが書いた序文があります。

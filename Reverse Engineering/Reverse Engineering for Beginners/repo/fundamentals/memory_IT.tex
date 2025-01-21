@@ -1,0 +1,44 @@
+﻿\mysection{Memoria}
+
+Esistono 3 tipi principali di memoria:
+
+\begin{itemize}
+\item
+Memoria globale \ac{AKA} \q{allocazione statica di memoria}.
+L'allocazione di memoria non avviene esplicitamente ma semplicemente dichiarando variabili e/o arrays globalmente.
+Queste sono variabili globali e risiedono nei segmenti di dato o delle costanti. Essendo variabili globali sono considerate un \gls{anti-pattern}.
+L'allocazione statica non è conveniente per buffer o arrays poiché devono avere una dimensione fissa e nota a priori.
+I buffer overflows che possono verificarsi in questa porzione di memoria solitamente sovrascrivono variabili o buffer che risiedono in locazioni contigue a questi in memoria.
+Un possibile esempio viene riportato in questo libro: \myref{scanf_global_variable}.
+
+
+\item
+Stack \ac{AKA} \q{allocazione sullo stack}.
+L'allocazione avviene semplicemente dichiarando variabili e/o arrays localmente all'interno delle funzioni. Infatti si tratta solitamente di variabili locali ad una funzione.
+Alcune volte queste variabili locali sono disponibili in seguito ad una catena di chiamate a funzione (alle funzioni \glslink{callee}{chiamate} se la funzione chiamante passa un puntatore ad una variabile ad una funzione \glslink{callee}{chiamata} che deve essere eseguita).
+L'allocazione e la deallocazione sono molto veloci poiché lo \ac{SP} viene semplicemente riposizionato.
+
+\myindex{\CStandardLibrary!alloca()}
+
+Nonostante questo, l'allocazione e la deallocazione non sono convenienti per buffer e/o arrays dal momento che la dimensione del buffer deve essere fissa, a meno che venga utilizzata \TT{alloca()} (\myref{alloca}) o un array di lunghezza variabile.
+I buffer overflows solitamente sovrascrivono importanti strutture dati sullo stack: \myref{subsec:bufferoverflow}.
+
+\myindex{\CStandardLibrary!malloc()}
+\myindex{\CStandardLibrary!free()}
+\item
+Heap \ac{AKA} \q{allocazione dinamica di memoria}.
+L'allocazione e la deallocazione avvengono chiamando \\
+\TT{malloc()/free()} oppure \TT{new/delete} in \Cpp.
+Questo è il metodo più conveniente poiché la dimensione dell'area di memoria può essere decisa a runtime.
+\myindex{\CStandardLibrary!realloc()}
+
+Il resizing della memoria è possibile (utilizzando \TT{realloc()}), ma può rivelarsi lento.
+Questo è il metodo più lento per allocare memoria: l'allocatore di memoria deve supportare e aggiornare tutte le strutture di controllo mentre esegue l'allocazione e la deallocazione.
+I buffer overflows solitamente sovrascrivono queste strutture.
+L'allocazione dinamica di memoria è anche fonte di possibili memory leak poiché ogni blocco di memoria deve essere deallocato esplicitamente. Tuttavia gli sviluppatori potrebbero dimenticarsi di farlo o eseguirlo in modo errato.
+\myindex{\CStandardLibrary!free()}
+
+Un altro problema è il cosiddetto \q{use after free}---ovvero usare un blocco di memoria dopo che la \TT{free()} è stata chiamata per rilasciarlo, uno scenario che può rivelarsi molto pericoloso.
+Alcuni esempi di riferimento possono essere trovati in questo libro: \myref{struct_malloc_example}.
+
+\end{itemize}

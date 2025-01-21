@@ -1,0 +1,173 @@
+\mysection{Conversion de chaîne en nombre (atoi())}
+
+\myindex{\CStandardLibrary!atoi()}
+
+Essayons de ré-implémenter la fonction C standard atoi().
+
+\subsection{Exemple simple}
+
+Voici la manière la plus simple possible de lire un nombre encodé en \ac{ASCII}.
+
+C'est sujet aux erreurs: un caractère autre qu'un nombre conduit à un résultat incorrect.
+
+\lstinputlisting[style=customc]{\CURPATH/atoi.c}
+
+Donc, tout ce que fait l'algorithme, c'est de lire les chiffres de gauche à droite.
+
+Le caractère \ac{ASCII} zéro est soustrait de chaque chiffre.
+
+Les chiffres de \q{0} à \q{9} sont consécutifs dans la table \ac{ASCII}, donc nous
+n'avons même pas besoin de connaître la valeur exacte du caractère \q{0}.
+
+Tout ce que nous avons  besoin de savoir, c'est que \q{0} moins \q{0} vaut 0, \q{9}
+moins \q{0} vaut 9, et ainsi de suite.
+
+Soustraire \q{0} de chaque caractère résulte en un nombre de 0 à 9 inclus.
+
+Tout autre caractère conduit à un résultat incorrect, bien sûr!
+
+Chaque chiffre doit être ajouté au résultat final (dans la variable \q{rt}), mais
+le résultat final est aussi multiplié par 10 à chaque chiffre.
+
+Autrement dit, le résultat est décalé à gauche d'une position au format décimal à
+chaque itération.
+
+Le dernier chiffre est ajouté, mais il n'y a pas de décalage.
+
+\subsubsection{MSVC 2013 x64 \Optimizing}
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{\CURPATH/atoi.asm.MSVC2013.x64.Ox_FR}
+
+Un caractère peut-être chargé à deux endroits: le premier caractère et tous les caractères subséquents.
+Ceci est arrangé de cette manière afin de regrouper les boucles.
+\myindex{x86!\Instructions!LEA}
+
+Il n'y a pas d'instructions pour multiplier par 10, à la place, deux instructions
+LEA le font.
+\myindex{x86!\Instructions!ADD}
+\myindex{x86!\Instructions!SUB}
+
+Parfois, MSVC utilise l'instruction ADD avec une constante négative à la place d'un SUB.
+C'est le cas.
+
+C'est très difficile de dire pourquoi c'est meilleur que SUB.
+Mais MSVC fait souvent ceci.
+
+\subsubsection{GCC 4.9.1 x64 \Optimizing}
+
+GCC 4.9.1 \Optimizing est plus concis, mais il y a une instruction RET redondante
+à la fin.
+Une suffit.
+
+\lstinputlisting[caption=GCC 4.9.1 x64 \Optimizing,style=customasmx86]{\CURPATH/atoi.s.GCC491.O3.x64_FR}
+
+\subsubsection{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{\CURPATH/atoi.s.ARM.O3_FR}
+
+\subsubsection{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{\CURPATH/atoi.s.thumb.O3_FR}
+
+De façon intéressante, nous pouvons nous rappeler des cours de mathématiques que
+l'ordre des opérations d'addition et de soustraction n'a pas d'importance.
+
+C'est notre cas: d'abord, l'expression $rt*10 - '0'$ est calculée, puis la valeur
+du caractère en entrée lui est ajoutée.
+
+En effet, le résultat est le même, mais le compilateur a fait quelques regroupements.
+
+\subsubsection{GCC 4.9.1 ARM64 \Optimizing}
+
+Le compilateur ARM64 peut utiliser le suffixe de pré-incrémentation pour les instructions:
+
+\lstinputlisting[caption=GCC 4.9.1 ARM64 \Optimizing,style=customasmARM]{\CURPATH/atoi.s.GCC49.ARM64.O3_FR}
+
+\subsection{Un exemple légèrement avancé}
+
+Mon nouvel extrait de code est plus avancé, maintenant il teste le signe \q{moins}
+au premier caractère et renvoie une erreur si un caractère autre qu'un chiffre est
+trouvé dans la chaîne en entrée:
+
+\lstinputlisting[style=customc]{\CURPATH/atoi2.c}
+
+\subsubsection{GCC 4.9.1 x64 \Optimizing}
+
+\lstinputlisting[caption=GCC 4.9.1 x64 \Optimizing,style=customasmx86]{\CURPATH/atoi2.s.GCC491.O3.x64_FR}
+
+\myindex{x86!\Instructions!NEG}
+
+Si le signe \q{moins} a été rencontré au début de la chaîne, l'instruction \INS{NEG}
+est exécutée à la fin.
+Elle rend le nombre négatif.
+
+\label{one_comparison_instead_of_two}
+Il y a encore une chose à mentionner.
+
+Comment ferait un programmeur moyen pour tester si le caractère n'est pas un chiffre?
+Tout comme nous l'avons dans le code source:
+
+\begin{lstlisting}[style=customc]
+if (*s<'0' || *s>'9')
+    ...
+\end{lstlisting}
+
+Il y a deux opérations de comparaison.
+
+Ce qui est intéressant, c'est que l'on peut remplacer les deux opérations par une
+seule:
+simplement soustraire \q{0} de la valeur du caractère,
+
+traiter le résultat comme une valeur non-signée (ceci est important) et tester s'il
+est plus grand que 9.
+
+Par exemple, disons que l'entrée utilisateur contient le caractère point (\q{.})
+qui a pour code \ac{ASCII} 46.
+$46-48=-2$ si nous traitons le résultat comme un nombre signé.
+
+En effet, le caractère point est situé deux places avant le caractère \q{0} dans la table \ac{ASCII}.
+Mais il correspond à \TT{0xFFFFFFFE} (4294967294)
+si nous traitons le résultat comme une valeur non signée, c'est définitivement plus
+grand que 9!
+
+Le compilateur fait cela souvent, donc il est important de connaître ces astuces.
+
+Un autre exemple dans ce livre:
+\myref{toupper_one_comparison}.
+
+MSVC 2013 x64 \Optimizing utilise les même astuces.
+
+\subsubsection{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),numbers=left,style=customasmARM]{\CURPATH/atoi2.s.ARM.O3_FR}
+
+Il n'y a pas d'instruction NEG en ARM 32-bit, donc l'opération \q{Reverse Subtraction}
+(ligne 31) est utilisée ici.
+
+Elle est déclenchée si le résultat de l'instruction \INS{CMP} (à la ligne 29) était
+\q{Not Equal} (non égal) (d'où le suffixe \TT{-NE}).
+\myindex{ARM!\Instructions!RSB}
+
+Donc ce que fait \INS{RSBNE}, c'est soustraire la valeur résultante de 0.
+
+Cela fonctionne comme l'opération de soustraction normale, mais échange les opérandes
+
+Soustraire n'importe quel nombre de 0 donne sa négation: $0-x=-x$.
+
+Le code en mode Thumb est en gros le même.
+
+\myindex{ARM!\Instructions!NEG}
+GCC 4.9 pour ARM64 peut utiliser l'instruction NEG, qui est disponible en ARM64.
+
+\subsection{\Exercise{}}
+
+\myindex{Fuzzing}
+Oh, à propos, les chercheurs en sécurité sont souvent confrontés à un comportement
+imprévisible de programme lorsqu'il traite des données incorrectes.
+
+Par exemple, lors du fuzzing.
+À titre d'exercice, vous pouvez essayer d'entrer des caractères qui ne soient pas
+des chiffres et de voir ce qui se passe.
+
+Essayez d'expliquer ce qui s'est passé, et pourquoi.
+

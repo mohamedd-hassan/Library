@@ -1,0 +1,54 @@
+\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+Con MSVC 2010 otteniamo:
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/08_switch/2_lot/lot_msvc_IT.asm}
+
+\myindex{jumptable}
+
+Vediamo una serie di chiamate a \printf con vari argomenti. Hanno tutte non solo indirizzi nella memoria del processo, ma anche etichette
+simboliche assegnate dal compilatore. Queste label sono anche menzionate nalle tabella interna \TT{\$LN11@f}.
+
+All'inizio della funzione, se $a$ è maggiore di 4, il controllo del flusso è passato alla label 
+\TT{\$LN1@f}, dove viene chiamata \printf con argomento \TT{'something unknown'}.
+
+Se invece il valore di $a$ è minore o uguale a 4, viene moltiplicato per 4 e sommato all'indirizzo della tabella \TT{\$LN11@f}. 
+In questo modo vengono costruiti gli indirizzi della tabella, facendo puntare esattamente all'elemento giusto per ogni caso,
+
+Poniamo ad esempio che $a$ sia uguale a 2. $2*4 = 8$ (tutti gli elementi della tabella sono indirizzi in un processo a 32-bit, perciò tutti gli elementi sono larghi 4 byte).
+L'indirizzo della tabella \TT{\$LN11@f} + 8 corrisponde all'elemento della tabella in cui è memorizzata la label \TT{\$LN4@f}.
+L'istruzione \JMP recupera quindi l'indirizzo di \TT{\$LN4@f} dalla tabella e salta.
+
+Questa tabella è talvolta detta \emph{jumptable} o \emph{branch table}\footnote{L'intero metodo una volta era noto come 
+\emph{computed GOTO} nelle prime versioni di Fortran:
+\href{http://en.wikipedia.org/wiki/Branch_table}{wikipedia}.
+Non è molto rilevante oggigiorno, ma che termine!}.
+
+Successivamente la corrispondente \printf viene chiamata con argomento \TT{'two'}.\\
+Letteralmente, l'istruzione \TT{jmp DWORD PTR \$LN11@f[ecx*4]} corrisponde a 
+\emph{salta alla DWORD che è memorizzata all'indirizzo} \TT{\$LN11@f + ecx * 4}.
+
+\TT{npad} (\myref{sec:npad}) è una macro del linguaggio assembly che allinea la prossima label in modo tale che sia memorizzata 
+ad un indirizzo allineato a 4 byte (or a 16 byte).
+
+Ciò è molto utile in termini di performance poiché così il processore è in grado di recuperare valori a 32-bit dalla memoria attraverso il memory bus, 
+la cache, etc., in maniera più efficiente se è allineata.
+
+\input{patterns/08_switch/2_lot/olly_IT}
+
+\myparagraph{\NonOptimizing GCC}
+\label{switch_lot_GCC}
+
+Vediamo il codice generato da GCC 4.4.1:
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/08_switch/2_lot/lot_gcc.asm}
+
+\myindex{x86!\Registers!JMP}
+
+E' pressoché identico, con una leggera variazione: l'argomento \TT{arg\_0} è moltiplicato per 4
+effettuando uno shift a sinistra di 2 bit (quasi identico alla moltiplicazione per 4)~(\myref{SHR}).
+Successivamente l'indirizzo della label è preso dall'array \TT{off\_804855C}, memorizzato in 
+\EAX, e infine \TT{JMP EAX} effettua il salto.
+

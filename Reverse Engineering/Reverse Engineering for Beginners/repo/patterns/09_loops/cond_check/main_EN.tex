@@ -1,0 +1,23 @@
+\subsection{Condition check}
+
+It's important to keep in mind that in \emph{for()} construct, condition is checked not at the end, but at the beginning, before execution of loop body.
+But often, it's more convenient for compiler to check it at the end, after body.
+Sometimes, additional check can be appended at the beginning.
+
+For example:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/1.c}
+
+Optimizing GCC 5.4.0 x64:
+
+\lstinputlisting[style=customasmx86]{patterns/09_loops/cond_check/1.s}
+
+We see two checks.
+
+\myindex{Hex-Rays}
+Hex-Rays (at least version 2.2.0) decompiles this as:
+
+\lstinputlisting[style=customc]{patterns/09_loops/cond_check/hexrays.c}
+
+In this case, \emph{do/while()} can be replaced by \emph{for()} without any doubt, and the first check can be removed.
+

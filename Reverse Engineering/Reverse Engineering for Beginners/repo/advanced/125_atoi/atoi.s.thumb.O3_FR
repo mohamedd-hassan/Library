@@ -1,0 +1,27 @@
+my_atoi PROC
+; R1 est le pointeur sur le caractère en entrée
+        MOVS     r1,r0
+; R0 est alloué pour la variable "rt"
+        MOVS     r0,#0
+        B        |L0.16|
+|L0.6|
+        MOVS     r3,#0xa
+; R3=10
+        MULS     r0,r3,r0
+; R0=R3*R0=rt*10
+; décaler le pointeur sur le caractère suivant:
+        ADDS     r1,r1,#1
+: corriger le tout en lui soustrayant le caractère '0':
+        SUBS     r0,r0,#0x30
+        ADDS     r0,r2,r0
+; rt=R2+R0=caractère entré + (rt*10 - '0')
+|L0.16|
+; charger le caractère entré dans R2
+        LDRB     r2,[r1,#0]
+; est-ce zéro?
+        CMP      r2,#0
+; sauter au corps de la boucle si non
+        BNE      |L0.6|
+; la variable rt est maintenant dans R0, prête a être utilisé dans la fonction appelante
+        BX       lr
+        ENDP

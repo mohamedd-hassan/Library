@@ -1,0 +1,15 @@
+\subsection{入力値の入れ替え}
+
+こんな仕事をさせてみます
+
+\lstinputlisting[style=customc]{patterns/061_pointers/swap/5_JA.c}
+
+見てわかるように、バイトは\INS{MOVZX}を使用して\TT{ECX}と\TT{EBX}の下位8ビット部分にロードされます
+（これらのレジスタの上位部分がクリアされます）。その後、バイトがスワップバックされます。
+
+\lstinputlisting[style=customasmx86,caption=Optimizing GCC 5.4]{patterns/061_pointers/swap/5_GCC_O3_x86.s}
+
+両方のバイトのアドレスは引数から取り出され、関数の実行は
+\TT{EDX}と\TT{EAX}にあります。
+
+だから私たちはポインタを使用しています。恐らく、ポインタなしにこのタスクを解決する良い方法はありません。

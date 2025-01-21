@@ -1,0 +1,91 @@
+﻿\subsubsection{x86}
+
+\myparagraph{\NonOptimizing MSVC}
+
+結果 (MSVC 2010):
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/08_switch/1_few/few_msvc.asm}
+
+実際、switch()でいくつかのcaseを持つ私たちの関数は、この構造に似ています。
+
+\lstinputlisting[label=switch_few_ifelse,style=customc]{patterns/08_switch/1_few/few_analogue.c}
+
+\myindex{\CLanguageElements!switch}
+\myindex{\CLanguageElements!if}
+
+いくつかのcaseでswitch()を使用する場合、ソースコード内の実際のswitch()か、
+単にif文の組であるかどうかを確認することは不可能です。
+\myindex{\SyntacticSugar}
+
+これはswitch()が多段にネストされたif文との糖衣構文のようなものであることを意味します。
+
+コンパイラが入力変数 $a$ を一時的なローカル変数\TT{tv64}に移動することを除いて、
+生成されたコードには特に新しいことはありません。
+\footnote{スタック内のローカル変数には接頭辞\TT{tv}が付きます。MSVCが内部変数として使用するために命名しています。}
+
+これをGCC 4.4.1でコンパイルすると、最大限の最適化（\Othree option）を有効にしても
+ほぼ同じ結果になります。
+
+\myparagraph{\Optimizing MSVC}
+
+% TODO separate various kinds of \TT
+% idea: enclose command lines in a specific environment, like \cmdline{} 
+% assembly instructions in \asm{} (now both \TT and \q{} are used),
+% variables in,  like \var{}
+% messages (string constants) in something else, like \strconst
+% to separate them all. Now they all use \TT, which is not best
+% \INS{} for all instructions including operands? --DY
+では、MSVC（\Ox）の最適化を有効にしましょう：\TT{cl 1.c /Fa1.asm /Ox}
+
+\label{JMP_instead_of_RET}
+\lstinputlisting[caption=MSVC,style=customasmx86]{patterns/08_switch/1_few/few_msvc_Ox.asm}
+
+ここで、汚いハックを見ることができます。
+
+\myindex{x86!\Instructions!JZ}
+\myindex{x86!\Instructions!JE}
+\myindex{x86!\Instructions!SUB}
+
+最初に、 $a$ の値を \EAX に置き、0を引きます。 EAXの値が0かどうかを確認するために行われますが、
+そうであれば、 \ZF フラグがセットされます（例えば、0からの減算は0）
+最初の条件ジャンプ \JE （\emph{Jump if Equal} またはあ同義語 \JZ~---\emph{Jump if Zero}）は実行され、
+制御フローは\TT{\$LN4@f}ラベルに渡されます。ここでは、 \TT{'zero'}メッセージが出力されます。
+最初のジャンプが実行されない場合は、入力値から1が減算され、結果が0の場合、対応するジャンプが実行されます。
+
+また、ジャンプが全く実行されない場合、制御フローは文字列引数\TT{'something unknown'}を \printf に渡します。
+
+\label{jump_to_last_printf}
+\myindex{\Stack}
+
+次に、文字列ポインタが $a$ 変数に置かれ、 \printf が \CALL ではなく \JMP を介して呼び出されます。 
+簡単に説明するとこうなります：
+\gls{caller} は値をスタックにプッシュし、 \CALL 経由で関数を呼び出します。
+\CALL 自体は戻りアドレス（\ac{RA}）をスタックにプッシュし、関数アドレスへの無条件ジャンプを行います。
+スタックポインタを移動させる命令が含まれていないため、任意の実行時点での関数は、次のスタックレイアウトを持ちます。
+
+\begin{itemize}
+\item\ESP---points to \ac{RA}
+\item\TT{ESP+4}---points to the $a$ variable 
+\end{itemize}
+
+反対に、\printf をここで呼び出さなければならないときは、文字列を指し示す必要がある最初の\printf 引数を除いて、
+全く同じスタックレイアウトが必要です。それが私たちのコードがすることです。
+
+ファンクションの最初の引数を文字列のアドレスに置き換え、
+関数 \ttf を直接呼び出しずに直接 \printf を呼び出すかのように、 \printf にジャンプします。
+\printf は文字列を \gls{stdout} に出力し、 \RET 命令を実行します。スタックから\ac{RA}を取り出し、
+制御フローは \ttf ではなく \ttf 関数の終りをバイパスして、 \ttf の \gls{caller} です。
+
+\myindex{\CStandardLibrary!longjmp()}
+\newcommand{\URLSJ}{\href{http://en.wikipedia.org/wiki/Setjmp.h}{wikipedia}}
+
+% TODO \myref{}
+\printf はすべての場合に  \ttf 関数の終わりで右に呼ばれるので、これはすべて可能です。
+ある意味では、\TT{longjmp()}\footnote{\URLSJ}関数に似ています。
+そしてもちろん、それはスピードのためにすべて行われます。
+
+ARMコンパイラと同様のケースは、\q{\PrintfSeveralArgumentsSectionName}セクションに記載されています。
+こちら：~(\myref{ARM_B_to_printf})
+
+\input{patterns/08_switch/1_few/olly_JA.tex}
+

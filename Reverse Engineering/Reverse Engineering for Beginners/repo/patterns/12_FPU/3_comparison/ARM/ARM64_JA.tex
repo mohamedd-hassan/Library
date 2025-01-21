@@ -1,0 +1,66 @@
+﻿\subsubsection{ARM64}
+
+\myparagraph{\Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_O3_JA.lst}
+
+ARM64 \ac{ISA}には、便宜上、
+\ac{FPSCR}の代わりにCPUフラグを\ac{APSR}に設定するFPU命令があります。
+\ac{FPU}はもはや別個のデバイスではありません。（少なくとも論理的には）
+\myindex{ARM!\Instructions!FCMPE}
+ここでは\INS{FCMPE}を参照してください。 \RegD{0}と\RegD{1}（関数の第1引数と第2引数）で渡された2つの値を比較し、
+\ac{APSR}フラグ（N, Z, C, V）を設定します。
+
+\myindex{ARM!\Instructions!FCSEL}
+\INS{FCSEL}（\emph{Floating Conditional Select}）は、条件（\GTT{GT}---Greater Than）に応じて\RegD{0}または\RegD{1}の値を\RegD{0}にコピーし、
+再び\ac{FPSCR}の代わりに\ac{APSR}レジスタのフラグを使用します。
+
+これは、古いCPUの命令セットに比べてはるかに便利です。
+
+条件が真（\GTT{GT}）の場合、\RegD{0}の値が
+\RegD{0}にコピーされます。（つまり何も起こりません）
+条件が真でない場合、\RegD{1}の値が\RegD{0}にコピーされます。
+
+\myparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_JA.lst}
+
+非最適化GCCはより冗長です。
+
+まず、関数は入力引数の値をローカルスタック（\emph{Register Save Area}）に保存します。
+次に、これらの値をレジスタ
+\RegD{0}/\RegD{1}にリロードし、
+最終的に\RegX{0}/\RegX{1}にコピーして\INS{FCMPE}を使用して比較します。
+冗長なコードがたくさんありますが、
+最適化されていないコンパイラの仕組みです。 
+\INS{FCMPE}は値を比較し、\ac{APSR}フラグを設定します。
+現時点では、コンパイラは、より便利な\INS{FCSEL}命令についてはまだ考えていないため、古いメソッドを使用して処理を進めます。
+つまり、\INS{BLE}命令を使用します（\emph{Branch if Less than or Equal}）。
+最初のケース（$a>b$）では、 $a$ の値が\RegX{0}にロードされます。
+それ以外の場合（$a<=b$）、 $b$ の値は\RegX{0}にロードされます。
+最後に、戻り値がこのレジスタにある必要があるため、
+\RegX{0}からの値が\RegD{0}にコピーされます。
+
+\mysubparagraph{\Exercise}
+
+練習として、冗長な命令を削除し、
+新しい命令（\INS{FCSEL}を含む）を導入しないで手動でこのコードを最適化することができます。
+
+\myparagraph{\Optimizing GCC (Linaro) 4.9---float}
+
+\Tdouble の代わりに \Tfloat を使うようにこの例を書き直しましょう。
+
+\begin{lstlisting}[style=customc]
+float f_max (float a, float b)
+{
+	if (a>b)
+		return a;
+
+	return b;
+};
+\end{lstlisting}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/3_comparison/ARM/ARM64_GCC_O3_float_JA.lst}
+
+これは同じコードですが、D-レジスタの代わりにS-レジスタが使用されています。 
+これは、浮動小数点数が32ビットSレジスタ（実際には64ビットDレジスタの下位部分）に渡されるためです。

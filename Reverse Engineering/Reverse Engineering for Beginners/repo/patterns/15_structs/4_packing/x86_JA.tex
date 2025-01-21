@@ -1,0 +1,76 @@
+﻿\subsubsection{x86}
+
+このようにコンパイルされます。
+
+\lstinputlisting[caption=MSVC 2012 /GS- /Ob0,label=src:struct_packing_4,numbers=left,style=customasmx86]{patterns/15_structs/4_packing/packing_JA.asm}
+
+構造全体を渡しますが、実際には、構造体は
+一時的な領域にコピーされて、（スタック内の領域は10行目に割り当てられ、
+次に4つのフィールドはすべて1つずつ、12行目から19行目にコピーされます）
+そのポインタ（アドレス）が渡されます。
+
+\ttf{} 関数が構造体を変更するかどうかわからないため、
+構造体がコピーされます。 
+それが変更された場合、 \main の構造体はそのままでいなければなりません。
+
+私たちは \CCpp ポインタを使うことができました。結果のコードはほぼ同じですが、
+コピーは行いません。
+
+次に見るように、各フィールドのアドレスは4バイトの境界に揃えられています。 
+だからこそ、各 \Tchar が（ \Tint のように）4バイトを占めるのです。なぜでしょうか？ 
+CPUが整列したアドレスでメモリにアクセスし、メモリからデータをキャッシュする方が簡単であるためです。
+
+しかし、あまり経済的ではありません。
+
+オプション（\TT{/Zp1}）（nバイト境界で構造体をパックする \emph{/Zp[n]}）で
+コンパイルしてみましょう。
+
+\lstinputlisting[caption=MSVC 2012 /GS- /Zp1,label=src:struct_packing_1,numbers=left,style=customasmx86]{patterns/15_structs/4_packing/packing_msvc_Zp1_JA.asm}
+
+Now the structure takes only 10 bytes and each \Tchar value takes 1 byte. What does it give to us?
+Size economy. And as drawback~---the CPU accessing these fields slower than it could.
+
+構造体は10バイトしかなく、各 \Tchar 値は1バイト必要です。それは私たちに何を与えるのですか？
+サイズ経済。そして欠点として、CPUはこれらのフィールドにアクセスするのが遅くなります。
+
+\label{short_struct_copying_using_MOV}
+
+構造体も \main にコピーされます。フィールド単位ではなく、3つの \MOV ペアを使用して直接10バイトをコピーします。
+なぜ4ではないのでしょうか？
+
+コンパイラは、3つの \MOV ペアを使用して10バイトをコピーする方が、2つの32ビットワードと
+4つの \MOV ペアを使用して2バイトをコピーするよりも優れていると判断しました。
+
+ちなみに、\TT{memcpy()}関数を呼び出す代わりに \MOV を使用するようなコピーの実装は、
+\TT{memcpy()}の呼び出しよりも速いため、広く使用されています。
+\myref{copying_short_blocks}
+
+簡単に推測できるように、構造体が多くのソースファイルとオブジェクトファイルで使用されている場合、
+構造体パッキングについてはすべて同じ規則でコンパイルする必要があります。
+
+各構造体フィールドの配置方法を設定するMSVC \TT{/Zp}オプションの他に、
+\TT{\#pragma pack}コンパイラオプションもあります。このオプションはソースコード内で直接定義できます。 
+MSVC\FNURLMSDNZP と GCC\FNURLGCCPC{} の両方で利用できます。
+
+16ビットのフィールドで構成される\TT{SYSTEMTIME}構造体に戻りましょう。
+私たちのコンパイラは、1バイト境界でパックすることをどうやって知っていますか？
+
+\TT{WinNT.h}ファイルはこれを持っています：
+
+\begin{lstlisting}[caption=WinNT.h,style=customc]
+#include "pshpack1.h"
+\end{lstlisting}
+
+そしてこれを。
+
+\begin{lstlisting}[caption=WinNT.h,style=customc]
+#include "pshpack4.h"                   // 4バイトパッキングがデフォルト
+\end{lstlisting}
+
+PshPack1.h ファイルはこのようになっています。
+
+\lstinputlisting[caption=PshPack1.h,style=customc]{patterns/15_structs/4_packing/tmp1.c}
+
+コンパイラは \TT{\#pragma pack} の後で定義される構造体をパックする方法を知らせます。
+
+\input{patterns/15_structs/4_packing/olly_JA.tex}

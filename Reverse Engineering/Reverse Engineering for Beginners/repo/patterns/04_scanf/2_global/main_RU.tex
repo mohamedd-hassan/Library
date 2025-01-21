@@ -1,0 +1,17 @@
+\newcommand{\GlobalVarsSectionName}{Глобальные переменные}
+\subsection{\GlobalVarsSectionName}
+\myindex{\GlobalVarsSectionName}
+\label{scanf_global_variable}
+
+А что если переменная \TT{x} из предыдущего примера будет глобальной переменной, а не локальной? 
+Тогда к ней смогут обращаться из любого другого места, а не только из тела функции. 
+Глобальные переменные считаются \glslink{anti-pattern}{анти-паттерном},
+но ради примера мы можем себе это позволить.
+
+\lstinputlisting[style=customc]{patterns/04_scanf/2_global/ex2_RU.c}
+
+\input{patterns/04_scanf/2_global/ex2_global_vars_x86_RU}
+\input{patterns/04_scanf/2_global/ex2_global_vars_ARM_RU}
+
+\input{patterns/04_scanf/2_global/MIPS/main}
+

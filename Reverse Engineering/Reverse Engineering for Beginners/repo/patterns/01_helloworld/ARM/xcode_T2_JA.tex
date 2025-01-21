@@ -1,0 +1,148 @@
+\subsubsection{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+Xcode 4.6.3ではThumb-2のコードがデフォルトでは次のように生成されます。
+
+\begin{lstlisting}[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]
+__text:00002B6C                   _hello_world
+__text:00002B6C 80 B5          PUSH            {R7,LR}
+__text:00002B6E 41 F2 D8 30    MOVW            R0, #0x13D8
+__text:00002B72 6F 46          MOV             R7, SP
+__text:00002B74 C0 F2 00 00    MOVT.W          R0, #0
+__text:00002B78 78 44          ADD             R0, PC
+__text:00002B7A 01 F0 38 EA    BLX             _puts
+__text:00002B7E 00 20          MOVS            R0, #0
+__text:00002B80 80 BD          POP             {R7,PC}
+
+...
+
+__cstring:00003E70 48 65 6C 6C 6F 20+aHelloWorld  DCB "Hello world!",0xA,0
+\end{lstlisting}
+
+% Q: If you subtract 0x13D8 from 0x3E70,
+% you actually get a location that is not in this function, or in _puts.
+% How is PC-relative addressing done in THUMB2?
+% A: it's not Thumb-related. there are just mess with two different segments. TODO: rework this listing.
+
+\myindex{\ThumbTwoMode}
+\myindex{ARM!\Instructions!BL}
+\myindex{ARM!\Instructions!BLX}
+
+Thumbモードの\TT{BL} と \TT{BLX}命令は、16ビット命令のペアとしてエンコードされています。 
+Thumb-2では、これらの\emph{代理}オペコードは、新しい命令がここで32ビット命令として符号化されるように拡張される。
+
+これは、Thumb-2命令のオペコードが常に\TT{0xFx} または \TT{0xEx}で始まることを考慮すると明らかです
+
+しかし、 \IDA のリストでは、opcodeバイトはスワップされます。これは、ARMプロセッサの場合、命令は次のようにエンコードされるためです。
+最後のバイトが最初に来て、最初のバイトが来ると（ThumbおよびThumb-2モードの場合）、
+ARMモードの命令の場合、 第1、第3、第2、そして最後に第1（異なるエンディアンのため）です。
+
+つまり、バイトがIDAリストにどのように配置されているかです。
+
+\begin{itemize}
+\item ARMおよびARM64モードの場合：4-3-2-1;
+\item Thumbモードの場合：2-1;
+\item Thumb-2モードの16ビット命令の場合は2-1-4-3になります。
+\end{itemize}
+
+\myindex{ARM!\Instructions!MOVW}
+\myindex{ARM!\Instructions!MOVT.W}
+\myindex{ARM!\Instructions!BLX}
+
+したがって、\TT{MOVW}、 \TT{MOVT.W} および \TT{BLX}X命令は\TT{0xFx}で始まります。
+
+Thumb-2命令の1つは\TT{MOVW R0, \#0x13D8}です。16ビット値を\Reg{0}レジスタの下部に格納し、上位ビットをクリアします。
+
+また、\TT{MOVT.W R0, \#0}は、前の例の\TT{MOVT}と同様に動作し、Thumb-2でのみ動作します。
+
+\myindex{ARM!mode switching}
+\myindex{ARM!\Instructions!BLX}
+
+\TT{BLX}命令は、\TT{BL}の代わりにこの場合に使用されます。
+
+違いは、\ac{RA}を\ac{LR}レジスタに保存し、 \puts 関数に制御を渡すことに加えて、
+プロセッサはThumb/Thumb-2モードからARMモード（またはその逆）にも切り替わります。
+
+この命令は、制御が渡される命令が次のようになっているため、ここに配置されています（ARMモードでエンコードされています）。
+
+\begin{lstlisting}[style=customasmARM]
+__symbolstub1:00003FEC _puts           ; CODE XREF: \_hello\_world+E
+__symbolstub1:00003FEC 44 F0 9F E5     LDR  PC, =__imp__puts
+\end{lstlisting}
+
+これは本質的に、importsセクションに \puts のアドレスが書き込まれる場所へのジャンプです。
+
+したがって、注意深い読者が質問するかもしれません：コードのどこに必要なところにputs（）を呼び出すのはなぜですか？
+
+非常にスペース効率が良いわけではないからです。
+
+\myindex{Dynamically loaded libraries}
+ほぼすべてのプログラムは外部のダイナミックライブラリ（WindowsではDLL、*NIXでは.so、 \MacOSX では.dylib）を使用します。
+動的ライブラリには、標準のC関数puts（）を含む、頻繁に使用されるライブラリ関数が含まれています。
+
+\myindex{Relocation}
+実行可能バイナリファイル（Windows PE .exe、ELFまたはMach-O）には、インポートセクションが存在します。
+これは、外部モジュールからインポートされたシンボル（関数またはグローバル変数）のリストと、モジュール自体の名前です。
+
+\ac{OS}ローダは、必要なすべてのモジュールをロードし、プライマリモジュールのインポートシンボルを列挙しながら、各シンボルの正しいアドレスを決定します。
+
+私たちの場合、\emph{\_\_imp\_\_puts}は、\ac{OS}ローダーが外部ライブラリに関数の正しいアドレスを格納するために使用する32ビットの変数です。
+次に、\TT{LDR}命令はこの変数から32ビットの値を読み込み、それを制御に渡して\ac{PC}レジスタに書き込みます。
+
+\myindex{thunk-functions}
+したがって、この手順を完了するために\ac{OS}ローダが必要とする時間を短縮するには、各シンボルのアドレスを専用の場所に1回だけ書き込むことをお勧めします。
+
+さらに、すでにわかっているように、メモリアクセスなしで1つの命令だけを使用している間は、32ビットの値をレジスタにロードすることは不可能です。
+
+したがって、最適な解決策は、ダイナミックライブラリに制御を渡し、
+次にThumbコードからこの短い1命令関数（いわゆる\gls{thunk function}）にジャンプするという唯一の目的で、ARMモードで動作する別の関数を割り当てることです。
+
+\myindex{ARM!\Instructions!BL}
+ところで、（ARMモード用にコンパイルされた）前の例では、コントロールは\\TT{BL}によって同じ\gls{thunk function}に渡されます。
+ただし、プロセッサモードは切り替えられていません（したがって、命令ニーモニックに \q{X}がありません）。
+
+\myparagraph{thunk-functionsの追加情報}
+\myindex{thunk-functions}
+
+サンク関数は、誤った名前のために、明らかに理解するのが難しいです。 
+1つのタイプのジャックのアダプターまたはコンバーターとして別のタイプのジャックに理解する最も簡単な方法です。 
+たとえば、イギリスの電源プラグをアメリカのコンセントに差し込むことができるアダプタ、またはその逆。 
+サンク関数はラッパーと呼ばれることもあります。
+
+これらの関数についてもう少し詳しく説明します：
+
+\begin{framed}
+\begin{quotation}
+1961年にAlgol-60プロシージャコールの正式な定義に実際のパラメータをバインドする手段としてThunksを発明したP.Z. Ingermanによると、
+「アドレスを提供するコーディング」：仮パラメータの代わりに式を使用してプロシージャーを呼び出すと、
+コンパイラーは式を計算するサンクを生成し、結果のアドレスを何らかの標準の場所に残します。
+
+\dots
+
+マイクロソフトとIBMは、Intelベースのシステムでは、（ブレティックセグメントレジスタと64Kアドレス制限付きの）
+「16ビット環境」とフラットアドレッシングとセミリアルメモリ管理を備えた「32ビット環境」を定義しています。
+この2つの環境は、同じコンピュータとOS上で動作することができます（Microsoftの世界では、Windows on Windowsの略です）。 
+MSとIBMはどちらも、16ビットから32ビットへの変換プロセスを「サンク」と呼んでいます。 
+Windows 95には、 THUNK.EXEというツールがあります。これは "サンクコンパイラ"と呼ばれています。
+\end{quotation}
+\end{framed}
+% TODO FIXME move to bibliography and quote properly above the quote
+( \href{http://www.catb.org/jargon/html/T/thunk.html}{The Jargon File} )
+
+\myindex{LAPACK}
+\myindex{FORTRAN}
+他の例としてLAPACK libraryがあります。FORTRANで書かれた ``Linear Algebra PACKage''です。
+\CCpp 開発者もLAPACKを使いたいと思っていますが、 \CCpp に書き直していくつかのバージョンを維持するのは難しいことです。 
+ですから、 \CCpp 環境から呼び出し可能な短いC関数があります。これは、順番にFORTRAN関数を呼び出し、他の何かを実行します。
+
+\begin{lstlisting}[style=customc]
+double Blas_Dot_Prod(const LaVectorDouble &dx, const LaVectorDouble &dy)
+{
+    assert(dx.size()==dy.size());
+    integer n = dx.size();
+    integer incx = dx.inc(), incy = dy.inc();
+
+    return F77NAME(ddot)(&n, &dx(0), &incx, &dy(0), &incy);
+}
+\end{lstlisting}
+
+また、そのような関数は ``ラッパー''と呼ばれます。

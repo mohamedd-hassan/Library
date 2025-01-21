@@ -1,0 +1,26 @@
+﻿d_max:
+; sauver les arguments en entrée dans la "Register Save Area"
+;                            "zone de sauvegarde des registres"
+	sub	sp, sp, #16
+	str	d0, [sp,8]
+	str	d1, [sp]
+; recharger les valeurs
+	ldr	x1, [sp,8]
+	ldr	x0, [sp]
+	fmov	d0, x1
+	fmov	d1, x0
+; D0 - a, D1 - b
+	fcmpe	d0, d1
+	ble	.L76
+; a>b; charger D0 (a) dans X0
+	ldr	x0, [sp,8]
+	b	.L74
+.L76:
+; a<=b; charger D1 (b) dans X0
+	ldr	x0, [sp]
+.L74:
+; résultat dans X0
+	fmov	d0, x0
+; résultat dans D0
+	add	sp, sp, 16
+	ret

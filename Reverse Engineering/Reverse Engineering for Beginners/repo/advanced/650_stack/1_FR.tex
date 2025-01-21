@@ -1,0 +1,122 @@
+\subsection{Accéder aux arguments/variables locales de l'appelant}
+
+Des bases de \CCpp, nous savons qu'il est impossible à une fonction d'accéder aux
+arguments de la fonction appelante ou à ses variables locales.
+
+Néanmoins, c'est possible en utilisant des astuces tordues.
+Par exemple:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+void f(char *text)
+{
+	// print stack
+	int *tmp=&text;
+	for (int i=0; i<20; i++)
+	{
+		printf ("0x%x\n", *tmp);
+		tmp++;
+	};
+};
+
+void draw_text(int X, int Y, char* text)
+{
+	f(text);
+
+	printf ("We are going to draw [%s] at %d:%d\n", text, X, Y);
+};
+
+int main()
+{
+	printf ("address of main()=0x%x\n", &main);
+	printf ("address of draw_text()=0x%x\n", &draw_text);
+	draw_text(100, 200, "Hello!");
+};
+\end{lstlisting}
+
+Sur Ubuntu 32-bit avec GCC 5.4.0, j'obtiens ceci:
+
+\begin{lstlisting}
+address of main()=0x80484f8
+address of draw_text()=0x80484cb
+0x8048645	first argument to f()
+0x8048628
+0xbfd8ab98
+0xb7634590
+0xb779eddc
+0xb77e4918
+0xbfd8aba8
+0x8048547	return address into the middle of main()
+0x64		first argument to draw_text()
+0xc8		second argument to draw_text()
+0x8048645	third argument to draw_text()
+0x8048581
+0xb779d3dc
+0xbfd8abc0
+0x0
+0xb7603637
+0xb779d000
+0xb779d000
+0x0
+0xb7603637
+\end{lstlisting}
+
+(Les commentaires sont miens.)
+
+Puisque \emph{f()} commence à énumérer les éléments de la pile à son premier argument,
+le premier élément de la pile est en effet un pointeur sur la chaîne \q{Hello!}.
+Nous voyons que son adresse est aussi utilisée comme troisième argument de la fonction
+\emph{draw\_text()}.
+
+Dans \emph{f()} nous pouvons lire tous les arguments des fonctions et les variables
+locales si nous connaissons exactement l'agencement de la pile, mais ça change toujours
+d'un compilateur à l'autre.
+Des niveaux d'optimisation différents modifient grandement la structure de la pile.
+
+Mais, si nous pouvons d'une manière ou d'une autre détecter l'information dont nous
+avons besoin, nous pouvons l'utiliser et même la modifier.
+À titre d'exemple, j'ai retravaillé la fonction \emph{f()}:
+
+\begin{lstlisting}[style=customc]
+void f(char *text)
+{
+	...
+
+	// find 100, 200 values pair and modify the second on
+	tmp=&text;
+	for (int i=0; i<20; i++)
+	{
+		if (*tmp==100 && *(tmp+1)==200)
+		{
+			printf ("found\n");
+			*(tmp+1)=210; // change 200 to 210
+			break;
+		};
+		tmp++;
+	};
+};
+\end{lstlisting}
+
+Hé mais, ça fonctionne:
+
+\begin{lstlisting}
+found
+We are going to draw [Hello!] at 100:210
+\end{lstlisting}
+
+\myparagraph{Résumé}
+
+C'est vraiment un sale hack, dont le but est de montrer l'intérieur de la pile.
+Je n'ai jamais vu ni entendu dire que quelqu'un ai utilisé ceci dans du code réel.
+Mais encore, ceci est un bon exemple.
+
+\myparagraph{\Exercise}
+
+L'exemple a été compilé sans optimisation sur Ubuntu 32-bit avec GCC 5.4.0 et il
+fonctionne.
+Mais lorsque j'active l'optimisation maximum \TT{-O3}, ça plante.
+Essayez de trouver pourquoi.
+
+Utilisez votre compilateur et OS favori, essayez différents niveaux d'optimisation,
+trouvez si ça fonctionne et si ça ne fonctionne pas, trouvez pourquoi.

@@ -1,0 +1,482 @@
+﻿\section{Mon expérience avec Hex-Rays 2.2.0}
+\myindex{Hex-Rays}
+\label{hex_rays}
+
+\subsection{Bugs}
+
+Il y a plusieurs bugs.
+
+Tout d'abord, Hex-Rays est perdu lorsque des instructions \ac{FPU} sont mélangées
+(par le générateur de code du compilateur) avec des autres.
+
+Par exemple, ceci:
+
+\begin{lstlisting}
+f               proc    near
+
+        	lea     eax, [esp+4]
+	        fild    dword ptr [eax]
+                lea     eax, [esp+8]
+        	fild    dword ptr [eax]
+	        fabs
+                fcompp
+        	fnstsw  ax
+	        test    ah, 1
+                jz      l01
+
+        	mov     eax, 1
+	        retn
+l01:
+                mov     eax, 2
+	        retn
+
+f               endp
+\end{lstlisting}
+
+\dots sera correctement décompilé en:
+
+\begin{lstlisting}
+signed int __cdecl f(signed int a1, signed int a2)
+{
+  signed int result; // eax@2
+
+  if ( fabs((double)a2) >= (double)a1 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+Mais commentons une des instructions à la fin:
+
+\begin{lstlisting}
+...
+l01:
+	        ;mov    eax, 2
+        	retn
+...
+\end{lstlisting}
+
+\dots nous obtenons ce bug évident:
+
+\begin{lstlisting}
+void __cdecl f(char a1, char a2)
+{
+  fabs((double)a2);
+}
+\end{lstlisting}
+
+Ceci est un autre bug:
+
+\begin{lstlisting}
+extrn f1:dword
+extrn f2:dword
+
+f               proc    near
+
+	        fld     dword ptr [esp+4]
+        	fadd    dword ptr [esp+8]
+                fst     dword ptr [esp+12]
+	        fcomp   ds:const_100
+                fld     dword ptr [esp+16]      ; commenter cette instruction et ça sera OK
+	        fnstsw  ax
+        	test    ah, 1
+
+                jnz     short l01
+
+	        call    f1
+        	retn
+l01:
+	        call    f2
+        	retn
+
+f               endp
+
+...
+
+const_100       dd 42C80000h            ; 100.0
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+int __cdecl f(float a1, float a2, float a3, float a4)
+{
+  double v5; // st7@1
+  char v6; // c0@1
+  int result; // eax@2
+
+  v5 = a4;
+  if ( v6 )
+    result = f2(v5);
+  else
+    result = f1(v5);
+  return result;
+}
+\end{lstlisting}
+
+La variable \TT{v6} a un type \TT{char} et si vous essayez de compiler ce code, le
+compilateur vous avertira à propos de l'utilisation de variable avant son initialisation.
+
+Un autre bug: l'instruction \INS{FPATAN} est correctement décompilée en \TT{atan2()},
+mais les arguments sont échangés.
+
+\subsection{Particularités bizarres}
+
+Hex-Rays converti trop souvent des \TT{int} 32-bit en 64-bit.
+Voici un exemple:
+
+\begin{lstlisting}
+f               proc    near
+
+	        mov     eax, [esp+4]
+                cdq
+	        xor     eax, edx
+        	sub     eax, edx
+                ; EAX=abs(a1)
+
+	        sub     eax, [esp+8]
+        	; EAX=EAX-a2
+
+                ; EAX à ce point est converti en 64-bit (RAX)
+
+	        cdq
+        	xor     eax, edx
+                sub     eax, edx
+	        ; EAX=abs(abs(a1)-a2)
+
+                retn
+
+f               endp
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+int __cdecl f(int a1, int a2)
+{
+  __int64 v2; // rax@1
+
+  v2 = abs(a1) - a2;
+  return (HIDWORD(v2) ^ v2) - HIDWORD(v2);
+}
+\end{lstlisting}
+
+Peut-être est-ce le résultat de l'instruction \INS{CDQ}? Je ne suis pas sûr.
+Quoiqu'il en soit, à chaque fois que vous voyez le type \TT{\_\_int64} dans du code
+32-bit, soyez attentif.
+
+Ceci est aussi bizarre:
+
+\begin{lstlisting}
+f               proc    near
+
+	        mov     esi, [esp+4]
+
+        	lea     ebx, [esi+10h]
+                cmp     esi, ebx
+	        jge     short l00
+
+                cmp     esi, 1000
+	        jg      short l00
+
+                mov     eax, 2
+	        retn
+
+l00:
+	        mov     eax, 1
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+signed int __cdecl f(signed int a1)
+{
+  signed int result; // eax@3
+
+  if ( __OFSUB__(a1, a1 + 16) ^ 1 && a1 <= 1000 )
+    result = 2;
+  else
+    result = 1;
+  return result;
+}
+\end{lstlisting}
+
+Le code est correct, mais il requiert une intervention manuelle.
+
+Parfois, Hex-Rays ne remplace pas le code de la division par la multiplication:
+
+\begin{lstlisting}
+f               proc    near
+
+        	mov     eax, [esp+4]
+	        mov     edx, 2AAAAAABh
+                imul    edx
+        	mov     eax, edx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+int __cdecl f(int a1)
+{
+  return (unsigned __int64)(715827883i64 * a1) >> 32;
+}
+\end{lstlisting}
+
+Ceci peut être remplacé manuellement.
+
+Beaucoup de ces particularités peuvent être résolues en ré-arrangeant les instructions,
+recompilant le code assembleur et en le renvoyant dans Hex-Rays.
+
+\subsection{Silence}
+
+\begin{lstlisting}
+extrn some_func:dword
+
+f               proc    near
+
+        	mov     ecx, [esp+4]
+	        mov     eax, [esp+8]
+                push    eax
+        	call    some_func
+	        add     esp, 4
+
+                ; use ECX
+        	mov     eax, ecx
+
+	        retn
+
+f               endp
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+int __cdecl f(int a1, int a2)
+{
+  int v2; // ecx@1
+
+  some_func(a2);
+  return v2;
+}
+\end{lstlisting}
+
+La variable \TT{v2} (de ECX) est perdue \dots
+Oui, ce code est incorrect (la valeur de ECX n'est pas sauvée lors de l'appel d'une
+autre fonction), mais il serait bon que Hex-Rays donne un warning.
+
+Un autre:
+
+\begin{lstlisting}
+extrn some_func:dword
+
+f               proc    near
+
+	        call    some_func
+        	jnz     l01
+
+                mov     eax, 1
+	        retn
+l01:
+	        mov     eax, 2
+        	retn
+
+f               endp
+\end{lstlisting}
+
+Résultat:
+
+\begin{lstlisting}
+signed int f()
+{
+  char v0; // zf@1
+  signed int result; // eax@2
+
+  some_func();
+  if ( v0 )
+    result = 1;
+  else
+    result = 2;
+  return result;
+}
+\end{lstlisting}
+
+Encore une fois, un warning serait utile.
+
+En tout cas, à chaque fois que vous voyez une variable de type \TT{char}, ou une
+variable qui est utilisée sans initialisation, c'est un signe clair que quelque chose
+s'est mal passé et nécessite une intervention manuelle.
+
+\subsection{Virgule}
+\myindex{\CLanguageElements!Comma}
+
+La virgule en \CCpp a mauvaise presse, car elle peut conduire à du code confus.
+
+Quiz rapide, que renvoie cette fonction \CCpp?
+
+\begin{lstlisting}
+int f()
+{
+	return 1, 2;
+};
+\end{lstlisting}
+
+C'est 2: lorsque le compilateur rencontre une expression avec des virgules, il génère
+du code qui exécute toutes les sous-expressions, et \TT{renvoie} la valeur de la
+dernière.
+
+J'ai vu quelque chose comme ça dans du code en production:
+
+\begin{lstlisting}
+if (cond)
+	return global_var=123, 456; // 456 is returned
+else
+	return global_var=789, 321; // 321 is returned
+\end{lstlisting}
+
+Il semble que le programmeur voulait rendre le code plus court sans parenthèses supplémentaires.
+Autrement dit, la virgule permet de grouper plusieurs expressions en une seule, sans
+déclaration/bloc de code dans des parenthèses.
+
+\myindex{Scheme}
+\myindex{Racket}
+La virgule en C/C++ est proche du \TT{begin} en Scheme/Racket: \url{https://docs.racket-lang.org/guide/begin.html}.
+
+Peut-être que le seul usage largement accepté de la virgule est dans les déclarations
+\TT{for()}:
+
+\begin{lstlisting}
+char *s="hello, world";
+for(int i=0; *s; s++, i++);
+; i = string lenght
+\end{lstlisting}
+
+À la fois \TT{s++} et \TT{i++} sont exécutés à chaque itération de la boucle.
+
+Plus d'information:\\
+\url{http://stackoverflow.com/questions/52550/what-does-the-comma-operator-do-in-c}.
+
+\myindex{\CLanguageElements!Short-circuit}
+J'ai écrit tout ceci car Hex-Rays produit (au moins dans mon cas) du code qui est
+riche tant en virgules qu'en expression raccourcies:
+Par exemple, ceci est une sortie réelle de Hex-Rays:
+
+\begin{lstlisting}
+ if ( a >= b || (c = a, (d[a] - e) >> 2 > f) )
+    {
+    	...
+\end{lstlisting}
+
+Ceci est correct, compile et fonctionne, et Dieu puisse vous aider à la comprendre.
+La voici récrite:
+
+\begin{lstlisting}
+if (cond1 || (comma_expr, cond2))
+{
+	...
+\end{lstlisting}
+
+Le raccourci est effectif ici: d'abord \TT{cond1} est testé, si c'est \TT{true},
+le corps du \TT{if()} est exécuté, le reste de l'expression du \TT{if()} est complètement
+ignoré.
+Si \TT{cond1} est \TT{false}, \TT{comma\_expr} est exécuté (dans l'exemple précédent,
+\TT{a} est copié dans \TT{c}), puis \TT{cond2} est testée.
+Si \TT{cond2} est \TT{true}, le corps du \TT{if()} est exécuté, ou pas.
+Autrement dit, le corps du \TT{if()} est exécuté si \TT{cond1} est \TT{true} ou si \TT{cond2} est \TT{true},
+mais si ce dernier est \TT{true}, \TT{comma\_expr} est aussi exécutée.
+
+Maintenant, vous pouvez voir pourquoi la virgule est si célèbre.
+
+\textbf{Un mot sur les raccourcis.}
+Une idée fausse répandue de débutant est que les sous-conditions sont testées dans
+un ordre indéterminé, ce qui n'est pas vrai.
+Dans l'expression \TT{a | b | c},  $a$, $b$ et $c$ sont évalués dans un ordre indéterminé,
+donc c'est pourquoi \TT{||} a été ajouté à C/C++, pour appliquer des raccourcis explicitement.
+
+\subsection{Types de donnée}
+
+Les types de donnée sont un problème pour les décompilateurs.
+
+Hex-Rays peut ne pas voir les tableaux dans la pile locale, si ils n'ont pas été déterminés
+avant la décompilation. Même histoire avec les tableaux globaux.
+
+Un autre problème se pose avec les fonctions trop grosses, où un slot unique dans
+la pile locale peut être utilisé par plusieurs variables durant l'exécution de la
+fonction.
+Ce n'est pas un cas rare que lorsqu'un slot est utilisé pour une variable \TT{int},
+puis un pointeur, puis une variable \TT{float}.
+Hex-Rays le décompile correctement: il créé une variable avec le même type, puis
+la caste sur un autre type dans diverses parties de la fonction.
+J'ai résolu ce problème en découpant les grosses fonctions en plusieurs plus petites.
+Met les variables locales comme des globales, etc., etc.
+Et n'oubliez pas les tests.
+
+\subsection{Expressions longues et confuses}
+
+Parfois, lors de la ré-écriture, vous pouvez vous retrouvez avec des expressions
+longues et difficiles à comprendre dans des constructions \TT{if()} comme:
+
+\begin{lstlisting}
+if ((! (v38 && v30 <= 5 && v27 != -1)) && ((! (v38 && v30 <= 5) && v27 != -1) || (v24 >= 5 || v26)) && v25)
+{
+...
+}
+\end{lstlisting}
+
+Wolfram Mathematica peut minimiser certaines d'entre elles, en utilisant la fonction
+\TT{BooleanMinimize[]}:
+
+\begin{lstlisting}
+In[1]:= BooleanMinimize[(! (v38 && v30 <= 5 && v27 != -1)) && v38 && v30 <= 5 && v25 == 0]
+
+Out[1]:= v38 && v25 == 0 && v27 == -1 && v30 <= 5
+\end{lstlisting}
+
+Il y a encore une meilleure voie, pour trouver les sous-expressions communes:
+
+\begin{lstlisting}
+In[2]:= Experimental`OptimizeExpression[(! (v38 && v30 <= 5 && 
+      v27 != -1)) && ((! (v38 && v30 <= 5) && 
+      v27 != -1) || (v24 >= 5 || v26)) && v25]
+
+Out[2]= Experimental`OptimizedExpression[
+ Block[{Compile`$1, Compile`$2}, Compile`$1 = v30 <= 5; 
+  Compile`$2 = 
+   v27 != -1; ! (v38 && Compile`$1 && 
+      Compile`$2) && ((! (v38 && Compile`$1) && Compile`$2) || 
+     v24 >= 5 || v26) && v25]]
+\end{lstlisting}
+
+Mathematica ajoute deux nouvelles variables: \TT{Compile`\$1} et  \TT{Compile`\$2},
+qui vont être ré-utilisées plusieurs fois dans l'expression.
+Donc, nous pouvons ajouter deux variables supplémentaires.
+
+\input{other/DeMorgan_FR}
+
+\subsection{Mon plan}
+
+\begin{itemize}
+\item Séparer les grosses fonctions (et ne pas oublier de tester).
+Parfois c'est utile de créer des nouvelles fonctions à partir des corps de boucles.
+
+\item Vérifier/tester le type des variables, tableaux, etc.
+
+\item Si vous voyez un résultat étrange, une variable \TT{dangling} (qui est utilisée
+avant son initialisation), essayez d'échanger les instructions manuellement, recompilez
+et repassez-le à Hex-Rays.
+\end{itemize}
+
+\subsection{Résumé}
+
+Quoiqu'il en soit, la qualité de Hex-Rays 2.2.0 est très, très bonne.
+Il rend la vie plus facile.
+

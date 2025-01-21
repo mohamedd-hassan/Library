@@ -1,0 +1,61 @@
+﻿\mysection{Mémoire}
+
+Il y a 3 grands types de mémoire:
+
+\begin{itemize}
+\item
+Mémoire globale \ac{AKA} \q{allocation statique de mémoire}.
+Pas besoin de l'allouer explicitement, l'allocation est effectuée juste en déclarant
+des variables/tableaux globalement.
+Ce sont des variables globales, se trouvant dans le segment de données ou de constantes.
+Elles sont accessibles globalement (ce qui est considéré comme un \gls{anti-pattern}).
+Ce n'est pas pratique pour les buffers/tableaux, car ils doivent avoir une taille
+fixée.
+Les débordements de tampons se produisant ici le sont en général en récrivant les
+variables ou les buffers se trouvant à côté d'eux en mémoire.
+Il y a un exemple dans ce livre: \myref{scanf_global_variable}.
+
+\item
+Stack (pile) \ac{AKA} \q{allocation sur la pile}.
+L'allocation est effectuée simplement en déclarant des variables/ tableaux localement
+dans la fonction.
+Ce sont en général des variables locales de la fonction.
+Parfois ces variables locales sont aussi visibles depuis les fonctions \glslink{callee}{appelées},
+si l'appelant passe un pointeur sur une variable à la fonction \glslink{callee}{appelée}
+qui va être exécutée).
+L'allocation et la dé-allocation sont très rapide, il suffit de décaler \ac{SP}.
+\myindex{\CStandardLibrary!alloca()}
+
+Mais elles ne conviennent pas non plus pour les tampons/tableaux, car la taille du
+tampon doit être fixée, à moins qu'\TT{alloca()} (\myref{alloca}) (ou un tableau de
+longueur variable) ne soit utilisé.
+Les débordements de tampons écrasent en général les structures de pile importantes:
+\myref{subsec:bufferoverflow}.
+
+\myindex{\CStandardLibrary!malloc()}
+\myindex{\CStandardLibrary!free()}
+\item
+Heap (tas) \ac{AKA} \q{allocation dynamique de mémoire}.
+L'allocation/dé-allocation est effectuée en appelant \TT{malloc()/free()} ou
+\TT{new/delete} en \Cpp.
+Ceci est la méthode la plus pratique: la taille du bloc peut être définie lors de
+l'exécution.
+\myindex{\CStandardLibrary!realloc()}
+
+Il est possible de redimensionner (en utilisant \TT{realloc()}), mais ça peut
+être long.
+Ceci est le moyen le plus lent d'allouer de la mémoire:
+L'allocation de mémoire doit gérer et mettre à jour toutes les structures de
+contrôle pendant l'allocation et la dé-allocation.
+Les débordements de tampons écrasent en général ces structures.
+L'allocation sur le tas est aussi la source des problème de fuite de mémoire: chaque
+bloc de mémoire doit être dé-alloué explicitement, mais on peut oublier de le faire,
+ou le faire de manière incorrecte.
+\myindex{\CStandardLibrary!free()}
+
+Un autre problème est l'\q{utilisation après la libération}----utiliser un bloc de
+mémoire après que  \TT{free()} ait été appelé, ce qui est très dangereux.
+
+Exemple dans ce livre: \myref{struct_malloc_example}.
+
+\end{itemize}

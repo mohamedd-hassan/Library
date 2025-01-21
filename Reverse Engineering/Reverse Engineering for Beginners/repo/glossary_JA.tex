@@ -1,0 +1,302 @@
+\newglossaryentry{tail call}
+{
+  name=tail call,
+  description={コンパイラ（またはインタプリタ）が再帰（\emph{末尾再帰}が可能なとき）を効率のため、反復に変換するときです}
+}
+
+\newglossaryentry{endianness}
+{
+  name=endianness,
+  description={バイトオーダー: \myref{sec:endianness}}
+}
+
+\newglossaryentry{caller}
+{
+  name=caller,
+  description={呼び出し元の関数}
+}
+
+\newglossaryentry{callee}
+{
+  name=callee,
+  description={呼び出された関数}
+}
+
+\newglossaryentry{debuggee}
+{
+  name=debuggee,
+  description={デバッグされるプログラム}
+}
+
+\newglossaryentry{leaf function}
+{
+  name=leaf function,
+  description={他の関数から呼び出されない関数}
+}
+
+\newglossaryentry{link register}
+{
+  name=link register,
+  description=(RISC) リターンアドレスが保存されるレジスタ。これはleaf functionをスタックを使わずに呼び出すのを可能にする
+}
+
+\newglossaryentry{anti-pattern}
+{
+  name=anti-pattern,
+  description=
+  {一般に、よくないと考えられるやり方}
+}
+
+\newglossaryentry{stack pointer}
+{
+  name={スタックポインタ},
+  description=
+  {スタックの場所を示すレジスタ}
+}
+
+\newglossaryentry{decrement}
+{
+  name={デクリメント},
+  description={1の減算}
+}
+
+\newglossaryentry{increment}
+{
+  name={インクリメント},
+  description={1の加算}
+}
+
+\newglossaryentry{loop unwinding}
+{
+  name=loop unwinding,
+  description={
+  $n$回のイテレーションのループコードをコンパイラが生成する代わりに、ループボディを$n$回コピーするコードを生成する。
+  ループに使用する命令を削除するため}
+}
+
+\newglossaryentry{register allocator}
+{
+  name=register allocator,
+  description=
+  {CPUレジスタをローカル変数に割り当てるコンパイラの機構}
+}
+
+\newglossaryentry{quotient}
+{
+  name=商,
+  description={除算結果}
+}
+
+\newglossaryentry{product}
+{
+  name=積,
+  description={乗算結果}
+}
+
+\newglossaryentry{NOP}
+{
+  name=NOP,
+  description={何もしない命令}
+}
+
+\newglossaryentry{POKE}
+{
+  name=POKE,
+  description={特定のアドレスにバイトを書き込むための基本的な言語命令}
+}
+
+\newglossaryentry{keygenme}
+{
+  name=keygenme,
+  description={キー/ライセンスジェネレータのようなソフトウェア保護を模倣するプログラム}
+} % TODO clarify: A software which generate key/license value to bypass sotfware protection?
+
+\newglossaryentry{dongle}
+{
+  name=dongle,
+  description={LPTプリンタポートやUSBにさす小さなハードウェア。セキュリティトークンと似て、メモリを持ち、時には秘密の(暗号学的)ハッシュアルゴリズムを持つ}
+}
+
+\newglossaryentry{thunk function}
+{
+  name=thunk function,
+  description={単一の役割だけ持つ小さな関数：他の関数を呼び出す等}
+}
+
+\newglossaryentry{user mode}
+{
+  name=user mode,
+  description={アプリケーションソフトウェアが実行される制限されたCPUモード \gls{kernel mode}}
+}
+
+\newglossaryentry{kernel mode}
+{
+  name=kernel mode,
+  description={OSカーネルやドライバが実行される制限のないCPUモード \gls{user mode}}
+}
+
+\newglossaryentry{Windows NT}
+{
+  name=Windows NT,
+  description={Windows NT, 2000, XP, Vista, 7, 8, 10}
+}
+
+\newglossaryentry{atomic operation}
+{
+  name=atomic operation,
+  description={
+  \q{$\alpha{}\tau{}o\mu{}o\varsigma{}$}
+  %\q{atomic}
+  ギリシャ語で分割不可能を意味し、処理は他のスレッドに割り込まれないことが保証される
+  }
+}
+
+% to be proofreaded (begin)
+\newglossaryentry{NaN}
+{
+  name=NaN,
+  description=
+    {非数：float型の数の特殊なケースで、エラーが通知される}
+}
+
+\newglossaryentry{basic block}
+{
+  name=basic block,
+  description=
+    {jump/branch命令を持たない命令群で、ブロックの外側から内側へのjumpも持たない}
+}
+
+\newglossaryentry{NEON}
+{
+  name=NEON,
+  description={\ac{AKA} \q{Advanced SIMD} --- \ac{SIMD} 拡張、ARM における}
+}
+
+\newglossaryentry{reverse engineering}
+{
+  name=reverse engineering,
+  description={時にはクローンするため、どうやって動いているのかを理解しようとする行為}
+}
+
+\newglossaryentry{compiler intrinsic}
+{
+  name=compiler intrinsic,
+  description={
+    通常のライブラリ関数ではない、コンパイラ特有の関数。コンパイラは特定の機械語を生成する。しばしば、特定のCPU命令のための疑似関数 (\myref{sec:compiler_intrinsic})
+  }
+}
+
+\newglossaryentry{heap}
+{
+  name=ヒープ,
+  description={\ac{OS}が提供する大きなメモリの塊のことで、アプリケーションが好きなように分割することができる。malloc()/free()を呼び出して使用する}
+}
+
+\newglossaryentry{name mangling}
+{
+  name=name mangling,
+  description={コンパイラがクラス、メソッド、および引数型の名前を1つの文字列にエンコードする必要がある少なくとも \CCpp で使用され、
+  関数の内部名になります。 以下で詳細を読むことができます: \myref{namemangling}}
+}
+
+\newglossaryentry{xoring}
+{
+  name=xoring,
+  description={英語圏でしばしばみられ、\ac{XOR}操作を適用する意味になる}
+}
+
+\newglossaryentry{security cookie}
+{
+  name=security cookie,
+  description={
+  ランダムな値で、実行の度に異なった値になります。以下で詳細を読むことができます: \myref{subsec:BO_protection}}
+}
+
+\newglossaryentry{tracer}
+{
+  name=tracer,
+  description={シンプルなデバッグツールです。以下で詳細を読むことができます: \myref{tracer}}
+}
+
+\newglossaryentry{GiB}
+{
+  name=GiB,
+  description={ギガバイト：$2^{30}$ または1024メガバイトまたは1073741824バイト}
+}
+
+\newglossaryentry{CP/M}
+{
+  name=CP/M,
+  description={Control Program for Microcomputers: 以前使用されていたとても基本的なディスク\ac{OS}です MS-DOS}
+}
+
+\newglossaryentry{stack frame}
+{
+  name=stack frame,
+  description=
+  {現在の関数に固有の情報（ローカル変数、関数の引数、\ac{RA}など）を含むスタックの一部}
+}
+
+\newglossaryentry{jump offset}
+{
+  name=jump offset,
+  description=
+  {JMP命令またはJcc命令のオペコードの一部を次の命令のアドレスに追加する必要があります。これが新しい\ac{PC}の計算方法です。 負となる場合もあります}
+}
+
+\newglossaryentry{integral type}
+{
+  name=整数型,
+  description=
+  {通常の数字ですが、実際の数字はありません。 ブールと列挙型の変数を渡すために使用できます}
+}
+
+\newglossaryentry{real number}
+{
+  name=実数,
+  description={
+  小数点以下を含む可能性のある数字。 これは \CCpp で \Tfloat と \Tdouble です
+  }
+}
+
+\newglossaryentry{PDB}
+{
+  name=PDB,
+  description={(Win32) 
+  デバッグ情報ファイルで、通常は関数名だけではなく、関数の引数とローカル変数名を含む}
+}
+
+\newglossaryentry{NTAPI}
+{
+  name=NTAPI,
+  description=
+  {APIはWindows NT系列でのみ使用できます。 Microsoftは大部分で文書化していません}
+}
+
+\newglossaryentry{stdout}
+{
+  name=stdout,
+  description={standard output}
+}
+
+\newglossaryentry{word}
+{
+  name=word,
+  description=
+  {PCよりも昔のコンピュータでは、メモリサイズはバイトではなくワードで測定されることがしばしばでした}
+}
+
+\newglossaryentry{arithmetic mean}
+{
+  name={算術平均},
+  description=
+  {すべての値の合計を数で割った値}
+}
+\newglossaryentry{padding}
+{
+  name=padding,
+  description=
+  {英語で\emph{パディング}とは、（より大きな）望ましい形状にするために、あるものを枕に詰めることを意味します。
+  コンピュータサイエンスでは、パディングとはブロックにバイトを追加することで、$2^n$バイトのようなサイズにすることを意味します。}
+}
+

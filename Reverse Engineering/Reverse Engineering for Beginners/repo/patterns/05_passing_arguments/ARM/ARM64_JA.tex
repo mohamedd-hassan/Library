@@ -1,0 +1,79 @@
+\subsubsection{ARM64}
+
+\myparagraph{\Optimizing GCC (Linaro) 4.9}
+
+\myindex{Fused multiply–add}
+\myindex{ARM!\Instructions!MADD}
+ここでのすべては簡単です。 
+\TT{MADD}は乗算/加算を一緒に行う命令です（既に見た\TT{MLA}に似ています）。 
+3つの引数はすべて、Xレジスタの32ビット部分に渡されます。 
+実際、引数の型は32ビット\emph{int}です。 結果は\TT{W0}に返されます。
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/05_passing_arguments/ARM/ARM64_O3_JA.s}
+
+すべてのデータ型を64ビット\TT{uint64\_t}に拡張してテストしましょう：
+
+\lstinputlisting[style=customc]{patterns/05_passing_arguments/ex64.c}
+
+\begin{lstlisting}[style=customasmARM]
+f:
+	madd	x0, x0, x1, x2
+	ret
+main:
+	mov	x1, 13396
+	adrp	x0, .LC8
+	stp	x29, x30, [sp, -16]!
+	movk	x1, 0x27d0, lsl 16
+	add	x0, x0, :lo12:.LC8
+	movk	x1, 0x122, lsl 32
+	add	x29, sp, 0
+	movk	x1, 0x58be, lsl 48
+	bl	printf
+	mov	w0, 0
+	ldp	x29, x30, [sp], 16
+	ret
+
+.LC8:
+	.string	"%lld\n"
+\end{lstlisting}
+
+\ttf 関数は同じで、64ビットのXレジスタ全体が使用されます。 
+長い64ビットの値は、レジスタごとにロードされます。これについては、以下で説明します：\myref{ARM_big_constants_loading}
+
+\myparagraph{\NonOptimizing GCC (Linaro) 4.9}
+
+非最適化コンパイラはより冗長です。
+
+\begin{lstlisting}[style=customasmARM]
+f:
+	sub	sp, sp, #16
+	str	w0, [sp,12]
+	str	w1, [sp,8]
+	str	w2, [sp,4]
+	ldr	w1, [sp,12]
+	ldr	w0, [sp,8]
+	mul	w1, w1, w0
+	ldr	w0, [sp,4]
+	add	w0, w1, w0
+	add	sp, sp, 16
+	ret
+\end{lstlisting}
+
+コードは、この関数の誰か（または何か）が
+\TT{W0...W2}レジスタを使用する必要がある場合に、その入力引数をローカルスタックに保存します。 
+これにより、元の関数の引数を上書きすることが防止されます。
+これは、将来必要になる可能性があります。
+
+これは、\emph{レジスタセーブエリア}と呼ばれます。\ARMPCS.
+しかし、呼び出し先関数はそれらを保存する義務はありません。 
+これは、\q{シャドースペース}(\myref{shadow_space})に多少似ています。
+
+GCC 4.9を最適化すると、なぜこの引数はコードを保存しなくなったのでしょうか？ 
+これはいくつかの追加の最適化作業を行い、
+関数の引数がこの先に必要ではなく、
+レジスタ\TT{W0...W2}が使用されないと結論付けたためです。
+
+\myindex{ARM!\Instructions!MUL}
+\myindex{ARM!\Instructions!ADD}
+
+また、単一の\TT{MADD}の代わりに\TT{MUL}/\TT{ADD}命令ペアがあります。

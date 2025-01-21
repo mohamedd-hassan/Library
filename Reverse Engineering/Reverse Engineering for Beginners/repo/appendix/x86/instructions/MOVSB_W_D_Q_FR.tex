@@ -1,0 +1,26 @@
+\myindex{\CStandardLibrary!memcpy()}
+\myindex{x86!\Instructions!MOVSB}
+\myindex{x86!\Instructions!MOVSW}
+\myindex{x86!\Instructions!MOVSD}
+\myindex{x86!\Instructions!MOVSQ}
+\item[MOVSB/MOVSW/MOVSD/MOVSQ]
+copier l'octet/
+le mot 16-bit/
+le mot 32-bit/
+le mot 64-bit
+depuis l'adresse se trouvant dans SI/ESI/RSI vers celle se trouvant dans DI/EDI/RDI.
+
+\label{REP_MOVSx}
+\myindex{x86!\Prefixes!REP}
+Avec le préfixe REP, elle est répétée en boucle, le compteur étant stocker dans le
+registre CX/ECX/RCX:
+ça fonctionne comme memcpy() en C.
+Si la taille du bloc est connue pendant la compilation, memcpy() est souvent mise
+en ligne dans un petit morceau de code en utilisant REP MOVSx, parfois même avec
+plusieurs instructions.
+
+L'équivalent de memcpy(EDI, ESI, 15) est:
+
+\lstinputlisting[style=customasmx86]{appendix/x86/instructions/MOVSB_ex1_FR.asm}
+
+(Apparemment, c'est plus rapide que de copier 15 octets avec un seul REP MOVSB).

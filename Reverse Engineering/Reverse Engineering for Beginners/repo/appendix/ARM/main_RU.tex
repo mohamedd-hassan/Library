@@ -1,0 +1,40 @@
+\mysection{ARM}
+\myindex{ARM}
+
+\subsection{Терминология}
+
+ARM изначально разрабатывался как 32-битный \ac{CPU}, 
+поэтому \emph{слово} здесь, в отличие от x86, 32-битное.
+
+\begin{description}
+	\item[byte] 8-бит.
+		Для определения переменных и массива байт используется директива ассемблера DCB.
+	\item[halfword] 16-бит. \dittoclosing директива ассемблера DCW.
+	\item[word] 32-бит. \dittoclosing директива ассемблера DCD.
+	\item[doubleword] 64-бит.
+	\item[quadword] 128-бит.
+\end{description}
+
+\subsection{Версии}
+
+\begin{itemize}
+\item ARMv4: появился режим Thumb.
+
+\item ARMv6: использовался в iPhone 1st gen., iPhone 3G 
+(Samsung 32-bit RISC ARM 1176JZ(F)-S поддерживающий Thumb-2)
+
+\item ARMv7: появился Thumb-2 (2003).
+Использовался в iPhone 3GS, iPhone 4, iPad 1st gen. (ARM Cortex-A8), iPad 2 (Cortex-A9),
+iPad 3rd gen.
+
+\item ARMv7s: Добавлены новые инструкции.
+Использовался в iPhone 5, iPhone 5c, iPad 4th gen. (Apple A6).
+
+\item ARMv8: 64-битный процессор, \ac{AKA} ARM64 \ac{AKA} AArch64.
+Использовался в iPhone 5S, iPad Air (Apple A7).
+В 64-битном режиме, режима Thumb больше нет, только режим ARM (4-байтные инструкции).
+\end{itemize}
+
+% sections
+\input{appendix/ARM/registers_RU}
+\input{appendix/ARM/instructions_RU}

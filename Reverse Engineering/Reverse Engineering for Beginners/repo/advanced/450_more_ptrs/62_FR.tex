@@ -1,0 +1,11 @@
+\subsection{Pointeur sur une fonction: un bogue courant (ou une typo)}
+
+Un bogue/une typo notoire:
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/62.c}
+
+Puisque le nom de la fonction seul est interprété comme un pointeur sur une fonction,\\
+ou une adresse, la déclaration \verb|if(function_name)| est comme \verb|if(true)|.
+
+Malheureusement, un compilateur \CCpp ne va pas générer d'avertissement.
+

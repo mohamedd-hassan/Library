@@ -1,0 +1,9 @@
+\mysection{Valori di Ritorno: redux}
+
+Di nuovo, ora che conosciamo prologo ed epilogo di una funzione, ricompiliamo un esempio che ritorna un valore
+(\myref{ret_val_func}, \myref{lst:ret_val_func}) usando GCC non ottimizzato:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/017_ret_redux/1.s}
+
+Qui le istruzioni effettive sono \INS{MOV} e \INS{RET}, le altre sono -- prologo e epilogo.
+

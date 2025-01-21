@@ -1,0 +1,69 @@
+\subsection{x64}
+
+\myindex{x86-64}
+
+Rzecz wygląda nieco inaczej na x86-64. Argumenty funkcji (pierwsze 4 lub 6) są przekazywane przez rejestry, a więc \glslink{callee}{funkcja wywoływana} odczytuje je z rejestrów zamiast ze stosu.
+
+\subsubsection{MSVC}
+
+\Optimizing MSVC:
+
+\lstinputlisting[caption=\Optimizing MSVC 2012 x64,style=customasmx86]{patterns/05_passing_arguments/x64_MSVC_Ox_PL.asm}
+
+Jak widać, funkcja \ttf odczytuje wartości wszystkich argumentów z rejestrów.
+
+Instrukcja \LEA została użyta do zrealizowania dodawania,
+najwyraźniej kompilator uznał, że będzie szybsza niż \TT{ADD}.
+\myindex{x86!\Instructions!LEA}
+
+\LEA jest również używana w funkcji \main do przygotowania pierwszego i trzeciego argumentu funkcji \ttf. Kompilator
+zdecydował, że będzie to szybsze niż klasyczne załadowanie wartości do rejestru za pośrednictwem instrukcji \MOV.
+
+Rzućmy okiem na wynik nieoptymalizującego MSVC:
+
+\lstinputlisting[caption=MSVC 2012 x64,style=customasmx86]{patterns/05_passing_arguments/x64_MSVC_IDA_PL.asm}
+
+Wynik kompilacji wygląda dość dziwnie, ponieważ wszystkie 3 argumenty z rejestrów zostały z jakiegoś powodu odłożone na stos.
+
+\myindex{Shadow space}
+\label{shadow_space}
+Nazywamy to \q{shadow space}
+\footnote{\href{http://msdn.microsoft.com/en-us/library/zthk2dkh(v=vs.80).aspx}{MSDN}}: 
+
+Każda funkcja w Win64 może (ale nie musi) zapisać tam wartości 4 argumentów, przekazywanych przez rejestry.
+Dzieje się to z dwóch powodów:
+1) przeznaczanie całego rejestru (lub nawet 4 rejestrów) na argumenty jest rozrzutne, więc dostęp do nich będzie zachodził przez stos
+2) ułatwia to debuggowanie, gdyż debugger zawsze wie, gdzie znaleźć argumenty funkcji
+\footnote{\href{http://msdn.microsoft.com/en-us/library/ew5tede7(v=VS.90).aspx}{MSDN}}.
+
+Czasami duże funkcje mogą zapisywać swoje argumenty do \q{shadow space}, jeśli będą one wykorzystywane podczas wykonania,
+ale małe funkcje nie muszą tego robić.
+
+Odpowiedzialnością \glslink{caller}{funkcji wywołującej} jest zaalokowanie na stosie miejsca na \q{shadow space}.
+
+\subsubsection{GCC}
+
+\Optimizing GCC generuje dość zrozumiały kod:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/x64_GCC_O3_PL.s}
+
+\NonOptimizing GCC:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/x64_GCC_PL.s}
+
+\myindex{Shadow space}
+
+W System V *NIX (\SysVABI) nie ma wymagania o \q{shadow space}, ale \glslink{callee}{funkcje wywoływane} mogą zapisywać swoje argumenty przy niedoborze rejestrów.
+
+\subsubsection{GCC: uint64\_t zamiast int}
+
+Nasz przykład wykorzystuje 32-bitowy typ \Tint, dlatego używane są 32-bitowe części rejestrów (z prefiksem \TT{E-}).
+
+Zmodyfikujmy nieco przykład, by użyć wartości 64-bitowych:
+
+\lstinputlisting[style=customc]{patterns/05_passing_arguments/ex64.c}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.6 x64,style=customasmx86]{patterns/05_passing_arguments/ex64_GCC_O3_IDA_PL.asm}
+
+Kod jest taki sam, ale tym razem użyto \emph{całych} rejestrów (z prefiksem \TT{R-}).
+

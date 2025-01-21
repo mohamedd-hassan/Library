@@ -1,0 +1,38 @@
+﻿\subsection{How it works}
+
+From school-level mathematics, we can remember that division by 9 can be replaced by multiplication by $\frac{1}{9}$.
+In fact, sometimes compilers do so for floating-point arithmetics, for example, \INS{FDIV} instruction in x86 code
+can be replaced by \INS{FMUL}.
+At least MSVC 6.0 will replace division by 9 by multiplication by $0.111111...$ and sometimes it's hard to be sure,
+what operation was in the original source code.
+
+But when we operate over integer values and integer CPU registers, we can't use fractions.
+However, we can rework fraction like that:
+
+% FIXME: equation size
+\begin{center}
+$result = \frac{x}{9} = x \cdot \frac{1}{9} = x \cdot \frac{1 \cdot MagicNumber}{9 \cdot MagicNumber}$
+\end{center}
+
+Given the fact that division by $2^n$ is very fast (using shifts), we now should find that $MagicNumber$,
+for which the following
+equation will be true: $2^n = 9 \cdot MagicNumber$.
+
+Division by $2^{32}$ is somewhat hidden: lower 32-bit of product in EAX is not used (dropped), only higher 32-bit of
+product (in EDX) is used and then shifted by additional 1 bit.
+
+In other words, the assembly code we have just seen multiplicates by {\Large $\frac{954437177}{2^{32+1}}$},
+or divides by {\Large $\frac{2^{32+1}}{954437177}$}.
+To find a divisor we just have to divide numerator by denominator.
+Using Wolfram Alpha, we can get 8.99999999.... as result (which is close to 9).
+
+% TODO ref to https://yurichev.com/blog/signed_division_using_shifts/
+
+Read more about it in \InSqBrackets{\HenryWarren 10-3}.
+
+Many people miss ``hidden'' division by $2^{32}$ or $2^{64}$,
+when lower 32-bit part (or 64-bit part) of product is not used.
+This is why division by multiplication is difficult to understand at the beginning.
+
+\MathForProg has yet another explanation.
+

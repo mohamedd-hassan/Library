@@ -1,0 +1,35 @@
+\mysection{x86}
+
+\subsection{Terminologia}
+
+Comune per 16-bit (8086/80286), 32-bit (80386, etc.), 64-bit.
+
+\myindex{IEEE 754}
+\myindex{MS-DOS}
+\begin{description}
+	\item[byte] 8-bit.
+		La direttiva DB in assembly è utilizzata per definire variabili ed array di byte.
+		I byte sono passati nella parte ad 8-bit dei registri: \TT{AL/BL/CL/DL/AH/BH/CH/DH/SIL/DIL/R*L}.
+	\item[word] 16-bit.
+		La direttiva DW in assembly \dittoclosing.
+		Le Word sono passate nella parte a 16-bit dei registri:\\
+			\TT{AX/BX/CX/DX/SI/DI/R*W}.
+	\item[double word] (\q{dword}) 32-bit.
+		La direttiva DD in assembly \dittoclosing.
+		Le Double words sono passate nei registri (x86) o nelle parti a 32-bit dei registri (x64).
+		Nel codice a 16-bit, le double words sono passate in coppie di registri a 16-bit.
+	\item[quad word] (\q{qword}) 64-bit.
+		La direttiva DQ in assembly \dittoclosing.
+		Negli ambienti a 32-bit, le quad words sono passate in coppie di registri a 32-bit.
+	\item[tbyte] (10 bytes) 80-bit o 10 bytes (usati per i registri FPU IEEE 754).
+	\item[paragraph] (16 bytes)---termine popolare nell'ambiente MS-DOS. % TODO link to a part about 8086 memory model...
+\end{description}
+
+\myindex{Windows!API}
+
+Tipi di dati della stessa dimensione (BYTE, WORD, DWORD) sono gli stessi nelle Windows \ac{API}.
+
+%TBT
+%\input{appendix/x86/registers} % subsection
+%\input{appendix/x86/instructions} % subsection
+\input{appendix/x86/npad} % subsection

@@ -1,0 +1,103 @@
+\subsection{IDA}
+\myindex{IDA}
+\label{sec:IDA_cheatsheet}
+
+\ShortHotKeyCheatsheet:
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\HeaderColor \RU{клавиша}\EN{key}\DE{Taste}\FR{touche} & \HeaderColor \RU{значение}\EN{meaning}\DE{Bedeutung}\FR{signification} \\
+\hline
+Space 	& \RU{переключать между листингом и просмотром кода в виде графа}
+            \EN{switch listing and graph view}
+            \DE{Zwischen Quellcode und grafischer Ansicht wechseln}%
+				\FR{échanger le listing et le mode graphique} \\
+C 	& \RU{конвертировать в код}\EN{convert to code}\DE{zu Code konvertieren}%
+		\FR{convertir en code} \\
+D 	& \RU{конвертировать в данные}\EN{convert to data}\DE{zu Daten konvertieren}%
+		\FR{convertir en données} \\
+A 	& \RU{конвертировать в строку}\EN{convert to string}\DE{zu Zeichenkette konvertieren}%
+		\FR{convertir en chaîne} \\
+* 	& \RU{конвертировать в массив}\EN{convert to array}\DE{zu Array konvertieren}%
+		\FR{convertir en tableau} \\
+U 	& \RU{сделать неопределенным}\EN{undefine}\DE{undefinieren}%
+		\FR{rendre indéfini}\\
+O 	& \RU{сделать смещение из операнда}\EN{make offset of operand}\DE{Offset von Operanden}%
+		\FR{donner l'offset d'une opérande}\\
+H 	& \RU{сделать десятичное число}\EN{make decimal number}\DE{Dezimalzahl erstellen}%
+		\FR{transformer en nombre décimal} \\
+R 	& \RU{сделать символ}\EN{make char}\DE{Zeichen erstellen}%
+		\FR{transformer en caractère} \\
+B 	& \RU{сделать двоичное число}\EN{make binary number}\DE{Binärzahl erstellen}%
+		\FR{transformer en nombre binaire} \\
+Q 	& \RU{сделать шестнадцатеричное число}\EN{make hexadecimal number}\DE{Hexadezimalzahl erstellen}%
+		\FR{transformer en nombre hexa-décimal} \\
+N 	& \RU{переименовать идентификатор}\EN{rename identifier}\DE{Identifikator umbenennen}%
+		\FR{renommer l'identifiant} \\
+? 	& \RU{калькулятор}\EN{calculator}\DE{Rechner}\FR{calculatrice} \\
+G 	& \RU{переход на адрес}\EN{jump to address}\DE{zu Adresse springen}%
+		\FR{sauter à l'adresse} \\
+: 	& \RU{добавить комментарий}\EN{add comment}\DE{Kommentar einfügen}\FR{ajouter un commentaire} \\
+Ctrl-X 	& \RU{показать ссылки на текущую функцию, метку, переменную}%
+		\EN{show references to the current function, label, variable }%
+		\DE{Referenz zu aktueller Funktion, Variable, ... zeigen}%
+		\FR{montrer les références à la fonction, au label, à la variable courant} \\
+	& \RU{(в т.ч., в стеке)}\EN{(incl. in local stack)}\DE{(inkl. lokalem Stack)}%
+		\FR{inclure dans la pile locale} \\
+X 	& \RU{показать ссылки на функцию, метку, переменную, итд}\EN{show references to the function, label, variable, etc.}%
+		\DE{Referenz zu Funktion, Variable, ... zeigen}%
+		\FR{montrer les références à la fonction, au label, à la variable, etc.} \\
+Alt-I 	& \RU{искать константу}\EN{search for constant}\DE{Konstante suchen}%
+		\FR{chercher une constante} \\
+Ctrl-I 	& \RU{искать следующее вхождение константы}\EN{search for the next occurrence of constant}\DE{Nächstes Auftreten der Konstante suchen}%
+		\FR{chercher la prochaine occurrence d'une constante} \\
+Alt-B 	& \RU{искать последовательность байт}\EN{search for byte sequence}\DE{Byte-Sequenz suchen}%
+		\FR{chercher une séquence d'octets} \\
+Ctrl-B 	& \RU{искать следующее вхождение последовательности байт}
+		\EN{search for the next occurrence of byte sequence}
+		\DE{Nächstes Auftreten der Byte-Sequenz suchen}%
+		\FR{chercher l'occurrence suivante d'une séquence d'octets} \\
+Alt-T 	& \RU{искать текст (включая инструкции, итд.)}%
+		\EN{search for text (including instructions, etc.)}%
+		\DE{Text suchen (inkl. Anweisungen, usw.)}%
+		\FR{chercher du texte (instructions incluses, etc.)} \\
+Ctrl-T 	& \RU{искать следующее вхождение текста}%
+		\EN{search for the next occurrence of text}%
+		\DE{nächstes Aufreten des Textes suchen}%
+		\FR{chercher l'occurrence suivante du texte} \\
+Alt-P 	& \RU{редактировать текущую функцию}%
+		\EN{edit current function}%
+		\DE{akutelle Funktion editieren}%
+		\FR{éditer la fonction courante} \\
+Enter 	& \RU{перейти к функции, переменной, итд.}%
+		\EN{jump to function, variable, etc.}%
+		\DE{zu Funktion, Variable, ... springen}%
+		\FR{sauter à la fonction, la variable, etc.} \\
+Esc 	& \RU{вернуться назад}\EN{get back}\DE{zurückgehen}%
+		\FR{retourner en arrière} \\
+Num -   & \RU{свернуть функцию или отмеченную область}%
+		\EN{fold function or selected area}%
+		\DE{Funktion oder markierten Bereich einklappen}%
+		\FR{cacher/plier la fonction ou la partie sélectionnée} \\
+Num + 	& \RU{снова показать функцию или область}%
+		\EN{unhide function or area}%
+		\DE{Funktion oder Bereich anzeigen}%
+		\FR{afficher la fonction ou une partie} \\
+\hline
+\end{tabular}
+\end{center}
+
+\RU{Сворачивание функции или области может быть удобно чтобы прятать те части функции,
+чья функция вам стала уже ясна}%
+\EN{Function/area folding may be useful for hiding function parts when you realize what they do}%
+\DE{Das Einklappen ist nützlich um Teile von Funktionen zu verstecken, wenn bekannt ist was sie tun}%
+\FR{cacher une fonction ou une partie de code peut être utile pour cacher des parties du
+code lorsque vous avez compris ce qu'elles font}.
+\RU{это используется в моем скрипте\footnote{\href{\YurichevIDAIDCScripts}{GitHub}}}\EN{this is used in my}\DE{dies wird genutzt im}%
+\RU{для сворачивания некоторых очень часто используемых фрагментов inline-кода}%
+\EN{script\footnote{\href{\YurichevIDAIDCScripts}{GitHub}} for hiding some often used patterns of inline code}%
+\DE{Script\footnote{\href{\YurichevIDAIDCScripts}{GitHub}} um häufig genutzte Inline-Code-Stellen zu verstecken}%
+\FR{ceci est utilisé dans mon script\footnote{\href{\YurichevIDAIDCScripts}{GitHub}}%
+pour cacher des patterns de code inline souvent utilisés}.
+

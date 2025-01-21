@@ -1,0 +1,25 @@
+﻿\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/10_strings/1_strlen/MIPS_O3_IDA_IT.lst}
+
+\myindex{MIPS!\Instructions!NOR}
+\myindex{MIPS!\Pseudoinstructions!NOT}
+
+MIPS non ha una istruzione \NOT, ma ha \NOR che è l'operazione \TT{OR~+~NOT}.
+
+
+Questa operazione è ampiamente utilizzata nell' elettronica digitale\footnote{NOR è chiamata \q{porta universale}}.
+\myindex{Apollo Guidance Computer}
+Per esempio, l' Apollo Guidance Computer utilizzato nel programma Apollo, 
+fu costruito solamente utilizzando 5600 porte NOR :
+[Jens Eickhoff, \emph{Onboard Computers, Onboard Software and Satellite Operations: An Introduction}, (2011)].
+Ma l' elemento NOR non è molto popolare nella programmazione.
+
+Quindi, l' operazione NOT qui è implementata come \TT{NOR~DST,~\$ZERO,~SRC}.
+
+% to be synced with Eng
+Dai fondamenti sappiamo che l' inversione di tutti i bit di un numero con segno, equivale 
+a cambiargli il segno e sottrarre 1 dal risultato.
+
+Quindi quello che \NOT fa in questo caso, è prendere il valore di $str$ e trasformarlo in $-str-1$.
+L' operazione di addizione che segue prepara il risusltato.

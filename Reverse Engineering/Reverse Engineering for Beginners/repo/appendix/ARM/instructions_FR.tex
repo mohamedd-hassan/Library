@@ -1,0 +1,146 @@
+\subsection{Instructions}
+
+
+Il il y a un suffixe \emph{-S}  pour certaines instructions en ARM, indiquant que
+l'instruction met les flags en fonction du résultat.
+Les instructions qui n'ont pas ce suffixe ne modifient pas les flags.
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!ADDS}
+\myindex{ARM!\Instructions!CMP}
+Par exemple \TT{ADD} contrairement à \TT{ADDS}
+ajoute deux nombres, mais les flags sont inchangés.
+De telles instructions sont pratiques à utiliser entre \CMP où les flags sont mis et, e.g.
+les sauts conditionnels, où les flags sont utilisés.
+Elles sont aussi meilleures en termes d'analyse de dépendance de données (car moins
+de registres sont modifiés pendant leurs exécution).
+
+% ADD
+% ADDAL
+% ADDCC
+% ADDS
+% ADR
+% ADREQ
+% ADRGT
+% ADRHI
+% ADRNE
+% ASRS
+% B
+% BCS
+% BEQ
+% BGE
+% BIC
+% BL
+% BLE
+% BLEQ
+% BLGT
+% BLHI
+% BLS
+% BLT
+% BLX
+% BNE
+% BX
+% CMP
+% IDIV
+% IT
+% LDMCSFD
+% LDMEA
+% LDMED
+% LDMFA
+% LDMFD
+% LDMGEFD
+% LDR.W
+% LDR
+% LDRB.W
+% LDRB
+% LDRSB
+% LSL.W
+% LSL
+% LSLS
+% MLA
+% MOV
+% MOVT.W
+% MOVT
+% MOVW
+% MULS
+% MVNS
+% ORR
+% POP
+% PUSH
+% RSB
+% SMMUL
+% STMEA
+% STMED
+% STMFA
+% STMFD
+% STMIA
+% STMIB
+% STR
+% SUB
+% SUBEQ
+% SXTB
+% TEST
+% TST
+% VADD
+% VDIV
+% VLDR
+% VMOV
+% VMOVGT
+% VMRS
+% VMUL
+%\myindex{ARM!Optional operators!ASR
+%\myindex{ARM!Optional operators!LSL
+%\myindex{ARM!Optional operators!LSR
+%\myindex{ARM!Optional operators!ROR
+%\myindex{ARM!Optional operators!RRX
+
+% AArch64
+% RET is BR X30 or BR LR but with additional hint to CPU
+
+\subsubsection{Table des codes conditionnels}
+
+% TODO rework this!
+\small
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\HeaderColor Code & 
+\HeaderColor Description & 
+\HeaderColor Flags \\
+\hline
+EQ & Égal & Z == 1 \\
+\hline
+NE & Non égal & Z == 0 \\
+\hline
+CS \ac{AKA} HS (Higher or Same) & Retenue mise/ Non-signé, Plus grand que, égal & C == 1 \\
+\hline
+CC \ac{AKA} LO (LOwer) & Retenue à zéro / non-signé, moins que & C == 0 \\
+\hline
+MI & moins, négatif / moins que & N == 1 \\
+\hline
+PL & plus, positif ou zéro / Plus grnad que, égal & N == 0 \\
+\hline
+VS & débordement & V == 1 \\
+\hline
+VC & Pas de débordement & V == 0 \\
+\hline
+HI & non signé supérieur / plus grand que & C == 1 et \\
+ & & Z == 0 \\
+\hline
+LS & non signé inférieur ou égal / inférieur ou égal & C == 0 ou \\
+ & & Z == 1 \\
+\hline
+GE & signé supérieur ou égal / supérieur ou égal & N == V \\
+\hline
+LT & signé plus petit que / plus petit que & N != V \\
+\hline
+GT & signé plus grand que / plus grnad que & Z == 0 et \\
+ & & N == V \\
+\hline
+LE & signé inférieur ou égal / moins que, égal & Z == 1 ou \\
+ & & N != V \\
+\hline
+None / AL & toujours & n'importe lequel \\
+\hline
+\end{tabular}
+\end{center}
+\normalsize

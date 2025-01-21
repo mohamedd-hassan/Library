@@ -1,0 +1,46 @@
+\subsubsection{MIPS}
+
+MIPS peut supporter plusieurs coprocesseurs (jusqu'à 4), le zérotième\footnote{Barbarisme
+pour rappeler que les indices commencent à zéro.} est un coprocesseur contrôleur
+spécial, et celui d'indice 1 est le FPU.
+
+Comme en ARM, le coprocesseur MIPS n'est pas une machine à pile, il comprend 32 registres
+32-bit (\$F0-\$F31):
+\myref{MIPS_FPU_registers}.
+
+Lorsque l'on doit travailler avec des valeurs \Tdouble 64-bit, une paire de F-registres
+32-bit est utilisée.
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/12_FPU/1_simple/MIPS_O3_IDA_FR.lst}
+
+Les nouvelles instructions ici sont:
+
+\myindex{MIPS!\Instructions!LWC1}
+\myindex{MIPS!\Instructions!DIV.D}
+\myindex{MIPS!\Instructions!MUL.D}
+\myindex{MIPS!\Instructions!ADD.D}
+\begin{itemize}
+
+\item \INS{LWC1} charge un mot de 32-bit dans un registre du premier coprocesseur
+(d'où le \q{1} dans le nom de l'instruction).
+\myindex{MIPS!\Pseudoinstructions!L.D}
+
+Une paire d'instructions \INS{LWC1} peut être combinée en une pseudo instruction \INS{L.D}.
+
+\item \INS{DIV.D}, \INS{MUL.D}, \INS{ADD.D} effectuent respectivement la division,
+la multiplication, et l'addition (\q{.D} est le suffixe standard pour la double précision,
+\q{.S} pour la simple précision)
+
+\end{itemize}
+
+\myindex{MIPS!\Instructions!LUI}
+\myindex{\CompilerAnomaly}
+\label{MIPS_FPU_LUI}
+
+Il y a une anomalie bizarre du compilateur: l'instruction \INS{LUI} que nous avons
+marqué avec un point d'interrogation.
+Il m'est difficile de comprendre pourquoi charger une partie de la constante de type
+64-bit \Tdouble dans le registre \$V0. Cette instruction n'a pas d'effet.
+% TODO did you try checking out compiler source code?
+Si quelqu'un en sait plus sur ceci, s'il vous plaît, envoyez moi un email\footnote{\EMAILS}.
+

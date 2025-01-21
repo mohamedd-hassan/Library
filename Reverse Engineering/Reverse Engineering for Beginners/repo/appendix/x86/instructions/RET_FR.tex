@@ -1,0 +1,17 @@
+\myindex{x86!\Instructions!RET}
+\myindex{MS-DOS}
+\item[RET] Revient d'une sous-routine: \TT{POP tmp; JMP tmp}.
+
+En fait, RET
+est une macro du langage d'assemblage, sous les environnements Windows et *NIX, elle
+est traduite en
+RETN (\q{return near})
+ou, du temps de MS-DOS, où la mémoire était adressée différemment
+(\myref{8086_memory_model}), en RETF (\q{return far}).
+
+\TT{RET} peut avoir un opérande.
+Alors il fonctionne comme ceci: \\
+\TT{POP tmp; ADD ESP op1; JMP tmp}.
+\TT{RET} avec un opérande termine en général les fonctions avec la convention d'appel
+\emph{stdcall}, voir aussi: \myref{sec:stdcall}.
+

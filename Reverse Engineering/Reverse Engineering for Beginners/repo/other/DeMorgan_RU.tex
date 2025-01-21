@@ -1,0 +1,111 @@
+\subsection{Правила де Моргана и декомпиляция}
+\myindex{Правила де Моргана}
+
+Иногда оптимизатор компилятора может использовать правила де Моргана чтобы сделать код короче/быстрее.
+
+Например, это:
+
+\begin{lstlisting}[style=customc]
+void f(int a, int b, int c, int d)
+{
+	if (a>0 && b>0)
+		printf ("§оба a и b больше нуля§\n");
+	else if (c>0 && d>0)
+		printf ("§оба c и d больше нуля§\n");
+	else
+		printf ("§что-то еще§\n");
+};
+\end{lstlisting}
+
+... выглядит очень невинно, когда компилируется GCC 5.4.0 x64:
+
+\begin{lstlisting}[style=customasmx86]
+; \verb|int __fastcall f(int a, int b, int c, int d)|
+                public f
+f               proc near
+                test    edi, edi
+                jle     short loc_8
+                test    esi, esi
+                jg      short loc_30
+
+loc_8:
+                test    edx, edx
+                jle     short loc_20
+                test    ecx, ecx
+                jle     short loc_20
+                mov     edi, offset s   ; "оба c и d больше нуля"
+                jmp     puts
+
+loc_20:
+                mov     edi, offset aSomethingElse ; "что-то еще"
+                jmp     puts
+
+loc_30:
+                mov     edi, offset aAAndBPositive ; "оба a и b больше нуля"
+
+loc_35:
+                jmp     puts
+f               endp
+\end{lstlisting}
+
+... тоже выглядит невинно, но Hex-Rays 2.2.0 не может видеть, что на самом деле в исходном коде было использовано две операции И:
+
+\begin{lstlisting}[style=customc]
+int __fastcall f(int a, int b, int c, int d)
+{
+  int result;
+
+  if ( a > 0 && b > 0 )
+  {
+    result = puts("§оба a и b больше нуля§");
+  }
+  else if ( c <= 0 || d <= 0 )
+  {
+    result = puts("§что-то еще§");
+  }
+  else
+  {
+    result = puts("§оба c и d больше нуля§");
+  }
+  return result;
+}
+\end{lstlisting}
+
+Выражение \verb~c <= 0 || d <= 0~ это обратное от \verb|c>0 && d>0|, т.к.,
+$\overline{A \cup B} = \overline{A} \cap \overline{B}$ и
+$\overline{A \cap B} = \overline{A} \cup \overline{B}$,
+Иными словами,
+\verb~!(cond1 || cond2) == !cond1 && !cond2~ и 
+\verb~!(cond1 && cond2) == !cond1 || !cond2~.
+
+Эти правила полезно держать в голове, потому что эта оптимизация компилятора используется почти везде.
+
+Иногда полезно инвертировать условие, чтобы понять код лучше.
+Это фрагмент реального кода декомпилированный при помощи Hex-Rays:
+
+\begin{lstlisting}[style=customc]
+	for (int i=0; i<12; i++)
+	{
+		if (v1[i-12] != 0.0 || v1[i] != 0.0)
+		{
+			v108=min(v108, (float)v0[i*24 -2]);
+			v113=max(v113, (float)v0[i*24]);
+		};
+	}
+\end{lstlisting}
+
+... его можно переписать так:
+
+\begin{lstlisting}[style=customc]
+	for (int i=0; i<12; i++)
+	{
+		if (v1[i-12] == 0.0 && v1[i] == 0.0)
+			continue;
+
+		v108=min(v108, (float)v0[i*24 -2]);
+		v113=max(v113, (float)v0[i*24]);
+	}
+\end{lstlisting}
+
+Что лучше? Пока не знаю, но для лучшего понимания, хорошо бы посмотреть на обе версии.
+

@@ -1,0 +1,15 @@
+\subsubsection{MIPS}
+
+Une place est allouée sur la pile locale pour la variable $x$, et elle doit être appelée par $\$sp+24$.
+\myindex{MIPS!\Instructions!LW}
+
+Son adresse est passée à \scanf, et la valeur entrée par l'utilisateur est chargée en utilisant
+l'instruction \INS{LW} (\q{Load Word}), puis passée à \printf.
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (\assemblyOutput),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3_FR.s}
+
+IDA affiche la disposition de la pile comme suit:
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3.IDA_FR.lst}
+
+% TODO non-optimized version?

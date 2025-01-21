@@ -1,0 +1,60 @@
+\mysection{Fonction \emph{abs()} sans branchement}
+\label{chap:branchless_abs}
+
+Retravaillons un exemple que nous avons vu avant \myref{sec:abs} et demandons-nous,
+est-il possible de faire une version sans branchement de la fonction en code x86?
+
+\lstinputlisting[style=customc]{abs.c}
+
+Et la réponse est oui.
+
+\subsection{GCC 4.9.1 x64 \Optimizing}
+
+Nous pouvons le voir si nous compilons en utilisant GCC 4.9 avec optimisation:
+
+\lstinputlisting[caption=GCC 4.9 x64 \Optimizing,style=customasmx86]{\CURPATH/abs_GCC491_x64_O3_FR.asm}
+
+Voici comment ça fonctionne:
+
+Décaler arithmétiquement la valeur en entrée par 31.
+
+Le décalage arithmétique implique l'extension du signe, donc si le \ac{MSB} est 1,
+les 32 bits seront tous remplis avec  1, ou avec 0 sinon.
+\myindex{x86!\Instructions!SAR}
+
+Autrement dit, l'instruction \TT{SAR REG, 31} donne \TT{0xFFFFFFFF} si le signe
+était négatif et 0 s'il était positif.
+
+Après l'exécution de \TT{SAR}, nous avons cette valeur dans \EDX.
+\myindex{x86!\Instructions!XOR}
+
+Puis, si la valeur est \TT{0xFFFFFFFF} (i.e., le signe est négatif), la valeur en
+entrée est inversée (car \TT{XOR REG, 0xFFFFFFFF} est en effet une opération qui
+inverse tous les bits).
+
+Puis, à nouveau, si la valeur est \TT{0xFFFFFFFF} (i.e., le signe est négatif), 1
+est ajouté au résultat final (car soustraire $-1$ d'une valeur revient à l'incrémenter).
+
+Inverser tous les bits et incrémenter est exactement la façon dont une valeur en
+complément à deux est multipliée par -1.
+
+Nous pouvons observer que les deux dernières instructions font quelque chose si le
+signe de la valeur en entrée est négatif.
+
+Autrement (si le signe est positif) elles ne font rien du tout, laissant la valeur
+en entrée inchangée.
+
+L'algorithme est expliqué dans \InSqBrackets{\HenryWarren 2-4}.
+
+Il est difficile de dire comment a fait GCC, l'a-t-il déduit lui-même ou un pattern
+correspondant parmi ceux connus?
+
+\subsection{GCC 4.9 ARM64 \Optimizing}
+
+GCC 4.9 pour ARM64 génère en gros la même chose, il décide juste d'utiliser des registres
+64-bit complets.
+
+Il y a moins d'instructions, car la valeur en entrée peut être décalée en utilisant
+un suffixe d'instruction (\q{asr}) au lieu d'une instruction séparée.
+
+\lstinputlisting[caption=GCC 4.9 ARM64 \Optimizing,style=customasmARM]{\CURPATH/abs_GCC49_ARM64_O3_FR.s}

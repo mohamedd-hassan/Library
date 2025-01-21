@@ -1,0 +1,284 @@
+\mysection{Взлом простого шифровальщика исполняемого кода}
+
+У нас есть исполняемый файл, зашифрованный относительно простым шифрованием.
+\href{\RepoURL/examples/simple_exec_crypto/files/cipher.bin}{Вот он} (здесь осталась только исполняемая секция).
+
+Прежде всего, всё что делает ф-ция шифрования это прибавляет номер позиции в буфере к байту.
+Вот как это можно описать:
+
+\begin{lstlisting}[caption=Скрипт на Питоне,style=custompy]
+#!/usr/bin/env python
+def e(i, k):
+    return chr ((ord(i)+k) % 256)
+
+def encrypt(buf):
+    return e(buf[0], 0)+ e(buf[1], 1)+ e(buf[2], 2) + e(buf[3], 3)+ e(buf[4], 4)+ e(buf[5], 5)+ e(buf[6], 6)+ e(buf[7], 7)+
+           e(buf[8], 8)+ e(buf[9], 9)+ e(buf[10], 10)+ e(buf[11], 11)+ e(buf[12], 12)+ e(buf[13], 13)+ e(buf[14], 14)+ e(buf[15], 15)
+\end{lstlisting}
+
+Так, если вы зашифровываете буфер с 16-ю нулями, вы получаете \emph{0, 1, 2, 3 ... 12, 13, 14, 15}.
+
+\myindex{Propagating Cipher Block Chaining}
+Также здесь используется ``Propagating Cipher Block Chaining'' (PCBC) (режим распространяющегося сцепления блоков шифра),
+и вот как он работает:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/simple_exec_crypto/601px-PCBC_encryption.png}
+\caption{Шифрование в режиме распространяющегося сцепления блоков шифра (иллюстрация взята из Wikipedia)}
+\end{figure}
+
+Проблема восстановить \ac{IV}.
+Полный перебор не подходит, потому что \ac{IV} слишком длинный (16 байт).
+Посмотрим, сможем ли мы восстановить \ac{IV} для произвольного зашифрованного исполняемого файла?
+
+Давайте попробуем простой частотный анализ.
+Это 32-битный исполняемый x86 код, так что попробуем собрать статистику о наиболее частых байтах и опкодах.
+Я пробовал огромный файл oracle.exe из Oracle RDBMS версии 11.2 для windows x86 и нашел, что самый часто встречающийся байт 
+(и это не удивляет) это ноль (~10\%).
+Другой часто встречающийся байт (снова, не удивительно) 0xFF (~5\%).
+Следующий 0x8B (~5\%).
+
+\myindex{x86!\Instructions!MOV}
+0x8B это опкод инструкции \INS{MOV}, и это действительно одна из самых используемых инструкций в x86.
+А что насчет популярности нулевого байта?
+Если компилятору нужно закодировать значение более 127, он будет использовать 32-битные значения (displacement) вместо 8-битных,
+но большие значения редки (\myref{MostPopularNumbers}), так что они дополняются нулями.
+\myindex{x86!\Instructions!LEA}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!CALL}
+Это справедливо как минимум для \INS{LEA}, \INS{MOV}, \INS{PUSH}, \INS{CALL}.
+
+Например:
+
+\begin{lstlisting}[style=customasmx86]
+8D B0 28 01 00 00                 lea     esi, [eax+128h]
+8D BF 40 38 00 00                 lea     edi, [edi+3840h]
+\end{lstlisting}
+
+Смещения (displacements) более 127 очень популярны, но они редко превышают 0x10000
+(действительно, настолько большие буфера/структуры также редки).
+
+Та же история с \INS{MOV}, большие константы редки, наиболее часто используемые это 0, 1, 10, 100, $2^n$, итд.
+Компилятору приходится дополнять маленькие константы нулями, чтобы представить их в виде 32-битных значений.
+
+\begin{lstlisting}[style=customasmx86]
+BF 02 00 00 00                    mov     edi, 2
+BF 01 00 00 00                    mov     edi, 1
+\end{lstlisting}
+
+Теперь о 00 и FF вместе: переходы (включая условные) и вызовы могут переходить по адресам вперед или назад, но очень часто,
+в пределах текущего исполняемого модуля.
+Если вперед, то смещение (displacement) не очень большое и дополняется нулями.
+Если назад, то смещение представляется отрицательным значением, так что дополняется байтами 0xFF.
+Например, перейти вперед:
+
+\begin{lstlisting}[style=customasmx86]
+E8 43 0C 00 00                    call    _function1
+E8 5C 00 00 00                    call    _function2
+0F 84 F0 0A 00 00                 jz      loc_4F09A0
+0F 84 EB 00 00 00                 jz      loc_4EFBB8
+\end{lstlisting}
+
+Назад:
+
+\begin{lstlisting}[style=customasmx86]
+E8 79 0C FE FF                    call    _function1
+E8 F4 16 FF FF                    call    _function2
+0F 84 F8 FB FF FF                 jz      loc_8212BC
+0F 84 06 FD FF FF                 jz      loc_FF1E7D
+\end{lstlisting}
+
+Байт 0xFF часто встречается в отрицательных смещения вроде этих:
+
+\begin{lstlisting}[style=customasmx86]
+8D 85 1E FF FF FF                 lea     eax, [ebp-0E2h]
+8D 95 F8 5C FF FF                 lea     edx, [ebp-0A308h]
+\end{lstlisting}
+
+Пока всё понятно. Нам теперь нужно пробовать разные 16-байтные ключи, дешифровать исполняемую секцию и измерять, как часто встречаются
+байты 0, 0xFF и 0x8B.
+Также будем держать на виду схему, как работает дешифрование в режиме PCBC:
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{examples/simple_exec_crypto/640px-PCBC_decryption.png}
+\caption{Дешифрование в режиме распространяющегося сцепления блоков шифра (иллюстрация взята из Wikipedia)}
+\end{figure}
+
+Хорошие новости в том, что нам не нужно дешифровать весь кусок данных, но только ломтик за ломтиком, точно так же, как я это делал
+в моем предыдущем примере: \myref{XOR_mask_2}.
+
+Теперь я пробую все возможные байты (0..255) для каждого байта в ключе и просто выбираю тот байт, от которого будет максимальное число
+байтов 0x0/0xFF/0x8B в дешифрованном ломтике:
+
+% TODO translate to Russian:
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys, hexdump, array, string, operator
+
+KEY_LEN=16
+
+def chunks(l, n):
+    # split n by l-byte chunks
+    # https://stackoverflow.com/q/312443
+    n = max(1, n)
+    return [l[i:i + n] for i in range(0, len(l), n)]
+
+def read_file(fname):
+    file=open(fname, mode='rb')
+    content=file.read()
+    file.close()
+    return content
+
+def decrypt_byte (c, key):
+    return chr((ord(c)-key) % 256)
+
+def XOR_PCBC_step (IV, buf, k):
+    prev=IV
+    rt=""
+    for c in buf:
+	new_c=decrypt_byte(c, k)
+        plain=chr(ord(new_c)^ord(prev))
+	prev=chr(ord(c)^ord(plain))
+	rt=rt+plain
+    return rt
+
+each_Nth_byte=[""]*KEY_LEN
+
+content=read_file(sys.argv[1])
+# split input by 16-byte chunks:
+all_chunks=chunks(content, KEY_LEN)
+for c in all_chunks:
+    for i in range(KEY_LEN):
+        each_Nth_byte[i]=each_Nth_byte[i] + c[i]
+
+# try each byte of key
+for N in range(KEY_LEN):
+    print "N=", N
+    stat={}
+    for i in range(256):
+        tmp_key=chr(i)
+	tmp=XOR_PCBC_step(tmp_key,each_Nth_byte[N], N)
+        # count 0, FFs and 8Bs in decrypted buffer:
+	important_bytes=tmp.count('\x00')+tmp.count('\xFF')+tmp.count('\x8B')
+	stat[i]=important_bytes
+    sorted_stat = sorted(stat.iteritems(), key=operator.itemgetter(1), reverse=True)
+    print sorted_stat[0]
+\end{lstlisting}
+
+(Исходный код можно скачать \href{\RepoURL/examples/simple_exec_crypto/files/decrypt.py}{здесь}.)
+
+Запускаю и вот ключ, для которого присутствие байт 0/0xFF/0x8B в дешифрованном буфере максимально:
+
+\begin{lstlisting}
+N= 0
+(147, 1224)
+N= 1
+(94, 1327)
+N= 2
+(252, 1223)
+N= 3
+(218, 1266)
+N= 4
+(38, 1209)
+N= 5
+(192, 1378)
+N= 6
+(199, 1204)
+N= 7
+(213, 1332)
+N= 8
+(225, 1251)
+N= 9
+(112, 1223)
+N= 10
+(143, 1177)
+N= 11
+(108, 1286)
+N= 12
+(10, 1164)
+N= 13
+(3, 1271)
+N= 14
+(128, 1253)
+N= 15
+(232, 1330)
+\end{lstlisting}
+
+Напишем утилиту для дешифрования для полученного ключа:
+
+% TODO translate to Russian:
+\begin{lstlisting}[style=custompy]
+#!/usr/bin/env python
+import sys, hexdump, array
+
+def xor_strings(s,t):
+    # \verb|https://en.wikipedia.org/wiki/XOR_cipher#Example_implementation|
+    """xor two strings together"""
+    return "".join(chr(ord(a)^ord(b)) for a,b in zip(s,t))
+
+IV=array.array('B', [147, 94, 252, 218, 38, 192, 199, 213, 225, 112, 143, 108, 10, 3, 128, 232]).tostring()
+
+def chunks(l, n):
+    n = max(1, n)
+    return [l[i:i + n] for i in range(0, len(l), n)]
+
+def read_file(fname):
+    file=open(fname, mode='rb')
+    content=file.read()
+    file.close()
+    return content
+
+def decrypt_byte(i, k):
+    return chr ((ord(i)-k) % 256)
+
+def decrypt(buf):
+    return "".join(decrypt_byte(buf[i], i) for i in range(16))
+
+fout=open(sys.argv[2], mode='wb')
+
+prev=IV
+content=read_file(sys.argv[1])
+tmp=chunks(content, 16)
+for c in tmp:
+    new_c=decrypt(c)
+    p=xor_strings (new_c, prev)
+    prev=xor_strings(c, p)
+    fout.write(p)
+fout.close()
+\end{lstlisting}
+
+(Исходный код можно скачать \href{\RepoURL/examples/simple_exec_crypto/files/decrypt2.py}{здесь}.)
+
+Проверим итоговый файл:
+
+\lstinputlisting{examples/simple_exec_crypto/objdump_result.txt}
+
+Да, выглядит как корректно дизассемблированный кусок x86-кода.
+Весь дешифрованный файл можно скачать \href{\RepoURL/examples/simple_exec_crypto/files/decrypted.bin}{здесь}.
+
+На самом деле, это исполняемая секция из regedit.exe из Windows 7.
+Но этот пример основан на реальном случае из моей практики, так что только исполняемый файл другой (и ключ), а алгоритм тот же.
+
+\subsection{Еще идеи для рассмотрения}
+
+Что если бы не получилось с простым частотным анализом?
+Есть и другие идеи о том, как измерить корректность дешифрованного/разжатого x86-кода:
+
+\begin{itemize}
+
+\item Многие современные компиляторы выравнивают начало ф-ций по 16-байтной границе.
+Так что пространство оставленное перед ними заполняется NOP-ами (0x90) или иными NOP-инструкциями с известными опкодами: \myref{sec:npad}.
+Либо же инструкциями INT3 (0xCC).
+
+\item Наверное, самый частый шаблонный код в ассемблере это вызов ф-ции:\\
+\TT{PUSH chain / CALL / ADD ESP, X}.
+Эту последовательность легко обнаруживать и находить.
+Я даже собирал статистику о среднем количестве аргументов ф-ций: \myref{args_stat}.
+(Т.е., это средняя длина цепи PUSH-инструкций.)
+
+\end{itemize}
+
+Читайте еще о некорректно/корректно дизассмеблированном коде: \myref{ISA_detect}.
+

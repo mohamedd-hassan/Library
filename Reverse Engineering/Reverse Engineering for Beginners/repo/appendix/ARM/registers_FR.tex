@@ -1,0 +1,141 @@
+\subsection{ARM 32-bit (AArch32)}
+
+\subsubsection{Registres d'usage général}
+
+\begin{itemize}
+\myindex{ARM!\Registers!R0}
+	\item R0 --- le résultat d'une fonction est en général renvoyé dans R0
+	\item R1...R12 --- \ac{GPR}s
+	\item R13 --- \ac{AKA} SP (\glslink{stack pointer}{pointeur de pile})
+\myindex{ARM!\Registers!Link Register}
+	\item R14 --- \ac{AKA} LR (\gls{link register})
+	\item R15 --- \ac{AKA} PC (program counter)
+\end{itemize}
+
+\myindex{ARM!\Registers!scratch registers}
+\Reg{0}-\Reg{3} sont aussi appelés \q{registres scratch}: les arguments de la fonctions sont
+d'habitude passés par eux, et leurs valeurs n'ont pas besoin d'être restaurées en sortant de la
+fonction.
+
+\subsubsection{Current Program Status Register (CPSR)}
+
+\begin{center}
+\begin{tabular}{ | l | l | }
+\hline
+\headercolor\ Bit &
+\headercolor\ Description \\
+\hline
+0..4           & M --- processor mode \\
+\hline
+5              & T --- Thumb state \\
+\hline
+6              & F --- FIQ disable \\
+\hline
+7              & I --- IRQ disable \\
+\hline
+8              & A --- imprecise data abort disable \\
+\hline
+9              & E --- data endianness \\
+\hline
+10..15, 25, 26 & IT --- if-then state \\
+\hline
+16..19         & GE --- greater-than-or-equal-to \\
+\hline
+20..23         & DNM --- do not modify \\
+\hline
+24             & J --- Java state \\
+\hline
+27             & Q --- sticky overflow \\
+\hline
+28             & V --- overflow \\
+\hline
+29             & C --- carry/borrow/extend \\
+\hline
+\myindex{ARM!\Registers!Z}
+30             & Z --- zero bit \\
+\hline
+31             & N --- negative/less than \\
+\hline
+\end{tabular}
+\end{center}
+
+% TODO
+% \myindex{ARM!\Registers!APSR}
+% \subsubsection{Application Program Status Register (APSR)}
+
+% TODO
+% \myindex{ARM!\Registers!FPSCR}
+% \subsubsection{Floating-Point Status and Control Register (FPPSR)}
+% http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0344b/Chdfafia.html
+
+\subsubsection{Registres VFP (virgule flottante) et registres NEON}
+\label{ARM_VFP_registers}
+
+% http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0002a/ch01s03s02.html
+
+\myindex{ARM!D-\registers{}}
+\myindex{ARM!S-\registers{}}
+\begin{center}
+\begin{tabular}{ | l | l | l | l | }
+\hline
+0..31\textsuperscript{bits} & 32..64 & 65..96 & 97..127 \\
+\hline
+\multicolumn{4}{ | c | }{Q0\textsuperscript{128 bits}} \\
+\hline
+\multicolumn{2}{ | c | }{D0\textsuperscript{64 bits}} & \multicolumn{2}{ c | }{D1} \\
+\hline
+S0\textsuperscript{32 bits} & S1 & S2 & S3 \\
+\hline
+\end{tabular}
+\end{center}
+
+Les registres-S sont 32-bit, utilisés pour le stockage de nombre en simple précision.
+Les registres-D sont 64-bit, utilisés pour le stockage de nombre en double précision.
+
+Les registres-D et -S partagent le même espace physique dans le CPU---il est possible d'accéder
+un registre-D via les registres-S (mais c'est insensé).
+
+De même, les registres \gls{NEON} sont des 128-bit et partagent le même espace physique dans le CPU
+avec les autres registres en virgule flottante.
+
+En VFP les registres-S sont présents: S0..S31.
+
+En VFPv2 16 registres-D ont été ajoutés, qui occupent en fait le même espace que S0..S31.
+
+En VFPv3 (\gls{NEON} ou \q{SIMD avancé}) il y a 16 registres-D de plus, D0..D31, mais les registres
+D16..D31 ne partagent pas l'espace avec aucun autre registres-S.
+
+En \gls{NEON} ou \q{SIMD avancé} 16 autres registres-Q 128-bit ont été ajoutés,
+qui partagent le même espace que D0..D31.
+
+\subsection{ARM 64-bit (AArch64)}
+
+\subsubsection{Registres d'usage général}
+\label{ARM64_GPRs}
+
+Le nombre de registres a été doublé depuis AArch32.
+
+\begin{itemize}
+\myindex{ARM!\Registers!X0}
+	\item X0 --- le résultat d'une fonction est en général renvoyé dans X0
+	\item X0...X7 --- Les arguments de fonction sont passés ici
+	\item X8
+	\item X9...X15 --- sont des registres temporaires, la fonction appelée peut les utiliser sans en
+	restaurer le contenu.
+	\item X16
+	\item X17
+	\item X18
+	\item X19...X29 --- la fonction appelée peut les utiliser mais doit restaurer leurs valeurs à sa
+	sortie.
+	\item X29 --- utilisé comme \ac{FP} (au moins dans GCC)
+	\item X30 --- \q{Procedure Link Register} \ac{AKA} \ac{LR} (\gls{link register}).
+	\item X31 --- ce registre contient toujours zéro \ac{AKA} XZR ou ZR \q{Zero Register}.
+	Sa partie 32-bit est appelée WZR.
+	\item \ac{SP}, n'est plus un registre d'usage général.
+\end{itemize}
+
+Voir aussi: \ARMPCS.
+
+La partie 32-bit de chaque registre-X est aussi accessible par les registres-W (W0, W1, etc.).
+
+\input{ARM_X0_register_FR}

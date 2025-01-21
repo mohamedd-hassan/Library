@@ -1,0 +1,150 @@
+% TODO proof-reading
+\subsection{Boucles}
+
+\begin{lstlisting}[style=customjava]
+public class Loop
+{
+	public static void main(String[] args)
+	{
+		for (int i = 1; i <= 10; i++)
+		{
+			System.out.println(i);
+		}
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static void main(java.lang.String[]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=2, args_size=1
+         0: iconst_1
+         1: istore_1
+         2: iload_1
+         3: bipush        10
+         5: if_icmpgt     21
+         8: getstatic     #2         // Field java/lang/System.out:Ljava/io/PrintStream;
+        11: iload_1
+        12: invokevirtual #3         // Method java/io/PrintStream.println:(I)V
+        15: iinc          1, 1
+        18: goto          2
+        21: return
+\end{lstlisting}
+
+\TT{iconst\_1} loads 1 into \ac{TOS}, \TT{istore\_1} stores it in the \ac{LVA} at slot 1.
+
+Pourquoi pas le slot d'indice zéro?
+Car la fonction \main a un paramètre (tableau de \TT{String}) et un pointeur sur
+ce dernier (ou une \emph{référence}) qui est maintenant dans le slot 0.
+
+
+Donc, la variable locale \emph{i} sera toujours dans le premier slot.
+
+
+Les instructions aux offsets 3 et 5 comparent \emph{i} avec 10.
+
+Si \emph{i} est plus grand, le flux d'exécution passe à l'offset 21, où la fonction
+se termine.
+
+Si non, \TT{println} est appelée.
+
+\emph{i} est ensuite rechargé à l'offset 11, pour \TT{println}.
+
+À propos, nous appelons la méthode \TT{println} pour un \emph{entier}, et nous voyons
+this dans le commentaire: \q{(I)V} ((\emph{I} signifie \emph{integer} et \emph{V}
+signifie que le type de retour est \emph{void}).
+
+
+Lorsque \TT{println} termine, \emph{i} est incrémenté à l'offset 15.
+
+Le premier opérande de l'instruction est le numéro d'un slot (1), le second est le
+nombre a ajouté à la variable.
+
+
+
+
+Procédons avec un exemple plus complexe:
+
+
+\begin{lstlisting}[style=customjava]
+public class Fibonacci
+{
+	public static void main(String[] args)
+	{
+		int limit = 20, f = 0, g = 1;
+
+		for (int i = 1; i <= limit; i++)
+		{
+			f = f + g;
+			g = f - g;
+			System.out.println(f);
+		}
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+  public static void main(java.lang.String[]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=5, args_size=1
+         0: bipush        20
+         2: istore_1
+         3: iconst_0
+         4: istore_2
+         5: iconst_1
+         6: istore_3
+         7: iconst_1
+         8: istore        4
+        10: iload         4
+        12: iload_1
+        13: if_icmpgt     37
+        16: iload_2
+        17: iload_3
+        18: iadd
+        19: istore_2
+        20: iload_2
+        21: iload_3
+        22: isub
+        23: istore_3
+        24: getstatic     #2         // Field java/lang/System.out:Ljava/io/PrintStream;
+        27: iload_2
+        28: invokevirtual #3         // Method java/io/PrintStream.println:(I)V
+        31: iinc          4, 1
+        34: goto          10
+        37: return
+\end{lstlisting}
+
+Voici une carte des slots \ac{LVA}:
+
+
+\begin{itemize}
+\item 0 --- le seul paramètre de \main
+\item 1 --- \emph{limit}, contient toujours 20
+\item 2 --- \emph{f}
+\item 3 --- \emph{g}
+\item 4 --- \emph{i}
+\end{itemize}
+
+Nous voyons que le compilateur Java alloue les variables dans des slots \ac{LVA}
+dans le même ordre qu'elles sont déclarées dans le code source.
+
+
+Il y a des instructions \TT{istore} séparées pour accéder aux slots 0, 1, 2 et 3,
+mais pas pour 4 et plus, donc il y a un \TT{istore} avec un paramètre supplémentaire
+à l'offset 8 qui prend le numéro du slot comme opérande.
+
+Il y a la même chose avec \TT{iload} à l'offset 10.
+
+
+Mais n'est-il pas douteux d'allouer un autre slot pour la variable \emph{limit},
+qui contient toujours 20 (donc c'est par essence une constante), et de recharger
+sa valeur si souvent?
+
+Le compilateur \ac{JIT} de la \ac{JVM} est en général assez bon pour optimiser de
+telles choses.
+
+Une intervention manuelle dans le code n'en vaut probablement pas la peine.
+
+

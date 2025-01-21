@@ -1,0 +1,19 @@
+﻿\subsubsection{Accéder à un tableau en deux dimensions comme un à une dimension}
+
+Nous pouvons facilement nous assurer qu'il est possible d'accéder à un tableau en
+deux dimensions d'au moins deux façons:
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/2D_as_1D_FR.c}
+
+Compilons\footnote{Ce programme doit être compilé comme un programme C, pas C++,
+sauvegardez-le dans un fichier avecl'extention .c pour le compiler avec MSVC} le et
+lançons le: il montre des valeurs correctes.
+
+Ce que MSVC 2013 a généré est fascinant, les trois routines sont les mêmes!
+
+\lstinputlisting[caption=MSVC 2013 \Optimizing x64,style=customasmx86]{patterns/13_arrays/5_multidimensional/2D_as_1D_MSVC_2013_Ox_x64_FR.asm}
+
+GCC génère des routines équivalentes, mais légèrement différentes:
+
+\lstinputlisting[caption=GCC 4.9 x64 \Optimizing,style=customasmx86]{patterns/13_arrays/5_multidimensional/2D_as_1D_GCC49_x64_O3_FR.s}
+

@@ -1,0 +1,61 @@
+\mysection{Double négation}
+
+Une façon répandue\footnote{C'est sujet à controverse, car ça conduit à du code difficile
+à lire} de convertir des valeurs différentes de zéro en 1 (ou le booléen \emph{true})
+et la valeur zéro en 0 (ou le booléen \emph{false}) est la déclaration \emph{!!variable}:
+
+\begin{lstlisting}[style=customc]
+int convert_to_bool(int a)
+{
+	return !!a;
+};
+\end{lstlisting}
+
+GCC 5.4 x86 avec optimisation:
+
+\begin{lstlisting}[style=customasmx86]
+convert_to_bool:
+        mov     edx, DWORD PTR [esp+4]
+        xor     eax, eax
+        test    edx, edx
+        setne   al
+        ret
+\end{lstlisting}
+
+\INS{XOR} efface toujours la valeur de retour dans \EAX, même si \INS{SETNE} n'est
+pas déclenché. I.e., \INS{XOR} met la valeur de retour par défaut à zéro.
+
+\myindex{x86!\Instructions!SET}
+Si la valeur en entrée n'est pas égale à zéro (le suffixe \TT{-NE} dans l'instruction
+\INS{SET}), 1 est mis dans \AL, autrement \AL n'est pas modifié.
+
+Pourquoi est-ce que \INS{SETNE} opère sur la partie 8-bit basse du registre \EAX?
+Parce que ce qui compte c'est juste le dernier bit (0 or 1), puisque les autres bits
+sont mis à zéro par \INS{XOR}.
+
+Ainsi, ce code C/C++ peut être récrit comme ceci:
+
+\begin{lstlisting}[style=customc]
+int convert_to_bool(int a)
+{
+	if (a!=0)
+		return 1;
+	else
+		return 0;
+};
+\end{lstlisting}
+
+\dots ou même:
+
+\begin{lstlisting}[style=customc]
+int convert_to_bool(int a)
+{
+	if (a)
+		return 1;
+	else
+		return 0;
+};
+\end{lstlisting}
+
+Les compilateurs visant des \ac{CPU}s n'ayant pas d'instructions similaires à \INS{SET},
+génèrent dans ce cas des instructions de branchement, etc.

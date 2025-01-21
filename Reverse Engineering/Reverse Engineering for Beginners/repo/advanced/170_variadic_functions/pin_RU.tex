@@ -1,0 +1,35 @@
+\subsection{Случай с Pin}
+
+\myindex{Pin}
+Интересно посмотреть, как некоторые ф-ции из \ac{DBI} Pin берут на вход несколько аргументов:
+
+\begin{lstlisting}[style=customc]
+            INS_InsertPredicatedCall(
+                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead,
+                IARG_INST_PTR,
+                IARG_MEMORYOP_EA, memOp,
+                IARG_END);
+\end{lstlisting}
+( \TT{pinatrace.cpp} )
+
+И вот как объявлена ф-ция \TT{INS\_InsertPredicatedCall()}:
+
+\begin{lstlisting}[style=customc]
+extern VOID INS_InsertPredicatedCall(INS ins, IPOINT ipoint, AFUNPTR funptr, ...);
+\end{lstlisting}
+( \TT{pin\_client.PH} )
+
+Следовательно, константы с именами начинающимися с \TT{IARG\_} это что-то вроде аргументов для ф-ции,
+которая обрабатывается внутри \TT{INS\_InsertPredicatedCall()}.
+Вы можете передавать столько аргументов, сколько нужно.
+Некоторые команды имеют дополнительные аргументы, некоторые другие --- нет.
+Полный список аргументов:
+\url{https://software.intel.com/sites/landingpage/pintool/docs/58423/Pin/html/group__INST__ARGS.html}.
+И должен быть какой-то способ узнать, закончился ли список аргументов, так что список должен быть оконечен при помощи
+константы \TT{IARG\_END}, без которой ф-ция будет (пытаться) обрабатывать случайный шум из локального стека,
+принимая его за дополнительные аргументы.
+
+\myindex{Python}
+Также, в [\RobPikePractice] можно найти прекрасный пример ф-ций на \CCpp{}, очень похожих на 
+\emph{pack/unpack}\footnote{\url{https://docs.python.org/3/library/struct.html}} в Python.
+

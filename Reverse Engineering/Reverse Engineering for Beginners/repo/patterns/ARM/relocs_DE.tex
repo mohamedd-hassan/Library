@@ -1,0 +1,62 @@
+\newcommand{\ARMELF}{\InSqBrackets{\emph{ELF für die ARM 64-Bit-Architektur (AArch64)}, (2013)}\footnote{\AlsoAvailableAs
+\url{http://infocenter.arm.com/help/topic/com.arm.doc.ihi0056b/IHI0056B_aaelf64.pdf}}}
+
+\subsection{Relocs in ARM64}
+\label{ARM64_relocs}
+Wie wir wissen, gibt es 4-Byte-Befehle in ARM64, sodass es unmöglich ist, eine große Zahl mit einem einzigen Befehl in
+ein Register zu schreiben.
+
+Nichtsdestotrotz kann eine Executable an jeder Adresse des Speichers geladen werden und das ist der Grund dafür, dass
+Relocs existieren. Mehr dazu (in Bezug auf Win32 PE) unter: \myref{subsec:relocs}.
+
+\myindex{ARM!\Instructions!ADRP/ADD pair}
+Die Adresse wird in ARM64 aus einem \TT{ADRP} und \ADD Befehlspaar zusammengesetzt.
+
+Der erste Befehl lädt eine 4KiB-Seitenadresse und der zweite den Rest. 
+Kompilieren wir das Beispiel aus \q{\HelloWorldSectionName} (\lstref{hw_c}) in GCC (Linaro) 4.9 unter win32:
+
+\lstinputlisting[caption=GCC (Linaro) 4.9 und objdump der Objektdatei,style=customasmARM]{patterns/ARM/relocs1.lst}
+
+Es gibt hier 3 Relocs in dieser Datei.
+
+\begin{itemize}
+\item 
+Der erste nimmt die Seitenadresse, schneidet die niederstnen 12 Bits aus und schreibt die übrigen 21 Bit in das
+Bitfield für den \TT{ADRP} Befehl. Das wird getan, weil wir die niedersten 12 Bit nicht kodieren und der Befehl
+\INS{ADRP} nur Platz für 21 Bit hat.
+
+\item 
+Der zweite legt die 12 Bit der Adresse relativ zum Seitenanfang in das Bitfield des \ADD Befehls.
+
+\item 
+Der letzte mit 26 Bit wird auf den Befehl an der Adresse \TT{0x10} angewendet, an der sich der Sprung zur Funktion
+\printf befindet.
+
+Alle ARM64 (und ARM im ARM mode) Befehlsadressen haben Nullen in den zwei niederwertigsten Bits (da alle Befehle eine
+Größe von 4 Byte haben), sodass man nur die höchsten 26 Bit eines 28-Bit-Adressraums ($\pm 128$MB) kodieren muss.
+
+\end{itemize}
+Solche Relocs gibt es in der ausführbaren Datei nicht: das liegt daran, dass bekannt ist, wo der \q{Hello!} String
+abgelegt wurde; die Seiten und die Adresse von \puts sind ebenfalls bekannt.
+
+In den Befehlen \TT{ADRP}, \ADD und \TT{BL} sind also bereits Werte gesetzt (der Linker hat diese während des Linkens
+geschrieben):
+
+\lstinputlisting[caption=objdump der ausführbaren Datei,style=customasmARM]{patterns/ARM/relocs2.lst}
+
+\myindex{ARM!\Instructions!BL}
+Zur Veranschaulichung wollen wir den BL Befehl manuell disassemblieren.\\
+\TT{0x97ffffa0} entspricht $0b10010111111111111111111110100000$.
+Gemäß \InSqBrackets{\ARMSixFourRef C5.6.26} sind \emph{imm26} die letzten 26 Bit:\\
+$imm26 = 0b11111111111111111110100000$.
+Das ist \TT{0x3FFFFA0}, aber da das MSB 1 ist, handelt es sich um eine negative Zahl und wir können diese manuell in
+eine handlichere Form umwandeln.
+Nach den Regeln für Negation invertieren wir alle Bits: (das ergibt
+\TT{0b1011111=0x5F}) und addieren dann 1 (\TT{0x5F+1=0x60}).
+Die vorzeichenbehaftete Form ist also \TT{-0x60}.
+Multiplizieren wir \TT{-0x60} mit 4 (da die im Opcode gespeicherte Adresse durch 4 geteilt worden ist): das ergibt
+\TT{-0x180}. 
+Berechnen wir nun die Zieladresse: \TT{0x4005a0} + (\TT{-0x180}) = \TT{0x400420} (man beachte: wir betrachten die
+Adresse des BL-Befehls, nicht den aktuellen Wert von \ac{PC}, der auch ein anderer sein könnte!).
+Die Zieladresse ist also \TT{0x400420}.\\\\
+Für mehr Informationen zu Relocs in ARM64 siehe: \ARMELF.

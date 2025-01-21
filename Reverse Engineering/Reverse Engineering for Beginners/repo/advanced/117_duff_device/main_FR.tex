@@ -1,0 +1,140 @@
+\mysection{Duff's device}
+\myindex{Duff's device}
+\myindex{Unrolled loop}
+
+Le dispositif de Duff\footnote{\href{http://en.wikipedia.org/wiki/Duff's_device}{Wikipédia}} est
+une boucle déroulée avec la possibilité d'y sauter au milieu.
+La boucle déroulée est implémentée en utilisant une déclaration switch() sans arrêt.
+Nous allons utiliser ici une version légèrement simplifiée du code original de Tom Duff.
+Disons que nous voulons écrire une fonction qui efface une zone en mémoire.
+On pourrait le faire avec une simple boucle, effaçant octet par octet.
+C'est étonnement lent, puisque tous les ordinateurs modernes ont des bus mémoire
+bien plus large.
+Donc, la meilleure façon de faire est d'effacer des zones de mémoire en utilisant
+des blocs de 4 ou 8 octets.
+Comme nous allons travailler ici avec un exemple 64-bit, nous allons effacer la mémoire
+par bloc de 8 octets.
+Jusqu'ici, tout va bien.
+Mais qu'en est-il du reste?
+La routine de mise à zéro de la mémoire peut aussi être appelée pour des zones de
+taille non multiple de 8.
+Voici l'algorithme:
+
+\begin{itemize}
+\item calculer le nombre de bloc de 8 octets, les effacer en utilisant des accès
+mémoire 8-octets (64-bit);
+
+\item calculer la taille du reste, l'effacer en utilisant ces accès mémoire d'un octet.
+\end{itemize}
+
+La seconde étape peut être implémentée en utilisant une simple boucle.
+Mais implémentons-là avec une boucle déroulée:
+
+\lstinputlisting[style=customc]{\CURPATH/duff_FR.c}
+
+Tout d'abord, comprenons comment le calcul est effectué.
+La taille de la zone mémoire est passée comme une valeur 64-bit.
+Et cette valeur peut être divisée en deux parties:
+
+% .... 7 6 5 4 3 2 1 0
+%|....|B|B|B|B|B|S|S|S|
+
+\begin{center}
+\begin{bytefield}[endianness=big,bitwidth=0.03\linewidth]{11}
+\bitheader{7,6,5,4,3,2,1,0} \\
+\bitbox{3}{\dots} &
+\bitbox{1}{B} &
+\bitbox{1}{B} &
+\bitbox{1}{B} &
+\bitbox{1}{B} &
+\bitbox{1}{B} &
+\bitbox{1}{S} &
+\bitbox{1}{S} &
+\bitbox{1}{S}
+\end{bytefield}
+\end{center}
+
+( \q{B} est le nombre de blocs de 8-bit et \q{S} est la longueur du reste en octets ).
+
+Lorsque nous divisons la taille de la zone de mémoire entrée, la valeur est juste
+décalée de 3 bits vers la droite.
+Mais pour calculer le reste nous pouvons simplement isoler les 3 bits les plus bas!
+Donc, le nombre de bloc de 8-octets est calculé comme $count>>3$ et le reste comme
+$count \& 7$.
+Nous devons aussi savoir si nous allons exécuter la procédure 8-octets, donc nous
+devons vérifier si la valeur de $count$ est plus grande que 7.
+Nous le faisons en mettant à zéro les 3 bits les plus faible et en comparant le résultat
+avec zéro, car tout ce dont nous avons besoin pour répondre à la question est la partie
+haute de $count$ non nulle,
+Bien sûr, ceci fonctionne car 8 est $2^{3}$ et que diviser par des nombres de la
+forme $2^n$ est facile.
+Ce n'est pas possible pour d'autres nombres.
+Il est difficile de dire si ces astuces valent la peine d'être utilisées, car elles
+conduisent à du code difficile à lire.
+Toutefois, ces astuces sont très populaires et un programmeur pratiquant, même s'il/si elle
+ne va pas les utiliser, doit néanmoins les comprendre.
+Donc la première partie est simple: obtenir le nombre de blocs de 8-octets et écrire
+des valeurs 64-bits zéro en mémoire
+La seconde partie est une boucle déroulée implémentée avec une déclaration switch()
+sans arrêt.
+
+Premièrement, exprimons en français ce que nous faisons ici.
+
+Nous devons \q{écrire autant d'octets à zéro en mémoire, que la valeur $count\&7$ nous l'indique}.
+Si c'est 0, sauter à la fin, et il n'y a rien à faire.
+Si c'est 1, sauter à l'endroit à l'intérieur de la déclaration switch() où une seule
+opération de stockage sera exécutée.
+Si c'est 2, sauter à un autre endroit, où deux opérations de stockage seront exécutées, etc.
+Une valeur d'entrée de 7 conduit à l'exécution de toutes les 7 opérations.
+Il n'y a pas de 8, car une zone mémoire de 8 octets serait traitée par la première
+partie de notre fonction.
+Donc, nous avons écrit une boucle déroulée.
+C'était assurément plus rapide sur les anciens ordinateurs que les boucles normales
+(et au contraire, les \ac{CPU}s récents travaillent mieux avec des boucles courtes
+qu'avec des boucles déroulées).
+Peut-être est-ce encore utile sur les \ac{MCU}s embarqués moderne à bas coût.
+
+Voyons ce que MSVC 2012 avec optimisation fait:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/duff_MSVC2012_x64_Ox_FR.asm}
+
+La premières partie de la fonction est prévisible.
+La seconde partie est juste une boucle déroulée et un saut y passant le contrôle
+du flux à la bonne instruction.
+Il n'y a pas d'autre code entre la paire d'instructions \TT{MOV}/\TT{INC}, donc l'exécution
+va continuer jusqu'à la fin, exécutant autant de paires d'instructions que nécessaire.
+Á propos, nous pouvons observer que la paire d'instructions \TT{MOV}/\TT{INC} utilise
+un nombre fixe d'octets (3+3). Donc la paire utilise 6 octets.
+Sachant cela, mous pouvons nous passer de la table des sauts de switch(), nous pouvons
+simplement multiplier la valeur en entrée par 6 et sauter en $current\_RIP + input\_value * 6$.
+
+Ceci peut aussi être plus rapide car nous ne devons pas aller chercher une valeur
+dans la table des sauts.
+
+\myindex{x86!\Instructions!STOSB}
+Il est possible que 6 ne soit pas une très bonne constante pour une multiplication
+rapide et peut-être que ça n'en vaut pas la peine, mais vous voyez l'idée\footnote{Comme
+exercice, vous pouvez essayer de retravailler le code pour se passer de la table
+des sauts.
+\myindex{x86!\Instructions!STOSB}
+La paire d'instructions peut être récrite de façon à ce qu'elle utilise 4 octets
+ou peut-être 8.
+1 octet est aussi possible (en utilisant l'instruction \TT{STOSB}).}.
+
+C'est ce que les démomakers old-school faisaient dans le passé avec les boucles déroulées.
+
+\subsection{Faut-il utiliser des boucles déroulées?}
+\myindex{Unrolled loop}
+
+Les boucles déroulées peuvent être bénéfiques si il n'y a pas de cache mémoire rapide
+entre la \ac{RAM} et le \ac{CPU}, et que le \ac{CPU}, afin d'avoir le code de l'instruction
+suivante, doit le charger depuis la mémoire à chaque fois.
+C'est le cas des \ac{MCU} low-cost moderne et des anciens \ac{CPU}s.
+
+Les boucles déroulées sont plus lentes que les boucles courtes si il y a un cache
+rapide entre la \ac{RAM} et le \ac{CPU}, et que le corps de la boucle tient dans
+le cache, et que le \ac{CPU} va charger le code depuis ce dernier sans toucher à
+la \ac{RAM}.
+Les boucles rapides sont les boucles dont le corps tient dans le cache L1, mais des
+boucles encore plus rapide sont ces petites qui tiennent dans le cache des micro-opérations.
+

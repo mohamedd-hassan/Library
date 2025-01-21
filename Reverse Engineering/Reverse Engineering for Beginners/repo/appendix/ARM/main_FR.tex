@@ -1,0 +1,41 @@
+\mysection{ARM}
+\myindex{ARM}
+
+\subsection{Terminologie}
+
+ARM a été initialement développé comme un \ac{CPU} 32-bit, c'est pourquoi ici un
+\emph{mot}, contrairement au x86, fait 32-bit.
+
+\begin{description}
+	\item[octet] 8-bit.
+		La directive d'assemblage DB est utilisée pour définir des variables et des
+		tableaux d'octets.
+	\item[demi-mot] 16-bit. directive d'assemblage DCW \dittoclosing.
+	\item[mot] 32-bit.  directive d'assemblage DCW \dittoclosing.
+	\item[double mot] 64-bit.
+	\item[quadruple mot] 128-bit.
+\end{description}
+
+\subsection{Versions}
+
+\begin{itemize}
+\item ARMv4: Le mode Thumb mode a été introduit.
+
+\item ARMv6: Utilisé dans la 1ère génération d'iPhone, iPhone 3G (Samsung 32-bit RISC ARM 1176JZ(F)-S 
+qui supporte Thumb-2)
+
+\item ARMv7: Thumb-2 a été ajouté (2003).
+Utilisé dans l'iPhone 3GS, iPhone 4, iPad 1ère génération (ARM Cortex-A8), iPad 2 (Cortex-A9),
+iPad 3ème génération.
+
+\item ARMv7s: De nouvelles instructions ont été ajoutées.
+Utilisé dans l'iPhone 5, l'iPhone 5c, l'iPad 4ème génération. (Apple A6).
+
+\item ARMv8: 64-bit CPU, \ac{AKA} ARM64 \ac{AKA} AArch64.
+Utilisé dans l'iPhone 5S, l'iPad Air (Apple A7).
+Il n'y a pas de mode Thumb en mode 64-bit, seulement ARM (instructions de 4 octets).
+\end{itemize}
+
+% sections
+\input{appendix/ARM/registers_FR}
+\input{appendix/ARM/instructions_FR}

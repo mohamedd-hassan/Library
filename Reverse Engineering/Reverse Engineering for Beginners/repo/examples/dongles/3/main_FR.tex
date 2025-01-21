@@ -1,0 +1,138 @@
+\subsection{Exemple \#3: MS-DOS}
+\label{dongle_16bit_dos}
+
+\myindex{MS-DOS}
+Un autre très vieux logiciel pour MS-DOS de 1995, lui aussi développé par une société
+disparue depuis longtemps.
+
+\myindex{Intel!8086}
+\myindex{Intel!80286}
+
+À l' ère pré-DOS extenders, presque tous les logiciels pour MS-DOS s'appuyaient sur
+sur des CPUs 8086 ou 80286, donc la code était massivement 16-bit.
+
+Le code 16-bit est presque le même que celui déjà vu dans le livre, mais tous les
+registres sont 16-bit et il y a moins d'instructions disponibles.
+
+\label{IN_example}
+\label{OUT_example}
+\myindex{x86!\Instructions!IN}
+\myindex{x86!\Instructions!OUT}
+
+L'environnement MS-DOS n'avait pas de système de drivers, et n'importe quel programme
+pouvait s'adresser au matériel via les ports, donc vous pouvez voir ici les instructions
+\TT{OUT}/\TT{IN}, qui sont présentes dans la plupart des drivers de nos jours (il
+est impossible d'accéder directement aux ports en \glslink{user mode}{mode utilisateur}
+sur tous les \ac{OS}es modernes).
+
+Compte tenu de ceci, le programme MS-DOS qui fonctionne avec un dongle doit accéder
+le port imprimante LPT directement.
+
+Donc nous devons simplement chercher des telles instructions. Et oui, elles y sont:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/1.lst}
+
+(J'ai donné tous les noms de label dans cet exemple).
+
+\TT{out\_port()} est référencé dans une seule fonction:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/2.lst}
+
+Ceci est un \q{hashing} dongle Sentinel Pro, comme dans l'exemple précédent.
+C'est remarquable car des chaînes de texte sont passées ici, aussi, et des valeurs 16-bit
+sont renvoyées, puis comparées avec d'autres.
+
+Donc, voici comment le Sentinel Pro est accédé via les ports.
+
+L'adresse du port de sortie est en général 0x378, i.e., le port imprimante, où les
+données pour les vieilles imprimantes de l'ère pré-USB étaient passées.
+
+Le port est uni-directionnel, car lorsqu'il a été développé, personne n'imaginait
+que quelqu'un aurait besoin de transférer de l'information depuis l'imprimante
+\footnote{Si nous considérons seulement Centronics. Le standard IEEE 1284 suivant
+permet le transfert d'information depuis l'imprimante.}.
+
+Le seul moyen d'obtenir des informations de l'imprimante est le registre d'état sur
+le port 0x379, qui contient des bits tels que \q{paper out}, \q{ack}, \q{busy}---ainsi
+l'imprimante peut signaler si elle est prête ou non et si elle a du papier.
+
+Donc, le dongle renvoie de l'information dans l'un de ces bits, un bit à chaque itération.
+
+\TT{\_in\_port\_2} contient l'adresse du mot d'état (0x379) et \TT{\_in\_port\_1} contient
+le registre de contrôle d'adresse (0x37A).
+
+Il semble que le dongle renvoie de l'information via le flag \q{busy} en \TT{seg030:00B9}:
+chaque bit est stocké dans le registre \TT{DI}, qui est renvoyé à la fin de la fonction.
+
+Que signifie tous ces octets envoyés sur le port de sortie?
+Difficile à dire. Peut-être des commandes pour le dongle.
+
+Mais d'une manière générale, il n'est pas nécessaire de savoir: il est facile de
+résoudre notre tâche sans le savoir.
+
+Voici la routine de vérification du dongle:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/3.lst}
+
+Puisque la routine peut être appelée très fréquemment, e.g., avant l'exécution de
+chaque fonctionnalité importante du logiciel, et accéder au ongle est en général
+lent (à cause du port de l'imprimante et aussi du \ac{MCU} lent du dongle), ils ont
+probablement ajouté un moyen d'éviter le test du dongle, en vérifiant l'heure courante
+dans la fonction \TT{biostime()}.
+
+\myindex{\CStandardLibrary!rand()}
+La fonction \TT{get\_rand()} utilise la fonction C standard:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/4.lst}
+
+Donc la chaîne de texte est choisi au hasard, passé au dongle, et ensuite le résultat
+du hachage est comparé à la valeur correcte.
+
+Les chaînes de texte semblent être construites aléatoirement aussi, lors du développement
+du logiciel.
+
+Et voici comment la fonction principale de vérification du dongle est appelée:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/5.lst}
+
+Il est facile de contourner le dongle, il suffit de forcer la fonction \TT{check\_dongle()}
+à renvoyer toujours 0.
+
+Par exemple, en insérant du code à son début:
+
+\begin{lstlisting}[style=customasmx86]
+mov ax,0
+retf
+\end{lstlisting}
+
+\myindex{\CStandardLibrary!strcpy()}
+
+Le lecteur attentif peut se rappeler que la fonction C \TT{strcpy()} prend en général
+deux pointeurs dans ses arguments, mais nous voyons que 4 valeurs sont passées:
+
+\lstinputlisting[style=customasmx86]{examples/dongles/3/tmp1.lst}
+
+Ceci est relatif au modèle de mémoire de MS-DOS. Vous pouvez en lire plus à ce sujet ici:
+\myref{8086_memory_model}.
+
+Donc, comme vous pouvez le voir, \TT{strcpy()} et toute autre fonction qui prend
+un/des pointeur(s) en argument travaille avec des paires 16-bit.
+
+Retournons à notre exemple.
+\TT{DS} est actuellement l'adresse du segment de données dans l'exécutable, où la
+chaîne de texte est stockée.
+
+\myindex{x86!\Instructions!LES}
+
+Dans la fonction \TT{sent\_pro()}, chaque octet de la chaîne est chargé en\\
+\TT{seg030:00EF}: l'instruction \TT{LES} charge simultanément la paire ES:BX depuis
+l'argument transmis.
+
+Le \MOV en \TT{seg030:00F5} charge l'octet depuis la mémoire sur laquelle pointe
+la paire ES:BX.
+
+% TODO rewrite
+%
+%At \TT{seg030:00F2} only a second 16-bit part of address is \glslink{increment}{incremented}.
+%
+%This implies that the string passed to the function cannot be located on the boundary between two data segments.

@@ -1,0 +1,160 @@
+\newcommand{\PPC}{\InSqBrackets{\emph{PowerPC(tm) Microprocessor Family: The Programming Environments for 32-Bit Microprocessors}, (2000)}\footnote{\AlsoAvailableAs \url{http://yurichev.com/mirrors/PowerPC/6xx_pem.pdf}}}
+
+\newcommand{\PPCABI}{[Steve Zucker, SunSoft and Kari Karhi, IBM, \emph{SYSTEM V APPLICATION BINARY INTERFACE: PowerPC Processor Supplement}, (1995)]\footnote{\AlsoAvailableAs \url{http://yurichev.com/mirrors/PowerPC/elfspec_ppc.pdf}}}
+
+\subsection{Exemple \#1: MacOS Classic et PowerPC}
+
+\myindex{PowerPC}
+\myindex{Mac OS Classic}
+Il y a ici un exemple de programme pour MacOS Classic\footnote{pre-UNIX MacOS}, pour PowerPC.
+La société qui a développé le logiciel a disparu il y a longtemps, donc le client
+(légal) avait peur d'un problème matériel sur le dongle.
+
+Lorsqu'on le lançait sans le dongle connecté, une boite de dialogue avec le message
+"Invalid Security Device" apparaissait.
+
+Par chance, cette chaîne de texte pût facilement être trouvée dans le fichier exécutable binaire.
+
+Prétendons que nous ne sommes pas très familier, à la fois avec le Mac OS Classic et le PowerPC, mais essayons tout de même.
+
+\ac{IDA} 
+ouvre le fichier exécutable sans problème, indique son type comme
+"PEF (Mac OS or Be OS executable)" (en effet, c'est un format de fichier Mac OS Classic
+standard).
+
+En cherchant la chaîne de texte avec le message d'erreur, nous trouvons ce morceau
+de code:
+
+\lstinputlisting[style=customasmPPC]{examples/dongles/1/1.lst}
+
+\myindex{ARM}
+\myindex{MIPS}
+Oui, ceci est du code PowerPC.
+
+Le CPU est un \ac{RISC} 32-bit très typique des années 1990s.
+
+Chaque instruction occupe 4 octets (tout comme MIPS et ARM) et les noms ressemblent
+quelque peu aux noms des instructions MIPS.
+
+\TT{check1()} est une fonction donc nous allons donner le nom plu tard.
+\TT{BL} est l'instruction \emph{Branch Link}, e.g., destinée à appeler des sous-programmes.
+
+Le point crucial est l'instruction \ac{BNE} qui saute si la vérification du dongle
+de protection passe ou pas si une erreur se produit: alors l'adresse de la chaîne
+de texte est chargée dans le registre r3 pour la passer à la routine de la boite de
+dialogue subséquente.
+
+Dans \PPCABI nous trouvons que le registre r3 es utilisé pour la valeur de retour
+(et r4, dans le cas de valeurs 64-bit).
+
+\myindex{x86!\Instructions!MOVZX}
+Une autre instruction inconnue est \TT{CLRLWI}.
+Dans \PPC nous apprenons que cette instruction effectue la mise à zéro et le chargement.
+Dans notre cas, elle efface les 24 bits haut de la valeur dans r3 et la met dans
+r0, donc elle est analogue à \MOVZX en x86 (\myref{movzx}), mais elle met aussi les
+flags, donc \ac{BNE} peut ensuite les tester.
+
+Jetons un \oe{}il à la fonction \TT{check1()}:
+
+\lstinputlisting[style=customasmPPC]{examples/dongles/1/check1.lst}
+
+Comme on peut le voir dans \ac{IDA}, cette fonction est appelée depuis de nombreux
+points du programme, mais seule la valeur du registre r3 est testée après chaque
+appel.
+\myindex{thunk-functions}
+
+Tout ce que fait cette fonction est d'appeler une autre fonction, donc c'est une
+\glslink{thunk function}{fonction thunk}:
+il y a un prologue et un épilogue de fonction, mais le registre r3 n'est pas touché,
+donc \TT{checkl()} renvoie ce que \TT{check2()} renvoie.
+
+\ac{BLR} semble être le retour de la fonction, mais vu comment \ac{IDA} dispose la
+fonction, nous ne devons probablement pas nous en occuper.
+
+Puisque c'est un \ac{RISC} typique, il semble que les sous-programmes soient appelés
+en utilisant un \glslink{link register}{registre de lien}, tout comme en ARM.
+
+La fonction \TT{check2()} est plus complexe:
+
+\lstinputlisting[style=customasmPPC]{examples/dongles/1/check2.lst}
+
+\myindex{USB}
+
+Nous sommes encore chanceux: quelques noms de foncions ont été laissés dans l'exécutable
+(section de symboles de débogage?\\
+difficile à dire puisque nous ne sommes pas très familier de ce format de fichier,
+peut-être est-ce une sorte d'export PE? (\ref{PE_exports_imports})),\\ % due to \vref bug
+comme \TT{.RBEFINDNEXT()} et \TT{.RBEFINDFIRST()}.
+
+Enfin ces fonctions appellent d'autres fonctions avec des noms comme \TT{.GetNextDeviceViaUSB()},
+\TT{.USBSendPKT()}, donc elles travaillent clairement avec un dispositif USB.
+
+Il y a même une fonction appelée \TT{.GetNextEve3Device()}---qui semble familière,
+il y avait un dongle Sentinel Eve3 pour le port ADB (présent sue les MACs) dans les 1990s.
+
+Regardons d'abord comment le registre r3 est mis avant le retour, en ignorant tout
+le reste.
+
+Nous savons qu'une \q{bonne} valeur de r3 doit être non-nulle, r3 à zéro conduit
+à l'exécution de la partie avec un message d'erreur dans une boite de dialogue.
+
+Il y a deux instructions \TT{li \%r3, 1} présentes dans la fonction et une \TT{li \%r3, 0}
+(\emph{Load Immediate}, i.e., charger une valeur dans un registre).
+La première instruction est en \TT{0x001186B0}---et franchement, il est difficile
+de dire ce qu'elle signifie.
+
+Ce que l'on voit ensuite, toutefois, est plus facile à comprendre:
+\TT{.RBEFINDFIRST()} est appelé:
+si elle échoue, 0 est écrit dans r3 et nous sautons à \emph{exit}, autrement une
+autre fonction est appelée(\TT{check3()})---si elle échoue aussi, \TT{.RBEFINDNEXT()}
+est appelée, probablement afin de chercher un autre dispositif USB.
+
+N.B.: \TT{clrlwi. \%r0, \%r3, 16} est analogue à ce que nous avons déjà vu, mais
+elle éfface 16 bits, i.e., \\
+\TT{.RBEFINDFIRST()}
+renvoie probablement une valeur 16-bit.
+
+\TT{B} (signifie \emph{branch}) saut inconditionnel.
+
+\ac{BEQ} est l'instruction inverse de \ac{BNE}.
+
+Regardons \TT{check3()}:
+
+\lstinputlisting[style=customasmPPC]{examples/dongles/1/check3.lst}
+
+Il y a de nombreux appels à \TT{.RBEREAD()}.
+
+Peut-être que la fonction renvoie une valeur du dongle, donc elles sont comparées
+ici avec des variables codées en dur en utilisant \TT{CMPLWI}.
+
+Nous voyons aussi que le registre r3 est aussi rempli avant chaque appel à \TT{.RBEREAD()}
+avec une de ces valeurs: 0,1, 8, 0xA, 0xB, 0xC, 0xD, 4, 5.
+Probablement une adresse mémoire ou quelque chose comme ça?
+
+Oui, en effet, en googlant ces noms de fonction il est facile de trouver le manuel
+du dongle Sentinel Eve3!
+
+Peut-être n'avons nous pas besoin d'apprendre aucune autre instruction PowerPC: tout
+ce que fait cette fonction est seulement d'appeler \TT{.RBEREAD()}, de comparer ses
+résultats avec les constantes et de renvoyer 1 si les comparaisons sont justes ou
+0 autrement.
+
+Ok, tout ce dont nous avons besoin est que la fonction \TT{check1()} renvoie toujours
+1 ou n'importe quelle valeur autre que zéro.
+
+Mais puisque nous ne sommes pas très sûrs de nos connaissances des instructions PowerPC,
+nous allons être prudents: nous allons patcher le saut dans \TT{check2()} en \TT{0x001186FC}
+et en \TT{0x00118718}.
+
+En \TT{0x001186FC} nous allons écrire les octets 0x48 et 0, convertissant ainsi l'instruction
+\ac{BEQ} en un \TT{B} (saut inconditionnel): nous pouvons repérer son opcode sans
+même nous référer à \PPC.
+
+En \TT{0x00118718} nous allons écrire  0x60 et 3 octets à zéro, la convertissant
+ainsi en une instruction \ac{NOP}:
+Nous pouvons aussi repérer son opcode dans le code.
+
+Et maintenant, tout fonctionne sans un dongle connecté.
+
+En résumé, des petites modification telles que celles-ci peuvent être effectuées
+avec \ac{IDA} et un minimum de connaissances en langage d'assemblage.

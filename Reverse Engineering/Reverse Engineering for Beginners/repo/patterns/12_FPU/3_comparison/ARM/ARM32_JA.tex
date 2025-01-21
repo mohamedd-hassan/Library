@@ -1,0 +1,222 @@
+\subsubsection{ARM}
+
+\myparagraph{\OptimizingXcodeIV (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingXcodeIV (\ARMMode),style=customasmARM]{patterns/12_FPU/3_comparison/ARM/Xcode_ARM_JA.lst}
+
+\myindex{ARM!\Registers!APSR}
+\myindex{ARM!\Registers!FPSCR}
+非常に単純なケースです。
+入力値は\GTT{D17}および\GTT{D16}レジスタに格納され、次に\INS{VCMPE}命令を使用して比較されます。
+
+コプロセッサ固有のフラグを格納する必要があるため、x86コプロセッサと同様に、
+ARMコプロセッサには独自のステータスおよびフラグレジスタ（\ac{FPSCR}）があります。 
+% TODO -> расписать регистр по битам
+\myindex{ARM!\Instructions!VMRS}
+また、x86と同様に、ARMでは条件付きジャンプ命令がなく、
+コプロセッサのステータスレジスタ内のビットをチェックできます。 
+したがって、コプロセッサステータスワードからの4ビット（N, Z, C, V）を汎用ステータスレジスタ（\ac{APSR}）のビットにコピーするVMRSがあります。
+
+\myindex{ARM!\Instructions!VMOVGT}
+\INS{VMOVGT}はDレジスタ用の\INS{MOVGT}命令に類似のもので、
+比較中に一方のオペランドが他方のものより大きい場合に実行されます。（\emph{GT---Greater Than}）
+
+実行されると、 （現在\GTT{D17}に格納されている） $a$ の値は\GTT{D16}に書き込まれます。 
+それ以外の場合は、 $b$ の値は\GTT{D16}レジスタにとどまります。
+
+\myindex{ARM!\Instructions!VMOV}
+
+最後から2番目の\INS{VMOV}命令は、D0レジスタ内の値を\Reg{0}および\Reg{1}レジスタ対を介して戻すための値を準備します。
+
+\myparagraph{\OptimizingXcodeIV (\ThumbTwoMode)}
+
+\begin{lstlisting}[caption=\OptimizingXcodeIV (\ThumbTwoMode),style=customasmARM]
+VMOV            D16, R2, R3 ; b
+VMOV            D17, R0, R1 ; a
+VCMPE.F64       D17, D16
+VMRS            APSR_nzcv, FPSCR
+IT GT 
+VMOVGT.F64      D16, D17
+VMOV            R0, R1, D16
+BX              LR
+\end{lstlisting}
+
+前の例とほとんど同じですが、少し異なります。 
+すでにわかっているように、ARMモードの多くの命令は条件述語で補うことができます。 
+しかしThumbモードではこのようなことはありません。 
+条件を符号化できる4ビット以上の16ビット命令にはスペースがありません。
+
+\myindex{ARM!\ThumbTwoMode}
+
+ただし、Thumb-2は、古いThumb命令に対する述部を指定できるように拡張されました。
+ここでは、 \IDA で生成されたリストでは、前の例のように\INS{VMOVGT}命令が表示されます。
+
+実際、通常の\INS{VMOV}はそこにエンコードされますが、その直前に\INS{IT GT}命令が置かれているため、
+\IDA は\GTT{-GT}接尾辞を追加します。
+
+\label{ARM_Thumb_IT}
+\myindex{ARM!\Instructions!IT}
+\myindex{ARM!if-then block}
+\INS{IT}命令は、いわゆる\emph{if-then ブロック}を定義します。
+
+命令の後に最大4つの命令を配置することができ、
+それぞれに述語接尾辞があります。
+この例では、\emph{GT}（\emph{Greater Than}）条件が真である場合、\INS{IT GT}は次の命令が実行されることを意味します。
+
+\myindex{Angry Birds}
+ちなみにAngry Birds（iOS向け）のより複雑なコードの断片は次のとおりです。
+
+\begin{lstlisting}[caption=Angry Birds Classic,style=customasmARM]
+...
+ITE NE
+VMOVNE          R2, R3, D16
+VMOVEQ          R2, R3, D17
+BLX             _objc_msgSend ; not suffixed
+...
+\end{lstlisting}
+
+\INS{ITE}は\emph{if-then-else}を表し、
+
+次の2つの命令の接尾辞をエンコードします。
+
+最初の命令は、\INS{ITE}でエンコードされた条件（\emph{NE, not equal}）が真である場合に実行され、2番目の場合は条件が真でない場合に実行されます。
+（\GTT{NE}の逆条件は\GTT{EQ}（\emph{等しい}）です。
+
+2番目の\INS{VMOV}（または\INS{VMOVEQ}）が通常のもので、接尾辞（\INS{BLX}）ではない命令の後に続きます。
+
+\myindex{Angry Birds}
+もう1つはやや難しく、これもAngry Birdsからです。
+
+\begin{lstlisting}[caption=Angry Birds Classic,style=customasmARM]
+...
+ITTTT EQ
+MOVEQ           R0, R4
+ADDEQ           SP, SP, #0x20
+POPEQ.W         {R8,R10}
+POPEQ           {R4-R7,PC}
+BLX             ___stack_chk_fail ; not suffixed
+...
+\end{lstlisting}
+
+命令ニーモニック内の4つの\q{T}記号は、条件が真である場合に4つの後続の命令が実行されることを意味します。
+
+これが \IDA がそれぞれに\GTT{-EQ}サフィックスを追加する理由です。
+
+たとえば、\INS{ITEEE EQ}（\emph{if-then-else-else-else}）があった場合、
+接尾辞は次のように設定されます。
+
+\begin{lstlisting}
+-EQ
+-NE
+-NE
+-NE
+\end{lstlisting}
+
+\myindex{Angry Birds}
+Angry Birdsから別の断片です。
+
+\begin{lstlisting}[caption=Angry Birds Classic,style=customasmARM]
+...
+CMP.W           R0, #0xFFFFFFFF
+ITTE LE
+SUBLE.W         R10, R0, #1
+NEGLE           R0, R0
+MOVGT           R10, R0
+MOVS            R6, #0         ; not suffixed
+CBZ             R0, loc_1E7E32 ; not suffixed
+...
+\end{lstlisting}
+
+\INS{ITTE}（\emph{if-then-then-else}）は、\GTT{LE}（\emph{Less or Equal}）
+条件が真であれば第1および第2の命令が実行されることを意味し、逆条件（\GTT{GT}---\emph{Greater Than}）
+が真であれば第3の命令を実行することを意味します。
+
+コンパイラは通常、可能な組み合わせのすべてを生成しません。
+\myindex{Angry Birds}
+
+たとえば、前述のAngry Birdsゲーム（iOSの\emph{クラシック}バージョン）では、
+\INS{IT}命令の変種である、\INS{ITE}、\INS{ITT}、\INS{ITTE}、\INS{ITTT}、\INS{ITTTT}のみが使用されます。 
+\myindex{\GrepUsage}
+これらをを学ぶのはどうしたらいいでしょうか？
+\IDA ではリストファイルを作成することができるため、各オペコードに4バイトを表示するオプションで作成されました。 
+次に、16ビットのオペコードの大部分（\INS{IT} は \GTT{0xBF}）を知っているので、\GTT{grep}を使って次のことを行います。
+
+\begin{lstlisting}
+cat AngryBirdsClassic.lst | grep " BF" | grep "IT" > results.lst
+\end{lstlisting}
+
+\myindex{ARM!\ThumbTwoMode}
+
+ところで、ARMアセンブリ言語でThumb-2モードを手動でプログラムし、
+条件付きサフィックスを追加すると、
+アセンブラは必要な場所に必要なフラグを自動的に\INS{IT}命令に追加します。
+
+\myparagraph{\NonOptimizingXcodeIV (\ARMMode)}
+
+\begin{lstlisting}[caption=\NonOptimizingXcodeIV (\ARMMode),style=customasmARM]
+b               = -0x20
+a               = -0x18
+val_to_return   = -0x10
+saved_R7        = -4
+
+                STR             R7, [SP,#saved_R7]!
+                MOV             R7, SP
+                SUB             SP, SP, #0x1C
+                BIC             SP, SP, #7
+                VMOV            D16, R2, R3
+                VMOV            D17, R0, R1
+                VSTR            D17, [SP,#0x20+a]
+                VSTR            D16, [SP,#0x20+b]
+                VLDR            D16, [SP,#0x20+a]
+                VLDR            D17, [SP,#0x20+b]
+                VCMPE.F64       D16, D17
+                VMRS            APSR_nzcv, FPSCR
+                BLE             loc_2E08
+                VLDR            D16, [SP,#0x20+a]
+                VSTR            D16, [SP,#0x20+val_to_return]
+                B               loc_2E10
+
+loc_2E08
+                VLDR            D16, [SP,#0x20+b]
+                VSTR            D16, [SP,#0x20+val_to_return]
+
+loc_2E10
+                VLDR            D16, [SP,#0x20+val_to_return]
+                VMOV            R0, R1, D16
+                MOV             SP, R7
+                LDR             R7, [SP+0x20+b],#4
+                BX              LR
+\end{lstlisting}
+
+既に見たのとほぼ同じですが、
+$a$ と $b$ の変数がローカルスタックに格納され、戻り値も格納されるため、冗長コードがとても多くなっています。
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\begin{lstlisting}[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]
+                PUSH    {R3-R7,LR}
+                MOVS    R4, R2
+                MOVS    R5, R3
+                MOVS    R6, R0
+                MOVS    R7, R1
+                BL      __aeabi_cdrcmple
+                BCS     loc_1C0
+                MOVS    R0, R6
+                MOVS    R1, R7
+                POP     {R3-R7,PC}
+
+loc_1C0
+                MOVS    R0, R4
+                MOVS    R1, R5
+                POP     {R3-R7,PC}
+\end{lstlisting}
+
+ターゲットCPUでサポートされるかに依存できず、また、簡単なビット単位の比較では実行できないため、
+KeilはFPU命令を生成しません。
+%TODO1: why?
+したがって、外部ライブラリ関数を呼び出して比較を行います：\GTT{\_\_aeabi\_cdrcmple}
+\myindex{ARM!\Instructions!BCS}
+
+注意：比較の結果はこの関数によってフラグに残されます。したがって、
+次の\INS{BCS}（\emph{Carry set---Greater than or equal}）命令は
+追加コードなしで動作します。

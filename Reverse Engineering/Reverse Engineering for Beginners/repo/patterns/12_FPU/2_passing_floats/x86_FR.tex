@@ -1,0 +1,22 @@
+\subsubsection{x86}
+
+Regardons ce que nous obtenons avec MSVC 2010:
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/12_FPU/2_passing_floats/MSVC_FR.asm}
+
+\myindex{x86!\Instructions!FLD}
+\myindex{x86!\Instructions!FSTP}
+
+\FLD et \FSTP déplacent des variables entre le segment de données et la pile du FPU.
+\GTT{pow()}\footnote{une fonction C standard, qui élève un nombre à la puissance
+donnée (puissance)} prend deux valeurs depuis la pile et renvoie son résultat dans
+le registre \ST{0}.
+\printf prend 8 octets de la pile locale et les interprète comme des variables de
+type \Tdouble.
+
+À propos, une paire d'instructions \MOV pourrait être utilisée ici pour déplacer
+les valeurs depuis la mémoire vers la pile, car les valeurs en mémoire sont stockées
+au format IEEE 754, et pow() les prend aussi dans ce format, donc aucune conversion
+n'est nécessaire.
+C'est fait ainsi dans l'exemple suivant, pour ARM: \myref{FPU_passing_floats_ARM}.
+

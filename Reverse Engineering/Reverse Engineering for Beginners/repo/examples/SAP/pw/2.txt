@@ -1,0 +1,14 @@
+STRUCT DBSL_STMTID 
+Size: 120  Variables: 4  Functions: 0  Base classes: 0
+MEMBER moduletype 
+  Type:  DBSL_MODULETYPE
+  Offset:        0  Index:        3  TypeIndex:    38653
+MEMBER module 
+  Type:  wchar_t module[40]
+  Offset:        4  Index:        3  TypeIndex:      831
+MEMBER stmtnum 
+  Type:  long
+  Offset:       84  Index:        3  TypeIndex:      440
+MEMBER timestamp 
+  Type:  wchar_t timestamp[15]
+  Offset:       88  Index:        3  TypeIndex:     6612

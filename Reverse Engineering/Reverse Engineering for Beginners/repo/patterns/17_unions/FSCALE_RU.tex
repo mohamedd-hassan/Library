@@ -1,0 +1,18 @@
+\subsection{Замена инструкции FSCALE}
+\myindex{x86!\Instructions!FSCALE}
+
+Agner Fog в своей работе \emph{Optimizing subroutines in assembly language / An optimization guide for x86 platforms}
+\footnote{\url{http://www.agner.org/optimize/optimizing_assembly.pdf}} указывает, что инструкция \ac{FPU} \INS{FSCALE}
+(вычисление $2^n$) может быть медленной на многих CPU, и он предлагает более быструю замену.
+
+Вот мой перевод его кода на ассемблер на \CCpp:
+
+\lstinputlisting[style=customc]{patterns/17_unions/FSCALE.c}
+
+Инструкция \INS{FSCALE} в вашей среде может быть быстрее, но всё же, это хорошая демонстрация \emph{union}-а и того факта,
+что экспонента хранится в виде $2^n$,
+так что входное значение $n$ сдвигается в экспоненту закодированного в IEEE 754 числа.
+Потом экспонента корректируется прибавлением 0x3f800000 или 0x3ff0000000000000.
+
+То же самое можно сделать без сдвигов, при помощи \emph{struct}, но всё равно, внутри будет операция.
+

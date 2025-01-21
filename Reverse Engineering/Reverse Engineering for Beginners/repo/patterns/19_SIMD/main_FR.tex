@@ -1,0 +1,84 @@
+\mysection{SIMD}
+
+\label{SIMD_x86}
+\ac{SIMD} est un acronyme: \emph{Single Instruction, Multiple Data} (simple instruction,
+multiple données).
+
+Comme son nom le laisse entendre, cela traite des données multiples avec une seule
+instruction.
+
+Comme le \ac{FPU}, ce sous-système du \ac{CPU} ressemble à un processeur séparé à
+l'intérieur du x86.
+
+\myindex{x86!MMX}
+
+SIMD a commencé avec le MMX en x86. 8 nouveaux registres apparurent: MM0-MM7.
+
+Chaque registre MMX contient 2 valeurs 32-bit, 4 valeurs 16-bit ou 8 octets.
+Par exemple, il est possible d'ajouter 8 valeurs 8-bit (octets) simultanément en
+ajoutant deux valeurs dans des registres MMX.
+
+Un exemple simple est un éditeur graphique qui représente une image comme un tableau
+à deux dimensions.
+Lorsque l'utilisateur change la luminosité de l'image, l'éditeur doit ajouter ou
+soustraire un coefficient à/de chaque valeur du pixel.
+Dans un soucis de concision, si l'on dit que l'image est en niveau de gris et que
+chaque pixel est défini par un octet de 8-bit, alors il est possible de changer la
+luminosité de 8 pixels simultanément.
+
+À propos, c'est la raison pour laquelle les instructions de \emph{saturation} sont
+présentes en SIMD.
+
+Lorsque l'utilisateur change la luminosité dans l'éditeur graphique, les dépassements
+% TODO: meilleure traduction underflow overflow?
+au dessus ou en dessous ne sont pas souhaitables, donc il y a des instructions d'addition
+en SIMD qui n'additionnent pas si la valeur maximum est atteinte, etc.
+
+Lorsque le MMX est apparu, ces registres étaient situés dans les registres du FPU.
+Il était seulement possible d'utiliser soit le FPU ou soit le MMX. On peut penser
+qu'Intel économisait des transistors, mais en fait, la raison d'une telle symbiose
+était plus simple~---les anciens \ac{OS}es qui n'étaient pas au courant de ces registres
+supplémentaires et ne les sauvaient pas lors du changement de contexte, mais sauvaient
+les registres FPU.
+Ainsi, CPU avec MMX + ancien \ac{OS} + processus utilisant les capacités MMX fonctionnait
+toujours.
+
+\myindex{x86!SSE}
+\myindex{x86!SSE2}
+SSE---est une extension des registres SIMD à 128 bits, maintenant séparé du FPU.
+
+\myindex{x86!AVX}
+AVX---une autre extension, à 256 bits.
+
+Parlons maintenant de l'usage pratique.
+
+Bien sûr, il s'agit de routines de copie en mémoire (\TT{memcpy}), de comparaison
+de mémoire (\TT{memcmp}) et ainsi de suite.
+
+\myindex{DES}
+
+Un autre exemple: l'algorithme de chiffrement DES prend un bloc de 64-bit et une
+clef de 56-bit, chiffre le bloc et produit un résultat de 64-bit.
+L'algorithme DES peut être considéré comme un grand circuit électronique, avec des
+fils et des portes AND/OR/NOT.
+
+\label{bitslicedes}
+\newcommand{\URLBS}{\url{http://www.darkside.com.au/bitslice/}}
+
+Le bitslice DES\footnote{\URLBS}~---est l'idée de traiter des groupes de blocs et
+de clés simultanément.
+Disons, une variable de type \emph{unsigned int} en x86 peut contenir jusqu'à 32-bit,
+donc il est possible d'y stocker des résultats intermédiaires pour 32 paires de blocs-clé
+simultanément, en utilisant 64+56 variables de type \emph{unsigned int}.
+
+\myindex{\oracle}
+Il existe un utilitaire pour brute-forcer les mots de passe/hashes d'\oracle (certains
+basés sur DES) en utilisant un algorithme bitslice DES légèrement modifié pour SSE2
+et AVX---maintenant il est possible de chiffrer 128 ou 256 paires de blocs-clé simultanément.
+
+\url{http://conus.info/utils/ops_SIMD/}
+
+% sections
+\input{patterns/19_SIMD/vectorization_FR.tex}
+\input{patterns/19_SIMD/strlen_FR.tex}
+

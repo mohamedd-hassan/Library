@@ -1,0 +1,29 @@
+\subsection{Problème des ctypes en Python (devoir à la maison en assembleur x86)}
+
+\myindex{Python!ctypes}
+Un module Python ctypes peut appeler des fonctions externes dans des DLLs, .so's, etc.
+Mais la convention d'appel (pour l'environnement 32-bit) doit être définie explicitement:
+
+\begin{lstlisting}
+"ctypes" exports the *cdll*, and on Windows *windll* and *oledll*
+objects, for loading dynamic link libraries.
+
+You load libraries by accessing them as attributes of these objects.
+*cdll* loads libraries which export functions using the standard
+"cdecl" calling convention, while *windll* libraries call functions
+using the "stdcall" calling convention.
+\end{lstlisting}
+( \url{https://docs.python.org/3/library/ctypes.html} )%
+\footnote{NDT:Projet de traduction en français: \url{https://docs.python.org/fr/3/library/ctypes.html} }
+
+En fait, nous pouvons modifier le module ctypes (ou tout autre module d'appel),
+afin qu'il appelle avec succès des fonctions externes cdecl ou stdcall, sans
+connaître, ce qui se trouve où.
+(Le nombre d'arguments, toutefois, doit être spécifié).
+
+Il est possible de le résoudre en utilisant environ 5 à 10 instructions assembleur
+x86 dans l'appelant.
+Essayez de trouver ça.
+
+% hint: check ESP
+

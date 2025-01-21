@@ -1,0 +1,99 @@
+\myparagraph{32-bit ARM}
+\label{subsec:jcc_ARM}
+
+\mysubparagraph{\OptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_O3_signed.asm}
+
+\myindex{ARM!Condition codes}
+% FIXME \ref -> which instructions?
+
+In modalità ARM molte istruzioni possono essere eseguite solo quando specifici flag sono settati.
+Es. sono spesso usate quando si confrontano numeri.
+
+\myindex{ARM!\Instructions!ADD}
+\myindex{ARM!\Instructions!ADDAL}
+
+Ad esempio, l'istruzione \ADD è infatti chiamata internamente \TT{ADDAL}, il suffisso \TT{AL} sta per
+\emph{Always}, ad indicare che viene eseguita sempre.
+I predicati sono codificati nei 4 bit alti dell'istruzione ARM a 32-bit (\emph{condition field}).
+\myindex{ARM!\Instructions!B}
+L'istruzione \TT{B} per effettuare un salto non condizionale è in realtà condizionale ed è codificata proprio come ogni altro
+jump condizionale, ma ha \TT{AL} (\emph{execute ALways}) nel \emph{condition field}, e ciò implica che venga sempre eseguito, ignorando i flag.
+
+\myindex{ARM!\Instructions!ADR}
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!CMP}
+
+L'istruzione \TT{ADRGT} funziona come \TT{ADR}, ma viene eseguita soltanto nel caso in cui la precedente istruzione \CMP
+trovi uno dei due numeri a confronto più grande dell'altro, (\emph{Greater Than}).
+
+\myindex{ARM!\Instructions!BL}
+\myindex{ARM!\Instructions!BLcc}
+
+La successiva istruzione \TT{BLGT} si comporta esattamente come \TT{BL} 
+ed il salto viene innescato solo se il risultato del confronto è (\emph{Greater Than}). 
+\TT{ADRGT} scrive un putatore alla stringa \TT{a>b\textbackslash{}n} nel registro \Reg{0} e \TT{BLGT} chiama \printf.
+Le istruzioni aventi il suffisso \TT{-GT} in questo caso sono quindi eseguite solo se il valore in \Reg{0} (ovvero $a$) è maggiore del valore 
+in \Reg{4} (ovvero $b$).
+
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!BLcc}
+
+Andando avanti vediamo le istruzioni \TT{ADREQ} e \TT{BLEQ}.
+Si comporano come \TT{ADR} e \TT{BL}, ma vengono eseguite solo se gli operandi erano uguali al momento dell'ultimo confronto.
+Un altra \CMP si trova subito prima di loro (poiché l'esecuzione di \printf potrebbe aver alterato i flag).
+
+\myindex{ARM!\Instructions!LDMccFD}
+\myindex{ARM!\Instructions!LDMFD}
+
+Ancora più avanti vediamo \TT{LDMGEFD}, questa istruzione funziona come \TT{LDMFD}\footnote{\ac{LDMFD}},
+ma viene eseguita solo quando uno dei valori e maggiore di o uguale all'altro (\emph{Greater or Equal}).
+L'istruzione \TT{LDMGEFD SP!, \{R4-R6,PC\}} si comporta come un epilogo di funzione, ma viene eseguita solo se $a>=b$, e solo in tal caso avrà termine l'esecuzione della funzione.
+
+\myindex{Function epilogue}
+
+Nel caso in cui questa condizione non venga soddisfatta, ovvero se $a<b$, il flusso continuerà alla successiva istruzione \TT{\q{LDMFD SP!, \{R4-R6,LR\}}} , un altro epilogo di funzione. Questa istruzione non ripristina soltanto lo stato dei registri \TT{R4-R6} , ma anche \ac{LR} invece di \ac{PC}, non ritornando così dalla funzione.
+Le due ultime istruzioni chiamano \printf con la stringa <<a<b\textbackslash{}n>> come unico argomento.
+Abbiamo già visto un salto diretto non condizionale alla funzione \printf senza altro codice di uscita/ritorno dalla funzione nella sezione <<\PrintfSeveralArgumentsSectionName> >~(\myref{ARM_B_to_printf}).
+
+\myindex{ARM!\Instructions!ADRcc}
+\myindex{ARM!\Instructions!BLcc}
+\myindex{ARM!\Instructions!LDMccFD}
+\TT{f\_unsigned} è simile, e vengono utilizzate le funzioni \TT{ADRHI}, \TT{BLHI}, e \TT{LDMCSFD}. Questi predicati (\emph{HI = Unsigned higher, CS = Carry Set (maggiore di o uguale a)}) sono analoghi a quelli visti in precedenza, e operano su valori di tipo unsigned.
+
+Nella funzione \main non c'è nulla di nuovo:
+
+\lstinputlisting[caption=\main,style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_O3_main.asm}
+
+In questo modo ci si può sbarazzare dei salti condizionali in modalità ARM.
+\myindex{RISC pipeline}
+Perchè è bene? Leggi qui: \myref{branch_predictors}.
+
+\myindex{x86!\Instructions!CMOVcc}
+
+Non esiste una funzionalità simile in x86, eccetto per l'istruzione \TT{CMOVcc} , che è uguale a \MOV ma viene eseguita solo
+se specifici flag sono settati, solitamente da \CMP.
+
+\mysubparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ThumbMode),style=customasmARM]{patterns/07_jcc/simple/ARM/ARM_thumb_signed.asm}
+
+\myindex{ARM!\Instructions!BLE}
+\myindex{ARM!\Instructions!BNE}
+\myindex{ARM!\Instructions!BGE}
+\myindex{ARM!\Instructions!BLS}
+\myindex{ARM!\Instructions!BCS}
+\myindex{ARM!\Instructions!B}
+\myindex{ARM!\ThumbMode}
+
+Solo le istruzioni \TT{B} in modalità Thumb possono essere supplementate da \emph{condition codes}, pertanto il codice Thumb 
+ha un aspetto più ordinario.
+
+\TT{BLE} è un normale jump condizionale \emph{Less than or Equal}, 
+\TT{BNE}---\emph{Not Equal}, 
+\TT{BGE}---\emph{Greater than or Equal}.
+
+\TT{f\_unsigned} è simile, con la differenza che vengono usate altre istruzioni per operare con valori
+di tipo unsigned: \TT{BLS} 
+(\emph{Unsigned lower or same}) e \TT{BCS} (\emph{Carry Set (Greater than or equal)}).

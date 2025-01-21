@@ -1,0 +1,352 @@
+\subsection{Instructions}
+\label{sec:x86_instructions}
+
+Les instructions marquées avec un (M) ne sont généralement pas générées par le compilateur:
+si vous rencontrez l'une d'entre elles, il s'agit probablement de code assembleur
+écrit à la main, ou de fonctions intrinsèques (\myref{sec:compiler_intrinsic}).
+
+% TODO ? обратные инструкции
+
+Seules les instructions les plus fréquemment utilisées sont listées ici.
+Vous pouvez lire \myref{x86_manuals} pour une documentation complète.
+
+Devez-vous connaître tous les opcodes des instructions par c\oe{}ur?
+Non, seulement ceux qui sont utilisés pour patcher du code
+(\myref{x86_patching}).
+Tout le reste des opcodes n'a pas besoin d'être mémorisé.
+
+\subsubsection{Préfixes}
+
+\myindex{x86!\Prefixes!LOCK}
+\myindex{x86!\Prefixes!REP}
+\myindex{x86!\Prefixes!REPE/REPNE}
+\begin{description}
+\label{x86_lock}
+\item[LOCK] force le CPU à faire un accès exclusif à la RAM dans un environnement multi-processeurs.
+Par simplification, on peut dire que lorsqu'une instruction avec ce préfixe est exécutée,
+tous les autres CPU dans un système multi-processeur sont stoppés.
+Le plus souvent, c'est utilisé pour les sections critiques, les sémaphores et les mutex.
+Couramment utilisé avec ADD, AND, BTR, BTS, CMPXCHG, OR, XADD, XOR.
+Vous pouvez en lire plus sur les sections critiques ici (\myref{critical_sections}).
+
+\item[REP] est utilisé avec les instructions MOVSx et STOSx:
+exécute l'instruction dans une boucle, le compteur est situé dans le registre CX/ECX/RCX.
+Pour une description plus détaillée de ces instructions, voir MOVSx (\myref{REP_MOVSx})
+et STOSx (\myref{REP_STOSx}).
+
+Les instructions préfixées par REP sont sensibles au flag DF, qui est utilisé pour définir la direction.
+
+\item[REPE/REPNE] (\ac{AKA} REPZ/REPNZ) utilisé avec les instructions CMPSx et SCASx:
+exécute la dernière instruction dans une boucle, le compteur est mis dans le registre \TT{CX}/\TT{ECX}/\TT{RCX}.
+Elle s'arrête prématurément si ZF vaut 0 (REPE) ou si ZF vaut 1 (REPNE).
+
+Pour une description plus détaillée de ces instructions, voir CMPSx (\myref{REPE_CMPSx})
+et SCASx (\myref{REPNE_SCASx}).
+
+Les instructions préfixées par REPE/REPNE sont sensibles au flag DF, qui est utilisé pour définir la direction.
+
+\end{description}
+
+\subsubsection{Instructions les plus fréquemment utilisées}
+
+Celles-ci peuvent être mémorisées en premier.
+
+\begin{description}
+% in order to keep them easily sorted...
+\input{appendix/x86/instructions/ADC_FR}
+\input{appendix/x86/instructions/ADD}
+\input{appendix/x86/instructions/AND}
+\input{appendix/x86/instructions/CALL}
+\input{appendix/x86/instructions/CMP}
+\input{appendix/x86/instructions/DEC_FR}
+\input{appendix/x86/instructions/IMUL}
+\input{appendix/x86/instructions/INC_FR}
+\input{appendix/x86/instructions/JCXZ}
+\input{appendix/x86/instructions/JMP}
+\input{appendix/x86/instructions/Jcc_FR}
+\input{appendix/x86/instructions/LAHF}
+\input{appendix/x86/instructions/LEAVE}
+\input{appendix/x86/instructions/LEA_FR}
+\input{appendix/x86/instructions/MOVSB_W_D_Q_FR}
+\input{appendix/x86/instructions/MOVSX}
+\input{appendix/x86/instructions/MOVZX}
+\input{appendix/x86/instructions/MOV_FR}
+\input{appendix/x86/instructions/MUL}
+\input{appendix/x86/instructions/NEG}
+\input{appendix/x86/instructions/NOP_FR}
+\input{appendix/x86/instructions/NOT}
+\input{appendix/x86/instructions/OR}
+\input{appendix/x86/instructions/POP}
+\input{appendix/x86/instructions/PUSH}
+\input{appendix/x86/instructions/RET_FR}
+\input{appendix/x86/instructions/SAHF}
+\input{appendix/x86/instructions/SBB}
+\input{appendix/x86/instructions/SCASB_W_D_Q_FR}
+\input{appendix/x86/instructions/SHx}
+\input{appendix/x86/instructions/SHRD}
+\input{appendix/x86/instructions/STOSB_W_D_Q_FR}
+\input{appendix/x86/instructions/SUB}
+\input{appendix/x86/instructions/TEST}
+\input{appendix/x86/instructions/XOR}
+\end{description}
+
+\subsubsection{Instructions les moins fréquemment utilisées}
+
+\begin{description}
+\input{appendix/x86/instructions/BSF}
+\input{appendix/x86/instructions/BSR}
+\input{appendix/x86/instructions/BSWAP}
+\input{appendix/x86/instructions/BTC}
+\input{appendix/x86/instructions/BTR}
+\input{appendix/x86/instructions/BTS}
+\input{appendix/x86/instructions/BT}
+\input{appendix/x86/instructions/CBW_CWDE_CDQ_FR}
+\input{appendix/x86/instructions/CLD}
+\input{appendix/x86/instructions/CLI}
+\input{appendix/x86/instructions/CLC}
+\input{appendix/x86/instructions/CMC}
+\input{appendix/x86/instructions/CMOVcc_FR}
+\input{appendix/x86/instructions/CMPSB_W_D_Q_FR}
+\input{appendix/x86/instructions/CPUID}
+\input{appendix/x86/instructions/DIV}
+\input{appendix/x86/instructions/IDIV}
+\input{appendix/x86/instructions/INT_FR}
+\input{appendix/x86/instructions/IN}
+\input{appendix/x86/instructions/IRET}
+\input{appendix/x86/instructions/LOOP_FR}
+\input{appendix/x86/instructions/OUT}
+\input{appendix/x86/instructions/POPA}
+\input{appendix/x86/instructions/POPCNT}
+\input{appendix/x86/instructions/POPF}
+\input{appendix/x86/instructions/PUSHA}
+\input{appendix/x86/instructions/PUSHF}
+\input{appendix/x86/instructions/RCx}
+\input{appendix/x86/instructions/ROx_FR}
+\input{appendix/x86/instructions/SAL}
+\input{appendix/x86/instructions/SAR}
+\input{appendix/x86/instructions/SETcc}
+\input{appendix/x86/instructions/STC}
+\input{appendix/x86/instructions/STD_FR}
+\input{appendix/x86/instructions/STI}
+\input{appendix/x86/instructions/SYSCALL}
+\input{appendix/x86/instructions/SYSENTER}
+\input{appendix/x86/instructions/UD2}
+\input{appendix/x86/instructions/XCHG}
+\end{description}
+
+\subsubsection{Instructions FPU}
+
+Le suffixe \TT{-R} dans le mnémonique signifie en général que les opérandes sont
+inversés, le suffixe \TT{-P} implique qu'un élément est supprimé de la pile après
+l'exécution de l'instruction, le suffixe \TT{-PP} implique que deux éléments sont
+supprimés.
+
+Les instructions \TT{-P} sont souvent utiles lorsque nous n'avons plus besoin que
+la valeur soit présente dans la pile FPU après l'opération.
+
+\begin{description}
+\input{appendix/x86/instructions/FABS}
+\input{appendix/x86/instructions/FADD} % + FADDP
+\input{appendix/x86/instructions/FCHS}
+\input{appendix/x86/instructions/FCOM_FR} % + FCOMP + FCOMPP
+\input{appendix/x86/instructions/FDIVR} % + FDIVRP
+\input{appendix/x86/instructions/FDIV} % + FDIVP
+\input{appendix/x86/instructions/FILD}
+\input{appendix/x86/instructions/FIST_FR} % + FISTP
+\input{appendix/x86/instructions/FLD1}
+\input{appendix/x86/instructions/FLDCW}
+\input{appendix/x86/instructions/FLDZ}
+\input{appendix/x86/instructions/FLD}
+\input{appendix/x86/instructions/FMUL} % + FMULP
+\input{appendix/x86/instructions/FSINCOS}
+\input{appendix/x86/instructions/FSQRT}
+\input{appendix/x86/instructions/FSTCW_FR} % + FNSTCW
+\input{appendix/x86/instructions/FSTSW_FR} % + FNSTSW
+\input{appendix/x86/instructions/FST}
+\input{appendix/x86/instructions/FSUBR} % + FSUBRP
+\input{appendix/x86/instructions/FSUB} % + FSUBP
+\input{appendix/x86/instructions/FUCOM_FR} % + FUCOMP + FUCOMPP
+\input{appendix/x86/instructions/FXCH}
+\end{description}
+
+%\subsubsection{\RU{SIMD-инструкции}\EN{SIMD instructions}}
+
+% TODO
+
+%\begin{description}
+%\input{appendix/x86/instructions/DIVSD}
+%\input{appendix/x86/instructions/MOVDQA}
+%\input{appendix/x86/instructions/MOVDQU}
+%\input{appendix/x86/instructions/PADDD}
+%\input{appendix/x86/instructions/PCMPEQB}
+%\input{appendix/x86/instructions/PLMULHW}
+%\input{appendix/x86/instructions/PLMULLD}
+%\input{appendix/x86/instructions/PMOVMSKB}
+%\input{appendix/x86/instructions/PXOR}
+%\end{description}
+
+% SHLD !
+% SHRD !
+% BSWAP !
+% CMPXCHG
+% XADD !
+% CMPXCHG8B
+% RDTSC !
+% PAUSE!
+
+% xsave
+% fnclex, fnsave
+% movsxd, movaps, wait, sfence, lfence, pushfq
+% prefetchw
+% REP RETN
+% REP BSF
+% movnti, movntdq, rdmsr, wrmsr
+% ldmxcsr, stmxcsr, invlpg
+% swapgs
+% movq, movd
+% mulsd
+% POR
+% IRETQ
+% pslldq
+% psrldq
+% cqo, fxrstor, comisd, xrstor, wbinvd, movntq
+% fprem
+% addsb, subsd, frndint
+
+% rare:
+%\item[ENTER]
+%\item[LES]
+% LDS
+% XLAT
+
+\subsubsection{Instructions ayant un opcode affichable en ASCII}
+
+(En mode 32-bit.)
+
+\label{printable_x86_opcodes}
+\myindex{Shellcode}
+Elles peuvent être utilisées pour la création de shellcode.
+Voir aussi: \myref{subsec:EICAR}.
+
+% FIXME: start at 0x20...
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor caractère ASCII & 
+\HeaderColor code hexadécimal & 
+\HeaderColor instruction x86 \\
+\hline
+0	 &30	 &XOR \\
+1	 &31	 &XOR \\
+2	 &32	 &XOR \\
+3	 &33	 &XOR \\
+4	 &34	 &XOR \\
+5	 &35	 &XOR \\
+7	 &37	 &AAA \\
+8	 &38	 &CMP \\
+9	 &39	 &CMP \\
+:	 &3a	 &CMP \\
+;	 &3b	 &CMP \\
+<	 &3c	 &CMP \\
+=	 &3d	 &CMP \\
+?	 &3f	 &AAS \\
+@	 &40	 &INC \\
+A	 &41	 &INC \\
+B	 &42	 &INC \\
+C	 &43	 &INC \\
+D	 &44	 &INC \\
+E	 &45	 &INC \\
+F	 &46	 &INC \\
+G	 &47	 &INC \\
+H	 &48	 &DEC \\
+I	 &49	 &DEC \\
+J	 &4a	 &DEC \\
+K	 &4b	 &DEC \\
+L	 &4c	 &DEC \\
+M	 &4d	 &DEC \\
+N	 &4e	 &DEC \\
+O	 &4f	 &DEC \\
+P	 &50	 &PUSH \\
+Q	 &51	 &PUSH \\
+R	 &52	 &PUSH \\
+S	 &53	 &PUSH \\
+T	 &54	 &PUSH \\
+U	 &55	 &PUSH \\
+V	 &56	 &PUSH \\
+W	 &57	 &PUSH \\
+X	 &58	 &POP \\
+Y	 &59	 &POP \\
+Z	 &5a	 &POP \\
+\lbrack{}	 &5b	 &POP \\
+\textbackslash{}	 &5c	 &POP \\
+\rbrack{}	 &5d	 &POP \\
+\verb|^|	 &5e	 &POP \\
+\_	 &5f	 &POP \\
+\verb|`|	 &60	 &PUSHA \\
+a	 &61	 &POPA \\
+f	 &66	 &en mode 32-bit, change pour une\\
+   & & taille d'opérande de 16-bit \\
+g	 &67	 &en mode 32-bit, change pour une\\
+   & & taille d'adresse 16-bit \\
+h	 &68	 &PUSH\\
+i	 &69	 &IMUL\\
+j	 &6a	 &PUSH\\
+k	 &6b	 &IMUL\\
+p	 &70	 &JO\\
+q	 &71	 &JNO\\
+r	 &72	 &JB\\
+s	 &73	 &JAE\\
+t	 &74	 &JE\\
+u	 &75	 &JNE\\
+v	 &76	 &JBE\\
+w	 &77	 &JA\\
+x	 &78	 &JS\\
+y	 &79	 &JNS\\
+z	 &7a	 &JP\\
+\hline
+\end{longtable}
+\end{center}
+
+De même:
+\begin{center}
+\begin{longtable}{ | l | l | l | }
+\hline
+\HeaderColor caractère ASCII & 
+\HeaderColor code hexadécimal & 
+\HeaderColor instruction x86 \\
+\hline
+f	 &66	 &en mode 32-bit, change pour une\\
+   & & taille d'opérande de 16-bit \\
+g	 &67	 &en mode 32-bit, change pour une\\
+   & & taille d'adresse 16-bit \\
+\hline
+\end{longtable}
+\end{center}
+
+\myindex{x86!\Instructions!AAA}
+\myindex{x86!\Instructions!AAS}
+\myindex{x86!\Instructions!CMP}
+\myindex{x86!\Instructions!DEC}
+\myindex{x86!\Instructions!IMUL}
+\myindex{x86!\Instructions!INC}
+\myindex{x86!\Instructions!JA}
+\myindex{x86!\Instructions!JAE}
+\myindex{x86!\Instructions!JB}
+\myindex{x86!\Instructions!JBE}
+\myindex{x86!\Instructions!JE}
+\myindex{x86!\Instructions!JNE}
+\myindex{x86!\Instructions!JNO}
+\myindex{x86!\Instructions!JNS}
+\myindex{x86!\Instructions!JO}
+\myindex{x86!\Instructions!JP}
+\myindex{x86!\Instructions!JS}
+\myindex{x86!\Instructions!POP}
+\myindex{x86!\Instructions!POPA}
+\myindex{x86!\Instructions!PUSH}
+\myindex{x86!\Instructions!PUSHA}
+\myindex{x86!\Instructions!XOR}
+
+En résumé:
+AAA, AAS, CMP, DEC, IMUL, INC, JA, JAE, JB, JBE, JE, JNE, JNO, JNS, JO, JP, JS, POP, POPA, PUSH, PUSHA, 
+XOR.
+

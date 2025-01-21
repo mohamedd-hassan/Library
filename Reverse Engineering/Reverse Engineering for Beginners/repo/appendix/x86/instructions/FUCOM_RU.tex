@@ -1,0 +1,10 @@
+\myindex{x86!\Instructions!FUCOM}
+\myindex{x86!\Instructions!FUCOMP}
+\myindex{x86!\Instructions!FUCOMPP}
+  \item[FUCOM] ST(i): сравнить ST(0) и ST(i)
+  \item[FUCOM] сравнить ST(0) и ST(1)
+  \item[FUCOMP] сравнить ST(0) и ST(1); вытолкнуть один элемент из стека.
+  \item[FUCOMPP] сравнить ST(0) и ST(1); вытолкнуть два элемента из стека.
+ 
+Инструкция работает так же, как и FCOM, за тем исключением что исключение срабатывает только
+  если один из операндов SNaN, но числа QNaN нормально обрабатываются.

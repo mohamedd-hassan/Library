@@ -1,0 +1,11 @@
+\subsection{Pointer to a function: a common bug (or typo)}
+
+A notorious bug/typo:
+
+\lstinputlisting[style=customc]{advanced/450_more_ptrs/62.c}
+
+Since the function's name alone is interpreted as a pointer to function, or its address,\\
+the \verb|if(function_name)| statement is like \verb|if(true)|.
+
+Unfortunately, a \CCpp compiler wouldn't issue a warning.
+

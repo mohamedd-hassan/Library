@@ -1,0 +1,30 @@
+\mysection{Почти пустая ф-ция}
+\label{Boolector}
+\myindex{Boolector}
+\myindex{x86!\Instructions!JMP}
+
+Это фрагмент реального кода найденного в Boolector\footnote{\url{https://boolector.github.io/}}:
+
+\lstinputlisting[style=customc]{patterns/025_almost_empty/boolectormain.c}
+
+Зачем кому-то это делать?
+Не ясно, но можно предположить что \verb|boolector_main()| может быть скомпилирована в виде DLL или динамической библиотеки,
+и может вызываться во время тестов.
+Конечно, тесты могут подготовить переменные \verb|argc/argv| так же, как это сделал бы \ac{CRT}.
+
+Интересно, как это компилируется:
+
+\lstinputlisting[caption=\NonOptimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O0.s}
+
+Здесь у нас: пролог, ненужная (не соптимизированная) перетасовка двух аргументов, \INS{CALL}, эпилог, \INS{RET}.
+Посмотрим на оптимизированную версию:
+
+\lstinputlisting[caption=\Optimizing GCC 8.2 x64 (\assemblyOutput),style=customasmx86]{patterns/025_almost_empty/boolectormain_O3.s}
+
+Вот так просто: стек/регистры остаются как есть, а ф-ция \verb|boolector_main()| имеет тот же набор аргументов.
+Так что всё что нужно, это просто передать управление по другому адресу.
+
+Это близко к \gls{thunk function}.
+
+Кое-что посложнее мы увидим позже: \myref{ARM_B_to_printf}, \myref{JMP_instead_of_RET}.
+

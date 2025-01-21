@@ -1,0 +1,29 @@
+﻿\mysection{Détection de l'\ac{ISA}}
+\label{ISA_detect}
+
+Souvent, vous avez à faire à un binaire avec un \ac{ISA} inconnu.
+Peut-être que la manière la plus facile de détecter l'\ac{ISA} est d'en essayer plusieurs
+dans \IDA, objdump ou un autre désassembleur.
+
+Pour réussir ceci, il faut comprendre la différence entre du code incorrectement
+et celui correctement désassemblé.
+
+% subsection:
+\renewcommand{\CURPATH}{digging_into_code/incorrect_disassembly}
+\input{digging_into_code/incorrect_disassembly/main_FR}
+
+\subsection{Code désassemblé correctement}
+\label{correctly_disasmed_code}
+
+Chaque \ac{ISA} a une douzaine d'instructions les plus utilisées, toutes les autres
+le sont beaucoup moins souvent.
+
+Concernant le x86, il est intéressant de savoir le fait que les instructions d'appel
+de fonctions (\PUSH/\CALL/\ADD) et \MOV sont les morceaux de code les plus fréquemment
+exécutées dans presque tous les programmes que nous utilisons.
+Autrement dit, le \ac{CPU} est très occupé à passer de l'information entre les niveaux
+d'abstraction, ou, on peut dire qu'il est très occupé à commuter entre ces niveaux.
+Indépendamment du type d'\ac{ISA}.
+Ceci a un coût de diviser les problèmes entre plusieurs niveaux d'abstraction (ainsi
+les êtres humain peuvent travailler plus facilement avec).
+

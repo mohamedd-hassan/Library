@@ -1,0 +1,28 @@
+﻿\subsubsection{ARM + \NonOptimizingXcodeIV (\ThumbTwoMode)}
+\label{FPU_passing_floats_ARM}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/2_passing_floats/Xcode_thumb_O0.asm}
+
+前に述べたように、64ビットの浮動ポインタ番号はRレジスタのペアで渡されます。
+
+D-レジスタに触れることなく直接Rレジスタに値をロードすることができるので、
+このコードは少し冗長です（最適化がオフになっているためです）。
+
+したがって、見てきたように、\GTT{\_pow}関数は\Reg{0}と\Reg{1}で最初の引数を受け取り、\Reg{2}と\Reg{3}で2番目の引数を受け取ります。
+関数は、その結果を\Reg{0} と\Reg{1} のままにします。 
+\GTT{\_pow}の結果は\GTT{D16}に移動し、次に\Reg{1}と\Reg{2}のペアで \printf が結果の数値を取得します。
+
+\subsubsection{ARM + \NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/12_FPU/2_passing_floats/Keil_ARM_O0.asm}
+
+Dレジスタはここでは使用されず、Rレジスタのペアのみが使用されます。
+
+\subsubsection{ARM64 + \Optimizing GCC (Linaro) 4.9}
+
+\lstinputlisting[caption=\Optimizing GCC (Linaro) 4.9,style=customasmARM]{patterns/12_FPU/2_passing_floats/ARM64_JA.s}
+
+定数は\RegD{0}と\RegD{1}にロードされます。\TT{pow()}は定数をそこから取り出します。
+結果は、\TT{pow()}の実行後に\RegD{0}に格納されます。 
+変更や移動をせずに \printf に渡す必要があります。これは、
+\printf は、Xレジスタからの\glslink{integral type}{integral types}とポインタとDレジスタからの浮動小数点引数の引数をとります。

@@ -1,0 +1,6 @@
+seg033:088F 1E                          push    ds
+seg033:0890 68 22 44                    push    offset aTrupcRequiresA ; \verb|"This Software Requires a Software Lock\n"|
+seg033:0893 1E                          push    ds
+seg033:0894 68 60 E9                    push    offset byte_6C7E0 ; dest
+seg033:0897 9A 79 65 00+                call    _strcpy
+seg033:089C 83 C4 08                    add     sp, 8

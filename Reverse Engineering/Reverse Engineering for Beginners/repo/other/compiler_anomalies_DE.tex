@@ -1,0 +1,58 @@
+\mysection{Compiler Anomalien}
+\label{anomaly:Intel}
+\myindex{\CompilerAnomaly}
+
+\subsection{\oracle 11.2 und Intel C++ 10.1}
+
+\myindex{Intel C++}
+\myindex{\oracle}
+\myindex{x86!\Instructions!JZ}
+
+Der Intel C++ 10.1-Compiler, der für \oracle 11.2 für Linux 86 genutzt wurde, kann
+zwei \JZ in einer Reihe ausgeben. Es gibt keine Referenz zum zweiten \JZ. Das zweite
+ist also ohne Bedeutung.
+
+\lstinputlisting[caption=kdli.o from libserver11.a,style=customasmx86]{other/kdli.lst}
+
+\begin{lstlisting}[caption=from the same code,style=customasmx86]
+.text:0811A2A5                   loc_811A2A5: ; CODE XREF: kdliSerLengths+11C
+.text:0811A2A5                                ; kdliSerLengths+1C1
+.text:0811A2A5 8B 7D 08              mov     edi, [ebp+arg_0]
+.text:0811A2A8 8B 7F 10              mov     edi, [edi+10h]
+.text:0811A2AB 0F B6 57 14           movzx   edx, byte ptr [edi+14h]
+.text:0811A2AF F6 C2 01              test    dl, 1
+.text:0811A2B2 75 3E                 jnz     short loc_811A2F2
+.text:0811A2B4 83 E0 01              and     eax, 1
+.text:0811A2B7 74 1F                 jz      short loc_811A2D8
+.text:0811A2B9 74 37                 jz      short loc_811A2F2
+.text:0811A2BB 6A 00                 push    0
+.text:0811A2BD FF 71 08              push    dword ptr [ecx+8]
+.text:0811A2C0 E8 5F FE FF FF        call    len2nbytes
+\end{lstlisting}
+
+Dies ist vermutlich ein Fehler im Codegenerator der während der Tests nicht
+gefunden wurde. Der resultierende Code funktioniert trotzdem.
+
+% TBT
+% Another example from \oracle 11.1.0.6.0 for win32.
+
+%\begin{lstlisting}
+%.text:0051FBF8 85 C0                             test    eax, eax
+%.text:0051FBFA 0F 84 8F 00 00 00                 jz      loc_51FC8F
+%.text:0051FC00 74 1D                             jz      short loc_51FC1F
+%\end{lstlisting}
+
+\input{other/anomaly2_DE}
+%\input{other/anomaly3_DE}
+
+\subsection{Zusammenfassung}
+
+Andere Compiler-Anomalien in diesem Buch:
+\myref{anomaly:LLVM}, \myref{loops_iterators_loop_anomaly}, \myref{Keil_anomaly},
+\myref{MSVC2013_anomaly},
+\myref{MSVC_double_JMP_anomaly},
+\myref{MSVC2012_anomaly}.
+
+Diese Beispiele werden in diesem Buch gezeigt, um zu verdeutlichen, das solche Fehler
+in den Compilern möglich sind und es gelegentlich keinen Sinn ergibt sich den Kopf
+darüber zu zerbrechen warum der Compiler diesen \q{seltsamen} Code erzeugte.

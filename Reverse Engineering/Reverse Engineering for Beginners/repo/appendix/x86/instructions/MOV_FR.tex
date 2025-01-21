@@ -1,0 +1,13 @@
+\myindex{x86!\Instructions!MOV}
+\item[MOV] charger une valeur.
+Le nom de cette instruction est inapproprié, ce qui entraîne des confusions (la donnée
+n'est pas déplacée, mais copiée), dans d'autres architectures la même instruction
+est en général appelée \q{LOAD} et/ou \q{STORE} ou quelque chose comme ça.
+
+Une chose importante: si vous mettez la partie 16-bit basse d'un registre 32-bit
+en mode 32-bit, les 16-bit haut restent comme ils étaient.
+Mais si vous modifiez la partie 32-bit basse d'un registre en mode 64-bit, les 32-bits
+haut du registre seront mis à zéro.
+
+Peut-être que ça a été fait pour simplifier le portage du code sur x86-64.
+

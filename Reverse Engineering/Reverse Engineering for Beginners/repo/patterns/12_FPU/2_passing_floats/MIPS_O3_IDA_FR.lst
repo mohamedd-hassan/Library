@@ -1,0 +1,53 @@
+main:
+
+var_10          = -0x10
+var_4           = -4
+
+; prologue de la fonction:
+                lui     $gp, (dword_9C >> 16)
+                addiu   $sp, -0x20
+                la      $gp, (__gnu_local_gp & 0xFFFF)
+                sw      $ra, 0x20+var_4($sp)
+                sw      $gp, 0x20+var_10($sp)
+                lui     $v0, (dword_A4 >> 16) ; ?
+; charger la partie 32-bit basse de 32.01:
+                lwc1    $f12, dword_9C
+; charger l'adresse de la fonction pow():
+                lw      $t9, (pow & 0xFFFF)($gp)
+; charger la partie 32-bit haute de 32.01:
+                lwc1    $f13, $LC0
+                lui     $v0, ($LC1 >> 16) ; ?
+; charger la partie 32-bit basse de 1.54:
+                lwc1    $f14, dword_A4
+                or      $at, $zero ; slot de délai de chargement, NOP
+; charger la partie 32-bit haute de 1.54:
+                lwc1    $f15, $LC1
+; appeler pow():
+                jalr    $t9
+                or      $at, $zero ; slot de délai de branchement, NOP
+                lw      $gp, 0x20+var_10($sp)
+; copier le résultat depuis \$f0 et \$f1 dans \$a3 et \$a2:
+                mfc1    $a3, $f0
+                lw      $t9, (printf & 0xFFFF)($gp)
+                mfc1    $a2, $f1
+; appeler printf():
+                lui     $a0, ($LC2 >> 16)  # "32.01 \verb|^| 1.54 = \%lf\textbackslash{}n"
+                jalr    $t9
+                la      $a0, ($LC2 & 0xFFFF)  # "32.01 \verb|^| 1.54 = \%lf\textbackslash{}n"
+; épilogue de la fonction:
+                lw      $ra, 0x20+var_4($sp)
+; renvoyer 0:
+                move    $v0, $zero
+                jr      $ra
+                addiu   $sp, 0x20
+
+.rodata.str1.4:00000084 $LC2:           .ascii "32.01 ^ 1.54 = %lf\n"<0>
+
+; 32.01:
+.rodata.cst8:00000098 $LC0:           .word 0x40400147         # DATA XREF: main+20
+.rodata.cst8:0000009C dword_9C:       .word 0xAE147AE1         # DATA XREF: main
+.rodata.cst8:0000009C                                          # main+18
+; 1.54:
+.rodata.cst8:000000A0 $LC1:           .word 0x3FF8A3D7         # DATA XREF: main+24
+.rodata.cst8:000000A0                                          # main+30
+.rodata.cst8:000000A4 dword_A4:       .word 0xA3D70A4          # DATA XREF: main+14

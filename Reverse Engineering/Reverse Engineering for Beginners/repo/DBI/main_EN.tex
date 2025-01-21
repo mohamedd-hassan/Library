@@ -1,0 +1,18 @@
+\chapter{Dynamic binary instrumentation}
+
+\ac{DBI} tools can be viewed as highly advanced and fast debuggers.
+
+% sections
+\input{DBI/XOR/main_EN}
+\input{DBI/minesweeper/main_EN}
+\input{DBI/build_Pin_EN}
+
+\section{Why ``instrumentation''?}
+
+Perhaps, this is a term of code profiling.
+There are at least two methods:
+1) "sampling": you break into running code as many times as possible (hundreds per second), and see, where it is executed at the moment;
+2) "instrumentation": compiled code is interleaved with other code, which can increment counters, etc.
+
+Perhaps, \ac{DBI} tools inherited the term?
+

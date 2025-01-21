@@ -1,0 +1,135 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      3976,        126]
+NotebookOptionsPosition[      3380,        101]
+NotebookOutlinePosition[      3717,        116]
+CellTagsIndexPosition[      3674,        113]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"input", "=", 
+   RowBox[{
+   "BinaryReadList", "[", "\"\</home/dennis/tmp/cipher.txt\>\"", "]"}]}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.671253310922278*^9, 3.67125331334479*^9}, {
+  3.671268099795368*^9, 3.6712681001653147`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"blocks", "=", 
+   RowBox[{"Partition", "[", 
+    RowBox[{"input", ",", "17"}], "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.671253317850327*^9, 3.671253319247978*^9}, {
+  3.6712536223446703`*^9, 3.6712536330759583`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"key", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "144", ",", "160", ",", "33", ",", "80", ",", "79", ",", "143", ",", 
+     "251", ",", "255", ",", "133", ",", "131", ",", " ", "207", ",", "86", 
+     ",", "65", ",", "18", ",", "122", ",", "249", ",", "49"}], "}"}]}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.670931427705597*^9, 3.6709314324817953`*^9}, {
+  3.6712533943304577`*^9, 3.6712534512627487`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"EncryptBlock", "[", "blk_", "]"}], ":=", 
+  RowBox[{"BitXor", "[", 
+   RowBox[{"key", ",", "blk"}], "]"}]}]], "Input",
+ CellChangeTimes->{{3.670931937012772*^9, 3.67093193825114*^9}, {
+  3.6712534652232323`*^9, 3.671253467128477*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"encrypted", "=", 
+   RowBox[{"Map", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"EncryptBlock", "[", "#", "]"}], "&"}], ",", "blocks"}], 
+    "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{
+  3.670931963791108*^9, {3.6712534706241817`*^9, 3.671253473843203*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"BinaryWrite", "[", 
+  RowBox[{"\"\</home/dennis/tmp/plain2.txt\>\"", ",", 
+   RowBox[{"Flatten", "[", "encrypted", "]"}]}], "]"}]], "Input",
+ CellChangeTimes->{
+  3.6709319822098846`*^9, {3.671253485485467*^9, 3.671253495745228*^9}, {
+   3.6712681054356318`*^9, 3.6712681353864117`*^9}, 3.671272673876796*^9}],
+
+Cell[BoxData["\<\"/home/dennis/tmp/plain2.txt\"\>"], "Output",
+ CellChangeTimes->{{3.67093198274972*^9, 3.670931996100762*^9}, 
+   3.670932585342855*^9, 3.67093296788418*^9, {3.67125348911124*^9, 
+   3.6712534959425163`*^9}, 3.6712664591763353`*^9, {3.671268106047976*^9, 
+   3.6712681237832193`*^9}, 3.671272680543233*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Close", "[", "\"\</home/dennis/tmp/plain2.txt\>\"", "]"}]], "Input",\
+
+ CellChangeTimes->{{3.670931987237866*^9, 3.67093199417323*^9}, {
+   3.671253500973419*^9, 3.6712535034682083`*^9}, {3.6712681391017027`*^9, 
+   3.671268139387186*^9}, 3.671272676477746*^9}],
+
+Cell[BoxData["\<\"/home/dennis/tmp/plain2.txt\"\>"], "Output",
+ CellChangeTimes->{
+  3.670931994396646*^9, {3.6709325805959473`*^9, 3.67093258623586*^9}, 
+   3.670932968526528*^9, 3.67125350376795*^9, 3.671266459979974*^9, 
+   3.671272681397929*^9}]
+}, Open  ]]
+},
+WindowSize->{1364, 748},
+WindowMargins->{{0, Automatic}, {2, Automatic}},
+FrontEndVersion->"10.0 for Linux x86 (64-bit) (September 9, 2014)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 270, 7, 32, "Input"],
+Cell[831, 29, 258, 6, 32, "Input"],
+Cell[1092, 37, 441, 10, 32, "Input"],
+Cell[1536, 49, 269, 6, 32, "Input"],
+Cell[1808, 57, 298, 9, 32, "Input"],
+Cell[CellGroupData[{
+Cell[2131, 70, 333, 6, 32, "Input"],
+Cell[2467, 78, 323, 4, 32, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2827, 87, 285, 5, 32, "Input"],
+Cell[3115, 94, 249, 4, 32, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

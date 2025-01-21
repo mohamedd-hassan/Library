@@ -1,0 +1,36 @@
+\mysection{x86}
+
+\subsection{Terminologie}
+
+Geläufig für 16-Bit (8086/80286), 32-Bit (80386, etc.), 64-Bit.
+
+\myindex{IEEE 754}
+\myindex{MS-DOS}
+\begin{description}
+	\item[Byte] 8-Bit.
+		Die DB Assembler-Direktive wird zum Definieren von Variablen und Arrays genutzt.
+		Bytes werden in dem 8-Bit-Teil der folgenden Register übergeben:
+		\TT{AL/BL/CL/DL/AH/BH/CH/DH/SIL/DIL/R*L}.
+	\item[Wort] 16-Bit.
+		DW Assembler-Direktive \dittoclosing.
+		Bytes werden in dem 16-Bit-Teil der folgenden Register übergeben:
+			\TT{AX/BX/CX/DX/SI/DI/R*W}.
+	\item[Doppelwort] (\q{dword}) 32-Bit.
+		DD Assembler-Direktive \dittoclosing.
+		Doppelwörter werden in Registern (x86) oder dem 32-Bit-Teil der Register (x64) übergeben.
+		In 16-Bit-Code werden Doppelwörter in 16-Bit-Registerpaaren übergeben.
+	\item[zwei Doppelwörter] (\q{qword}) 64-Bit.
+		DQ Assembler-Direktive \dittoclosing.
+		In 32-Bit-Umgebungen werden diese in 32-Bit-Registerpaaren übergeben.
+	\item[tbyte] (10 Byte) 80-Bit oder 10 Bytes (für IEEE 754 FPU Register).
+	\item[paragraph] (16 Byte) --- Bezeichnung war in MS-DOS Umgebungen gebräuchlich.
+\end{description}
+
+\myindex{Windows!API}
+
+Datentypen der selben Breite (BYTE, WORD, DWORD) entsprechen auch denen in der Windows \ac{API}.
+
+% TODO German Translation (DSiekmeier)
+%\input{appendix/x86/registers} % subsection
+%\input{appendix/x86/instructions} % subsection
+\input{appendix/x86/npad} % subsection

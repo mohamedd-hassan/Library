@@ -1,0 +1,33 @@
+.text:080484B0 sum_of_a        proc near
+.text:080484B0                 mov     edx, offset a
+.text:080484B5                 xor     eax, eax
+.text:080484B7                 mov     esi, esi
+.text:080484B9                 lea     edi, [edi+0]
+.text:080484C0
+.text:080484C0 loc_80484C0:            ; \verb|CODE XREF: sum_of_a+1B|
+.text:080484C0                 add     eax, [edx]
+.text:080484C2                 add     edx, 4
+.text:080484C5                 cmp     edx, offset __libc_start_main@@GLIBC_2_0
+.text:080484CB                 jnz     short loc_80484C0
+.text:080484CD                 rep retn
+.text:080484CD sum_of_a        endp
+.text:080484CD
+
+...
+
+.bss:0804A040                 public a
+.bss:0804A040 a               dd 80h dup(?) ; \verb|DATA XREF: main:loc_8048338|
+.bss:0804A040                               ; main+19
+.bss:0804A040 _bss            ends
+.bss:0804A040
+extern:0804A240 ; ===========================================================================
+extern:0804A240
+extern:0804A240 ; Segment type: Externs
+extern:0804A240 ; extern
+extern:0804A240                 extrn __libc_start_main@@GLIBC_2_0:near
+extern:0804A240                            ; DATA XREF: main+25
+extern:0804A240                            ; main+5D
+extern:0804A244                 extrn __printf_chk@@GLIBC_2_3_4:near
+extern:0804A248                 extrn __libc_start_main:near
+extern:0804A248                            ; \verb|CODE XREF: ___libc_start_main|
+extern:0804A248                            ; \verb|DATA XREF: .got.plt:off_804A00C|

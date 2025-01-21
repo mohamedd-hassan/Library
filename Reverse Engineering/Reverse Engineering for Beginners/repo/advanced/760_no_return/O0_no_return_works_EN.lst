@@ -1,0 +1,26 @@
+create_color:
+	push	rbp
+	mov	rbp, rsp
+	sub	rsp, 32
+	mov	DWORD PTR [rbp-20], edi
+	mov	DWORD PTR [rbp-24], esi
+	mov	DWORD PTR [rbp-28], edx
+	mov	edi, 12
+	call	malloc
+; RAX = pointer to newly allocated buffer
+; now fill it with R/G/B:
+	mov	QWORD PTR [rbp-8], rax
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-20]
+	mov	DWORD PTR [rax], edx
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-24]
+	mov	DWORD PTR [rax+4], edx
+	mov	rax, QWORD PTR [rbp-8]
+	mov	edx, DWORD PTR [rbp-28]
+	mov	DWORD PTR [rax+8], edx
+	nop
+	leave
+; RAX hasn't been modified till that point!
+	ret
+

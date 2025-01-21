@@ -1,0 +1,204 @@
+﻿\subsection{Implémentation SIMD de \strlen}
+\label{SIMD_strlen}
+
+\newcommand{\URLMSDNSSE}{\href{http://msdn.microsoft.com/en-us/library/y0dh78ez(VS.80).aspx}{MSDN: particularités MMX, SSE, et SSE2}}
+
+Il faut noter que les instructions \ac{SIMD} peuvent être insérées en code \CCpp via
+des macros\footnote{\URLMSDNSSE} spécifiques.
+Pour MSVC, certaines d'entre elles se trouvent dans le fichier \TT{intrin.h}.
+
+\newcommand{\URLSTRLEN}{http://www.strchr.com/sse2_optimised_strlen}
+
+\myindex{\CStandardLibrary!strlen()}
+
+Il est possible d'implémenter la fonction \strlen\footnote{strlen()~---fonction de
+la bibliothèque C standard pour calculer la longueur d'une chaîne} en utilisant des
+instructions SIMD qui fonctionne 2-2.5 fois plus vite que l'implémentation habituelle.
+Cette fonction charge 16 caractères dans un registre XMM et teste chacun d'eux avec
+zéro.
+\footnote{L'exemple est basé sur le code source de: \url{\URLSTRLEN}.}.
+
+\lstinputlisting[style=customc]{patterns/19_SIMD/18_3.c}
+
+Compilons la avec MSVC 2010 avec l'option \Ox:
+
+\lstinputlisting[caption=MSVC 2010 \Optimizing,style=customasmx86]{patterns/19_SIMD/18_4_msvc_Ox_FR.asm}
+
+Comment est-ce que ça fonctionne?
+Premièrement, nous devons comprendre la but de la fonction.
+Elle calcule la longueur de la chaîne C, mais nous pouvons utiliser différents termes:
+sa tâche est de chercher l'octet zéro, et de calculer sa position relativement au
+début de la chaîne.
+
+Premièrement, nous testons si le pointeur \TT{str} est aligné sur une limite de
+16 octets.
+Si non, nous appelons l'implémentation générique de \strlen.
+
+Puis, nous chargeons les 16 octets suivants dans le registre \XMM{1} en utilisant
+\MOVDQA.
+
+Un lecteur observateur pourrait demander, pourquoi \MOVDQU ne pourrait pas être utilisé
+ici, puisqu'il peut charger des données depuis la mémoire quelque soit l'alignement
+du pointeur?
+
+Oui, cela pourrait être fait comme ça: si le pointeur est aligné, charger les données
+en utilisant \MOVDQA, si non~---utiliser \MOVDQU moins rapide.
+
+Mais ici nous pourrions rencontrer une autre restriction:
+
+\myindex{Page (mémoire)}
+\newcommand{\URLPAGE}{\href{http://en.wikipedia.org/wiki/Page_(computer_memory)}{Wikipédia}}
+
+Dans la série d'\ac{OS} \gls{Windows NT} (mais pas seulement), la mémoire est allouée
+par pages de 4 KiB (4096 octets).
+Chaque processus win32 a 4GiB de disponible, mais en fait, seulement une partie
+de l'espace d'adressage est connecté à de la mémoire réelle.
+Si le processus accède a un bloc mémoire absent, une exception est levée.
+C'est comme cela que fonctionnent les \ac{VM}\footnote{\URLPAGE}.
+
+Donc, une fonction qui charge 16 octets à la fois peut dépasser la limite d'un bloc
+de mémoire allouée.
+Disons que l'\ac{OS} a alloué 8192 (0x2000) octets à l'adresse 0x008c0000.
+Ainsi, le bloc comprend les octets démarrant à l'adresse 0x008c0000 jusqu'à 0x008c1fff
+inclus.
+
+Après ce bloc, c'est à dire à partir de l'adresse 0x008c2000 il n'y a rien du tout,
+e.g. l'\ac{OS} n'y a pas alloué de mémoire.
+Toutes tentatives d'accéder à la mémoire à partir de cette adresse va déclencher
+une exception.
+
+Et maintenant, considérons l'exemple dans lequel le programme possède une chaîne
+contenant 5 caractères presque à la fin d'un bloc, et ce n'est pas un crime.
+
+\begin{center}
+  \begin{tabular}{ | l | l | }
+    \hline
+        0x008c1ff8 & 'h' \\
+        0x008c1ff9 & 'e' \\
+        0x008c1ffa & 'l' \\
+        0x008c1ffb & 'l' \\
+        0x008c1ffc & 'o' \\
+        0x008c1ffd & '\textbackslash{}x00' \\
+        0x008c1ffe & random noise \\
+        0x008c1fff & random noise \\
+    \hline
+  \end{tabular}
+\end{center}
+
+Donc, dans des conditions normales, le programme appelle \strlen, en lui passant un
+pointeur sur la chaîne \TT{'hello'} se trouvant en mémoire à l'adresse 0x008c1ff8.
+\strlen lit un octet à la fois jusqu'à 0x008c1ffd, où se trouve un octet à zéro,
+et puis s'arrête.
+
+Maintenant, si nous implémentons notre propre \strlen lisant 16 octets à la fois,
+à partir de n'importe quelle adresse, alignée ou pas, \MOVDQU pourrait essayer de
+charger 16 octets à la fois depuis l'adresse 0x008c1ff8 jusqu'à 0x008c2008, et ainsi
+déclencherait une exception.
+Cette situation peut être évitée, bien sûr.
+
+Nous allons donc ne travailler qu'avec des adresses alignées sur une limite de 16
+octets, ce qui en combinaison avec la connaissance que les pages de l'\ac{OS} sont
+en général alignées sur une limite de 16 octets nous donne quelques garanties que
+notre fonction ne va pas lire de la mémoire non allouée.
+
+Retournons à notre fonction.
+
+\myindex{x86!\Instructions!PXOR}
+\verb|_mm_setzero_si128()|---est une macro générant \TT{pxor xmm0, xmm0}~---elle
+efface juste le registre \XMM{0}.
+
+\verb|_mm_load_si128()|---est une macro pour \MOVDQA, elle charge 16 octets depuis l'adresse dans le registre \XMM{1}.
+
+\myindex{x86!\Instructions!PCMPEQB}
+\verb|_mm_cmpeq_epi8()|---est une macro pour \PCMPEQB, une instruction qui compare deux registres XMM par octet.
+
+Et si l'un des octets est égal à celui dans l'autre registre, il y aura \TT{0xff}
+à ce point dans le résultat ou 0 sinon.
+
+Par exemple:
+
+\begin{verbatim}
+XMM1: 0x11223344556677880000000000000000
+XMM0: 0x11ab3444007877881111111111111111
+\end{verbatim}
+
+Après l'exécution de \TT{pcmpeqb xmm1, xmm0}, le registre \XMM{1} contient:
+
+\begin{verbatim}
+XMM1: 0xff0000ff0000ffff0000000000000000
+\end{verbatim}
+
+Dans notre cas, cette instruction compare chacun des 16 octets avec un bloc de 16
+octets à zéro, qui ont été mis dans le registre \XMM{0} par \TT{pxor xmm0, xmm0}.
+
+\myindex{x86!\Instructions!PMOVMSKB}
+
+La macro suivante est \TT{\_mm\_movemask\_epi8()}~---qui est l'instruction \TT{PMOVMSKB}.
+
+Elle est très utile avec \PCMPEQB.
+
+\TT{pmovmskb eax, xmm1}
+
+Cette instruction met d'abord le premier bit d'\EAX à 1 si le bit le plus significatif
+du premier octet dans \XMM{1} est 1.
+En d'autres mots, si le premier octet du registre \XMM{1} est \TT{0xff}, alors le
+premier bit de \EAX sera 1 aussi.
+
+Si le second octet du registre \XMM{1} est \TT{0xff}, alors le second bit de \EAX
+sera mis à 1 aussi.
+En d'autres mots, cette instruction répond à la question \q{quels octets de \XMM{1}
+ont le bit le plus significatif à 1 ou sont plus grand que \TT{0x7f}?} et renvoie
+16 bits dans le registre \EAX.
+Les autres bits du registre \EAX sont mis à zéro.
+
+À propos, ne pas oublier cette bizarrerie dans notre algorithme.
+Il pourrait y avoir 16 octets dans l'entrée, comme:
+
+\input{patterns/19_SIMD/strlen_hello_and_garbage}
+
+Il s'agit de la chaîne \TT{'hello'}, terminée par un zéro, et du bruit aléatoire
+dans la mémoire.
+
+Si nous chargeons ces 16 octets dans \XMM{1} et les comparons avec ceux à zéro dans
+\XMM{0}, nous obtenons quelque chose comme \footnote{Un ordre de \ac{MSB} à \ac{LSB}
+est utilisé ici.}:
+
+\begin{verbatim}
+XMM1: 0x0000ff00000000000000ff0000000000
+\end{verbatim}
+
+Cela signifie que cette instruction a trouvé deux octets à zéro, et ce n'est pas
+surprenant.
+
+\TT{PMOVMSKB} dans notre cas va mettre \EAX à\\
+\emph{0b0010000000100000}.
+
+Bien sûr, notre fonction doit seulement prendre le premier octet à zéro et ignorer
+le reste.
+
+\myindex{x86!\Instructions!BSF}
+\label{instruction_BSF}
+L'instruction suivante est \TT{BSF} (\emph{Bit Scan Forward}).
+
+Cette instruction trouve le premier bit mis à 1 et met sa position dans le premier
+opérande.
+
+\begin{verbatim}
+EAX=0b0010000000100000
+\end{verbatim}
+
+Après l'exécution de \TT{bsf eax, eax}, \EAX contient 5, signifiant que 1 a été trouvé
+au bit d'index 5 (en commençant à zéro).
+
+MSVC a une macro pour cette instruction: \TT{\_BitScanForward}.
+
+Maintenant c'est simple. Si un octet à zéro a été trouvé, sa position est ajoutée
+à ce que nous avions déjà compté et nous pouvons renvoyer le résultat.
+
+Presque tout.
+
+À propos, il faut aussi noter que le compilateur MSVC a généré deux corps de boucle
+côte-à-côte, afin d'optimiser.
+
+Et aussi, SSE 4.2 (apparu dans les Intel Core i7) offre encore plus d'instructions
+avec lesquelles ces manipulations de chaîne sont encore plus facile: \url{http://www.strchr.com/strcmp_and_strlen_using_sse_4.2}

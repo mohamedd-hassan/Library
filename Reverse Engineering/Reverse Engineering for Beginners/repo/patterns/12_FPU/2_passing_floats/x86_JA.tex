@@ -1,0 +1,16 @@
+﻿\subsubsection{x86}
+
+(MSVC 2010)で見てみましょう
+
+\lstinputlisting[caption=MSVC 2010,style=customasmx86]{patterns/12_FPU/2_passing_floats/MSVC_JA.asm}
+
+\myindex{x86!\Instructions!FLD}
+\myindex{x86!\Instructions!FSTP}
+
+\FLD および \FSTP は、データセグメントとFPUスタックとの間の変数を移動します。
+\GTT{pow()} \footnote{標準的なC関数であり、与えられたべき乗（指数関数）}はスタックから両方の値をとり、
+その結果を\ST{0}レジスタに返します。  \printf はローカルスタックから8バイトを取り出し、double型の変数として解釈します。
+
+ちなみに、メモリ内の値はIEEE 754形式で格納され、pow()もこの形式で格納されているため、
+値をメモリからスタックに移動するための一対の \MOV 命令を使用でき、変換は不要です。
+これはARMのための次の例で行われます：\myref{FPU_passing_floats_ARM}

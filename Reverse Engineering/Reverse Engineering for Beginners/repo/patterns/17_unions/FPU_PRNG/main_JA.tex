@@ -1,0 +1,76 @@
+\subsection{擬似乱数生成器の例}
+\label{FPU_PRNG}
+
+0と1の間の浮動小数点の乱数が必要な場合、最も簡単なのはメルセンヌツイスターのような
+\ac{PRNG}を使うことです。
+ランダムな符号なし32ビット値を生成します（つまり、ランダム32ビットを生成します）。
+この値をfloatに変換し、
+\GTT{RAND\_MAX}（ここでは\GTT{0xFFFFFFFF}）で割ります。我々は0..1の間で値を取得します。
+
+しかし知ってのとおり、除算は遅いです。
+また、できるだけ少ないFPU演算で実行したいと考えています。
+私たちは除算を取り除くことができるでしょうか？
+
+\myindex{IEEE 754}
+
+浮動小数点数が符号ビット、仮数ビット、指数ビットからなるものを思い出してみましょう。
+ランダムな浮動小数点数を得るには、すべての仮数ビットにランダムなビットを格納するだけです。
+
+指数部はゼロではありません（浮動小数点はこの場合非正規化されています）ので、
+指数部に0b01111111
+を格納しています。指数部が1であることを意味します。
+次に、仮数部をランダムビットで埋め、符号ビットを0に設定する（正の数）と出来上がり。
+生成される数は1と2の間にあるので、1を減算する必要があります。
+
+\newcommand{\URLXOR}{\href{http://xor0110.wordpress.com/2010/09/24/how-to-generate-floating-point-random-numbers-efficiently/}{URL}}
+
+私の例では、非常に単純な線形合同乱数ジェネレータが使用され、
+\footnote{アイデアは以下から取りました: \URLXOR} これは32ビットの数値を生成します。 
+\ac{PRNG}はUNIXのタイムスタンプ形式で現在の時刻で初期化されます。
+
+ここでは \Tfloat 型を\emph{union}として表します。これは、メモリの種類を
+異なる型として解釈できる \CCpp 構造です。
+私たちの場合、\emph{union}型の変数を作成し、
+それを \Tfloat  または \emph{uint32\_t} のようにアクセスすることができます。
+それはまさに汚いハックだと言えるでしょう。
+
+% WTF?
+
+整数\ac{PRNG}コードは、すでに検討しているものと同じです：\myref{LCG_simple}
+このコードはコンパイルされた形式では省略されています。
+
+\lstinputlisting[style=customc]{patterns/17_unions/FPU_PRNG/FPU_PRNG_JA.cpp}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/17_unions/FPU_PRNG/MSVC2010_Ox_Ob0_JA.asm}
+
+この例はC++としてコンパイルされており、これはC++での名前の変換であるため、ここでは関数名が非常に奇妙です。
+これについては後で説明します：\myref{namemangling}
+これをMSVC 2012でコンパイルすると、FPU用のSIMD命令が使用されます。詳細については、こちらを参照してください：\myref{FPU_PRNG_SIMD}
+
+\iffalse
+A BUG HERE
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5,style=customasmMIPS]{patterns/17_unions/FPU_PRNG/MIPS_O3_IDA_JA.lst}
+
+いくつかの奇妙な理由のために追加された無駄な\INS{LUI}命令もあります。 
+このアーティファクトを以前検討しました：\myref{MIPS_FPU_LUI}
+\fi
+
+\subsubsection{ARM (\ARMMode)}
+
+\lstinputlisting[caption=\Optimizing GCC 4.6.3 (IDA),style=customasmARM]{patterns/17_unions/FPU_PRNG/raspberry_GCC_O3_IDA_JA.lst}
+
+\myindex{objdump}
+\myindex{binutils}
+\myindex{IDA}
+
+また、objdumpにダンプを作成し、FPU命令の名前が \IDA とは異なることを確認します。 
+見たところ、IDAとbinutilsの開発者は異なるマニュアルを使ったのでしょうか？ 
+おそらく、両方の命令の変種を知っておくとよいでしょう。
+
+\lstinputlisting[caption=\Optimizing GCC 4.6.3 (objdump),style=customasmARM]{patterns/17_unions/FPU_PRNG/raspberry_GCC_O3_objdump.lst}
+
+\TT{float\_rand()}の0x5cと \main の0x38の命令は、（疑似）乱数ノイズです。

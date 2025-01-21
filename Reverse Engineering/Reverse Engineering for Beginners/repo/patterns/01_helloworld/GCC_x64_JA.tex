@@ -1,0 +1,32 @@
+\subsubsection{GCC: x86-64}
+
+\myindex{x86-64}
+64ビット環境のLinuxでGCCを試してみましょう。
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/01_helloworld/GCC_x64_JA.s}
+
+% I think I got the intent right on the following line - Renaissance
+Linux、*BSDと \MacOSX は関数引数をレジスタに渡すためのメソッドも使います: \SysVABI{}
+
+最初の6つの引数は、\RDI, \RSI, \RDX, \RCX, \Reg{8} および \Reg{9}レジスタに渡され、残りはスタックを介して渡されます。
+
+そのため、文字列へのポインタは \EDI （レジスタの32ビット部分）に渡されます。 なぜ64ビット版の \RDI を使用しないのでしょうか。
+
+下位の32ビットレジスタ部分に何かを書き込む64ビットモードのすべての \MOV 命令も上位32ビットをクリアすることが重要です（インテルマニュアル：\myref{x86_manuals}を参照）。 つまり、\INS{MOV EAX, 011223344h}は、上位ビットがクリアされるため、 \RAX に値を正しく書き込みます。
+
+コンパイルされたオブジェクトファイル（.o）を開くと、すべての命令のオペコードも見ることができます。
+\footnote{これは \textbf{オプション $\rightarrow$ ディスアセンブル $\rightarrow$ オペコードバイト数} で有効になるはずです}:
+
+\lstinputlisting[caption=GCC 4.4.6 x64,style=customasmx86]{patterns/01_helloworld/GCC_x64.lst}
+
+\label{hw_EDI_instead_of_RDI}
+ご覧のように、\TT{0x4004D4}の \EDI に書き込む命令は5バイトを占有します。 
+64ビット値を \RDI に書き込む同じ命令は7バイトを占有します。 
+明らかに、GCCはいくらかのスペースを節約しようとしています。 
+さらに、文字列を含むデータセグメントが4\gls{GiB}以上のアドレスに割り当てられないことが保証されます。
+
+\label{SysVABI_input_EAX}
+% There isn't an ABI acronym in acronyms.tex - I figure the intent is to Application Binary Interface,
+% so I put it in there (in the EN section, commented out)
+また、 \printf 関数呼び出しの前に \EAX レジスタがクリアされていることがわかります。 
+上記の\ac{ABI}標準によれば、使用されたベクトルレジスタの数はx86-64の*NIXシステムで \EAX に渡されるためです。

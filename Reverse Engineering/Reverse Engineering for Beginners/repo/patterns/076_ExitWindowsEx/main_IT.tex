@@ -1,0 +1,39 @@
+\mysection{Impossible shutdown practical joke (Windows 7)}
+
+\myindex{Windows 98}
+\myindex{user32.dll}
+Non ricordo quasi più come ho trovato la funzione \verb|ExitWindowsEx()| nel file user32.dll di Windows (era la fine degli anni '90).
+Probabilmente, notai solo in suo nome autoesplicativo.
+E poi provai a \emph{bloccarla} applicando una patch al suo inizio con il byte 0xC3 (\INS{RETN}).
+
+Il resultato fu divertente: Windows 98 non poteva più essere spento.
+Dovetti premere il tasto reset.
+
+Recentemente ho provato a replicare su Windows 7, il quale è stato creato quasi 10 anni dopo e si basa su una base Windows NT completamente diversa.
+Ancora la funzione \verb|ExitWindowsEx()| è presente nel file user32.dll soddisfa lo stesso compito.
+
+Innanzitutto, ho spento la \emph{Windows File Protection} aggiungendola al registro (Windows would silently restore modified system files otherwise):
+
+\myindex{Windows File Protection}
+\begin{lstlisting}
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]
+"SFCDisable"=dword:ffffff9d
+\end{lstlisting}
+
+\myindex{Hiew}
+\myindex{IDA}
+Poi ho rinominato \verb|c:\windows\system32\user32.dll| in \verb|user32.dll.bak|.
+Ho trovato \verb|ExitWindowsEx()| usando Hiew (IDA può essere altrettanto utile) e ho inserito il byte 0xC3.
+Ho riavviato Windows 7 e ora non può più essere spento.
+I pulsanti "Restart" e "Logoff" non funzionano più.
+
+Non so se è ancora divertente, ma alla fine degli anni '90, un mio amico copiò il file user32.dll con la patch su un floppy disk e lo mise in tutti i computer
+(al quale poteva accedere, che avevano Windows 98 (quasi tutti)) nella sua università.
+Nessun Windows poteva essere più spento e il suo insegnante di informatica si spaventò a morte.
+(Nel caso stesse leggendo, speriamo ci possa perdonare.)
+
+Se volete farlo, eseguite un backup completo.
+L' idea migliore sarebbe quella di eseguire Windows in una macchina virtuale.
+

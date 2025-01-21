@@ -1,0 +1,48 @@
+﻿main:
+
+; IDAはローカルスタック内の変数名を認識しません
+; 手動で名前をつけます
+i               = -0x10
+saved_FP        = -8
+saved_RA        = -4
+
+; 関数プロローグ:
+                addiu   $sp, -0x28
+                sw      $ra, 0x28+saved_RA($sp)
+                sw      $fp, 0x28+saved_FP($sp)
+                move    $fp, $sp
+; 2でカウンタを初期化し、この値をローカルスタックに格納する
+                li      $v0, 2
+                sw      $v0, 0x28+i($fp)
+; 疑似命令、実際には"BEQ \$ZERO, \$ZERO, loc\_9C"
+                b       loc_9C
+                or      $at, $zero ; 分岐遅延スロット, NOP
+
+loc_80:                                  # CODE XREF: main+48
+; ローカルスタックからカウンタの値を読み込み、print\_function()を呼び出します。
+                lw      $a0, 0x28+i($fp)
+                jal     printing_function
+                or      $at, $zero ; 分岐遅延スロット, NOP
+; カウンタをロードし、インクリメントし、カウンタを保存します
+                lw      $v0, 0x28+i($fp)
+                or      $at, $zero ; NOP
+                addiu   $v0, 1
+                sw      $v0, 0x28+i($fp)
+
+loc_9C:                                  # CODE XREF: main+18
+; カウンタが10かチェック
+                lw      $v0, 0x28+i($fp)
+                or      $at, $zero ; NOP
+                slti    $v0, 0xA
+; 10未満の場合、loc\_80(ループボディ開始)にジャンプ:
+                bnez    $v0, loc_80
+                or      $at, $zero ; 分岐遅延スロット, NOP
+; 終了して0をリターン:
+                move    $v0, $zero
+; 関数エピローグ:
+                move    $sp, $fp
+                lw      $ra, 0x28+saved_RA($sp)
+                lw      $fp, 0x28+saved_FP($sp)
+                addiu   $sp, 0x28
+                jr      $ra
+                or      $at, $zero ; 分岐遅延スロット, NOP

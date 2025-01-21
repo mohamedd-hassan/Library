@@ -1,0 +1,23 @@
+﻿\myparagraph{\Optimizing GCC 4.4.1}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.1,style=customasmx86]{patterns/12_FPU/3_comparison/x86/GCC_O3_JA.asm}
+
+\myindex{x86!\Instructions!JA}
+
+\JA が \SAHF の後に使用されることを除いて、ほとんど同じです。 
+実際には、符号なしの番号比較（これらは \INS{JA} , \JAE , \JB , \JBE , \JE/\JZ , \JNA , \JNAE , \JNB , \JNBE , \JNE/\JNZ ）のチェックに
+\q{大なり}、\q{小なり}、\q{等しい}をチェックする条件ジャンプ命令は \CF および \ZF フラグが立っているときだけチェックします。
+
+\INS{FSTSW}/\FNSTSW の実行後に、 \CThreeBits が\GTT{AH}レジスタのどこにあるかを思い出してみましょう。
+
+\input{C3_in_AH}
+
+\SAHF の実行後に、\GTT{AH}からのビットがCPUフラグの中にどのようにして保存されるかを思いだしてみましょう。
+
+\input{SAHF_LAHF}
+
+比較の後、\Cthree および \Czero ビットは \ZF および \CF に移動するので、条件付きジャンプはその後に働きます。 \CF と \ZF がともにゼロである場合、 \JA は実行します。
+
+したがって、ここにリストされている条件付きジャンプ命令は、 \FNSTSW/\SAHF 命令ペアの後に使用できます。
+
+どうやらFPU \CThreeBits ステータスビットは、追加の順列を付けずにCPUの基本フラグに簡単にマッピングできるよう、意図的に配置されています。

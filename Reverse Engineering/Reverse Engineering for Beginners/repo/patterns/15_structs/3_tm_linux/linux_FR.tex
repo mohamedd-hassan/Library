@@ -1,0 +1,84 @@
+﻿\subsubsection{Linux}
+
+Prenons pour exemple la structure \TT{tm} dans l'en-tête \TT{time.h} de Linux:
+
+\lstinputlisting[style=customc]{patterns/15_structs/3_tm_linux/GCC_tm.c}
+
+Compilons l'exemple avec GCC 4.4.1:
+
+\lstinputlisting[caption=GCC 4.4.1,style=customasmx86]{patterns/15_structs/3_tm_linux/GCC_tm_FR.asm}
+
+\IDA n'a pas utilisé le nom des variables locales pour identifier les éléments de la pile.
+Mais comme nous sommes déjà des rétro ingénieurs expérimentés :-) nous pouvons nous en passer dans
+cet exemple simple.
+
+\myindex{x86!\Instructions!LEA}
+
+Notez l'instruction \TT{lea edx, [eax+76Ch]}~---qui incrémente la valeur de \EAX de \TT{0x76C} (1900)
+sans modifier aucun des drapeaux. Référez-vous également à la section au sujet de \LEA{}~(\myref{sec:LEA}).
+
+\myparagraph{GDB}
+
+Tentons de charger l'exemple dans GDB \footnote{Le résultat \emph{date} est légèrement modifié pour
+les besoins de la démonstration, car il est bien entendu impossible d'exécuter GDB aussi rapidement.}:
+
+\lstinputlisting[caption=GDB]{patterns/15_structs/3_tm_linux/GCC_tm_GDB.txt}
+
+Nous retrouvons facilement notre structure dans la pile. Commençons par observer sa définition dans
+\emph{time.h}:
+
+\begin{lstlisting}[caption=time.h, label=struct_tm,style=customc]
+struct tm
+{
+  int	tm_sec;
+  int	tm_min;
+  int	tm_hour;
+  int	tm_mday;
+  int	tm_mon;
+  int	tm_year;
+  int	tm_wday;
+  int	tm_yday;
+  int	tm_isdst;
+};
+\end{lstlisting}
+
+Faites attention au fait qu'ici les champs sont des \Tint sur 32 bits et non des WORD comme dans
+SYSTEMTIME.
+
+Voici donc les champs de notre structure tels qu'ils sont présents dans la pile:
+
+\lstinputlisting{patterns/15_structs/3_tm_linux/stack.txt}
+
+Représentés sous forme tabulaire, cela donne:
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} Hexadécimal & 
+\headercolor{} Décimal & 
+\headercolor{} nom \\
+\hline
+0x00000025 & 37 	& tm\_sec \\
+\hline
+0x0000000a & 10 	& tm\_min \\
+\hline
+0x00000012 & 18 	& tm\_hour \\	
+\hline
+0x00000002 & 2 		& tm\_mday \\	
+\hline
+0x00000005 & 5 		& tm\_mon \\	
+\hline
+0x00000072 & 114 	& tm\_year \\
+\hline
+0x00000001 & 1 		& tm\_wday \\	
+\hline
+0x00000098 & 152 	& tm\_yday \\	
+\hline
+0x00000001 & 1 		& tm\_isdst \\
+\hline
+\end{tabular}
+\end{center}
+
+C'est très similaire à SYSTEMTIME (\myref{sec:SYSTEMTIME}),
+Là encore certains champs sont présents qui ne sont pas utilisés tels que tm\_wday, tm\_yday,
+tm\_isdst.

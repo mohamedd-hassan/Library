@@ -1,0 +1,14 @@
+\subsubsection{MIPS}
+
+Na stosie lokalnym zaalokowano miejsce dla zmiennej $x$, odwoływać będziemy się do niej przez $\$sp+24$.
+\myindex{MIPS!\Instructions!LW}
+
+Adres zmiennej przekazywany jest do funkcji \scanf. Wartość wpisana przez użytkownika i odczytana za pomocą \scanf jest następnie wczytywana za pomocą instrukcji \INS{LW} (\q{Load Word}) i przekazywana do \printf.
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (\assemblyOutput),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3_PL.s}
+
+\IDA wyświetla układ stosu następująco:
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),style=customasmMIPS]{patterns/04_scanf/1_simple/MIPS/ex1.O3.IDA_PL.lst}
+
+% TODO non-optimized version?

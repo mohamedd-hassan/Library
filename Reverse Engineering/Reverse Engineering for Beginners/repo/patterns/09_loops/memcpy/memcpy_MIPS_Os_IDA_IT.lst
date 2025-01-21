@@ -1,0 +1,28 @@
+my_memcpy:
+; salta alla parte di controllo del ciclo:
+                b       loc_14
+; inizializza il contatore (i) a 0
+; risiederà sempre in \$v0:
+                move    $v0, $zero ; branch delay slot
+
+loc_8:                                   # CODE XREF: my\_memcpy+1C
+; carica il byte senza segno da \$t0 in \$v1:
+                lbu     $v1, 0($t0)
+; incrementa il contatore (i):
+                addiu   $v0, 1
+; salva il byte in \$a3
+                sb      $v1, 0($a3)
+
+loc_14:                                  # CODE XREF: my\_memcpy
+; controlla se il contatore (i) in \$v0 è ancora minore del 3° argomento della funzione ("cnt" in \$a2):
+                sltu    $v1, $v0, $a2
+; forma l'indirizzo del byte nel blocco sorgente:
+                addu    $t0, $a1, $v0
+; \$t0 = \$a1+\$v0 = src+i
+; se il contatore è ancora minore di "cnt", salta al corpo del ciclo:
+                bnez    $v1, loc_8
+; forma l'indirizzo del byte nel blocco destinazione (\$a3 = \$a0+\$v0 = dst+i):
+                addu    $a3, $a0, $v0 ; branch delay slot
+; termina se BNEZ non è stato attivato:
+                jr      $ra
+                or      $at, $zero ; branch delay slot, NOP

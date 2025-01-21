@@ -1,0 +1,182 @@
+﻿\subsection{SIMD \strlen 実装}
+\label{SIMD_strlen}
+
+\newcommand{\URLMSDNSSE}{\href{http://msdn.microsoft.com/en-us/library/y0dh78ez(VS.80).aspx}{MSDN: MMX, SSE, and SSE2 Intrinsics}}
+
+SIMD命令は、特別なマクロ\footnote{\URLMSDNSSE}を介して \CCpp コードに挿入できることに注意しなければなりません。 
+MSVCの場合、それらのいくつかは\TT{intrin.h}ファイルにあります。
+
+\newcommand{\URLSTRLEN}{http://www.strchr.com/sse2_optimised_strlen}
+
+\myindex{\CStandardLibrary!strlen()}
+
+SIMD命令を使用して \strlen 関数\footnote{strlen()~---文字列長を計算する標準Cライブラリ関数}
+を実装することは、一般的な実装よりも2-2.5倍高速に実行できます。
+この関数は16文字をXMMレジスタにロードし、それぞれをゼロと照合します。
+\footnote{
+この例は、以下のソースコードに基づいています。: \url{\URLSTRLEN}.}.
+
+\lstinputlisting[style=customc]{patterns/19_SIMD/18_3.c}
+
+\Ox オプションを付けてMSVC 2010でコンパイルしましょう。
+
+\lstinputlisting[caption=\Optimizing MSVC 2010,style=customasmx86]{patterns/19_SIMD/18_4_msvc_Ox_JA.asm}
+
+どう機能するでしょうか？
+まず第一に、私達は機能の目的を理解しなければなりません。
+これはC文字列の長さを計算しますが、別の用語を使用することもできます。タスクはゼロバイトを検索し、次に文字列の開始位置に対する位置を計算することです。
+
+まず、\TT{str}ポインタが16バイト境界に揃っているかどうかを調べます。
+そうでなければ、一般的な \strlen 実装を呼び出します。
+
+次に、 \MOVDQA を使用して次の16バイトを\XMM{1}レジスタにロードします。
+
+注意深い読者が尋ねるかもしれません、なぜポインターアライメントに関係なくメモリからデータをロードできるのに
+\MOVDQU がここで使用できないのですか？
+
+はい、それはこのようにして行われるかもしれません：もしポインタがアラインメントしていれば、MOVDQAを使用してデータをロードし、
+そうでなければより遅い \MOVDQU を使用します。
+
+しかし、ここで我々は別の警告を受けるかもしれません。
+
+\myindex{Page (memory)}
+\newcommand{\URLPAGE}{\href{http://en.wikipedia.org/wiki/Page_(computer_memory)}{wikipedia}}
+
+\gls{Windows NT}系列の\ac{OS}において（しかしそれに限定されない）、メモリは4KiB（4096バイト）のページによって割り当てられます。
+各win32プロセスには4GiBの空き容量がありますが、実際には、アドレス空間の
+一部のみが実際の物理メモリに接続されています。
+プロセスが存在しないメモリブロックにアクセスしている場合は、例外が発生します。
+それが\ac{VM}のしくみです\footnote{\URLPAGE}。
+
+したがって、一度に16バイトをロードする関数は、割り当てられたメモリブロックの境界をまたぐことがあります。 
+\ac{OS}がアドレス0x008c0000に8192（0x2000）バイトを割り当てたとしましょう。
+したがって、ブロックはアドレス0x008c0000から始まり0x008c1fffまでを含むバイトです。
+
+ブロックの後、つまりアドレス0x008c2000から始まり、そこには何もありません。 \ac{OS}は
+そこにメモリを割り当てていません。
+そのアドレスからメモリにアクセスしようとすると、例外が発生します。
+
+プログラムがほぼブロックの最後に5文字を含む文字列を保持しているという例を考えてみましょう。
+それは違法な行為ではありません。
+
+\begin{center}
+  \begin{tabular}{ | l | l | }
+    \hline
+        0x008c1ff8 & 'h' \\
+        0x008c1ff9 & 'e' \\
+        0x008c1ffa & 'l' \\
+        0x008c1ffb & 'l' \\
+        0x008c1ffc & 'o' \\
+        0x008c1ffd & '\textbackslash{}x00' \\
+        0x008c1ffe & ランダムノイズ \\
+        0x008c1fff & ランダムノイズ \\
+    \hline
+  \end{tabular}
+\end{center}
+
+したがって、通常の状態では、プログラムは \strlen を呼び出して、アドレス0x008c1ff8のメモリに
+配置された文字列\TT{'hello'}へのポインタを渡します。 
+\strlen は0x008c1ffdまで1バイトずつ読み込みます。0x008c1ffdはバイトが0ですが、その後は停止します。
+
+整列されているかどうかにかかわらず、任意のアドレスから始めて一度に16バイトを読み取る独自の \strlen を実装すると、
+\MOVDQU はアドレス0x008c1ff8から最大16バイトを一度に0x008c2008までロードしようとして、
+例外が発生します。
+もちろん、そのような状況は避けるべきです。
+
+そのため、私たちは16バイト境界に整列されたアドレスでのみ動作します。これは、\ac{OS}のページサイズが通常16バイト境界に
+整列されているという知識と組み合わせると、ある程度の保証が得られます。
+私たちの関数は、割り当てられていないメモリから読み込みません。
+
+私たちの機能に戻りましょう。
+
+\myindex{x86!\Instructions!PXOR}
+\verb|_mm_setzero_si128()| は、pxor xmm0、xmm0 .itを生成するマクロで、XMM0レジスタをクリアするだけです。
+
+\verb|_mm_load_si128()| はMOVDQAのマクロで、アドレスからXMM1レジスタに16バイトをロードするだけです。
+
+\myindex{x86!\Instructions!PCMPEQB}
+\verb|_mm_cmpeq_epi8()| は、2つのXMMレジスタをバイト単位で比較する命令であるPCMPEQB用のマクロです。
+
+また、あるバイトが他のレジスタのバイトと等しい場合は、
+結果のこの時点で\TT{0xff}になり、それ以外の場合は0になります。
+
+例えば：
+
+\begin{verbatim}
+XMM1: 0x11223344556677880000000000000000
+XMM0: 0x11ab3444007877881111111111111111
+\end{verbatim}
+
+\TT{pcmpeqb xmm1, xmm0}の実行後、\XMM{1}レジスターには以下が含まれます。
+
+\begin{verbatim}
+XMM1: 0xff0000ff0000ffff0000000000000000
+\end{verbatim}
+
+この例では、この命令は各16バイトブロックを16個のゼロバイトのブロックと比較します。
+これは、\TT{pxor xmm0, xmm0}によって\XMM{0}レジスタに設定されています。
+
+\myindex{x86!\Instructions!PMOVMSKB}
+
+次のマクロは\TT{\_mm\_movemask\_epi8()}です。これは\TT{PMOVMSKB}命令です。
+
+\PCMPEQB と一緒に使うととても便利です。
+
+\TT{pmovmskb eax, xmm1}
+
+この命令は、\XMM{1}の最初のバイトの最上位ビットが1の場合、最初のEAXビットを1に設定します。
+つまり、\XMM{1}レジスタの最初のバイトが\TT{0xff}の場合、 \EAX の最初のビットも1になります。
+
+\XMM{1}レジスタの2番目のバイトが\TT{0xff}の場合、 \EAX の2番目のビットは1に設定されます。
+言い換えれば、命令は\q{\XMM{1}のどのバイトに最上位ビット(MBS)が設定されているか、0x7fより大きいか}
+という質問に答えます。
+そして、 \EAX レジスタに16ビットを返します。 
+\EAX レジスタの他のビットはクリアされます。
+
+ところで、私たちのアルゴリズムのこの風変わりなことを忘れないでください。
+入力には16バイトあります。
+
+\input{patterns/19_SIMD/strlen_hello_and_garbage}
+
+これは、\TT{'hello'}文字列で、ゼロで終わり、メモリ内のランダムノイズです。
+
+これらの16バイトを\XMM{1}にロードしてゼロ化された\XMM{0}と比較すると、
+次のようになります。
+\footnote{ここでは、\ac{MSB}から\ac{LSB}への順序が使用されています。}
+
+\begin{verbatim}
+XMM1: 0x0000ff00000000000000ff0000000000
+\end{verbatim}
+
+これは、命令が2つのゼロバイトを見つけたことを意味していますが、それは驚くことではありません。
+ 
+この場合の\TT{PMOVMSKB}は \EAX を
+\emph{0b0010000000100000}に設定します。
+
+明らかに、私たちの関数は最初の0ビットだけを取り、残りを無視しなければなりません。
+
+\myindex{x86!\Instructions!BSF}
+\label{instruction_BSF}
+次の命令は\TT{BSF} (\emph{Bit Scan Forward})です。
+
+この命令は、1に設定された最初のビットを見つけ、その位置を最初のオペランドに格納します。
+
+\begin{verbatim}
+EAX=0b0010000000100000
+\end{verbatim}
+
+\TT{bsf eax, eax}の実行後、 \EAX は5を含み、
+これは1が5番目のビット位置（ゼロから始まる）に見つかったことを意味します。
+
+MSVCには、この命令用のマクロ\TT{\_BitScanForward}があります。
+
+今は簡単です。ゼロバイトが見つかった場合は、その位置がすでに数えたものに追加され、
+今度は結果が返されます。
+
+Almost all.
+ほとんど全て。
+
+ちなみに、MSVCコンパイラは最適化のために2つのループ本体を一緒に発行していました。
+
+ちなみに、SSE 4.2（Intel Core i7に登場）は、これらの文字列操作がさらに簡単になる可能性がある場合に、
+より多くの命令を提供します：\url{http://www.strchr.com/strcmp_and_strlen_using_sse_4.2}

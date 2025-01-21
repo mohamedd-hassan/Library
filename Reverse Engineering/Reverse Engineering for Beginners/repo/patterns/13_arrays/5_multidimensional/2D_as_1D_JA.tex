@@ -1,0 +1,17 @@
+﻿\subsubsection{2次元配列を1次元配列としてアクセスする}
+
+少なくとも2つの方法で、2次元配列を1次元配列としてアクセスすることが可能だといえます。
+
+\lstinputlisting[style=customc]{patterns/13_arrays/5_multidimensional/2D_as_1D_JA.c}
+
+コンパイルして実行してください。\footnote{プログラムはC++ではなく、Cプログラムとしてコンパイルされます。.c拡張子でファイルを保存してMSVCでコンパイルします}
+正しい値を表示します。
+
+MSVC 2013の結果は興味部会です。3つのルーチンはすべて同じです！
+
+\lstinputlisting[caption=\Optimizing MSVC 2013 x64,style=customasmx86]{patterns/13_arrays/5_multidimensional/2D_as_1D_MSVC_2013_Ox_x64_JA.asm}
+
+GCCも同じルーチンを生成しますが、少し異なります。
+
+\lstinputlisting[caption=\Optimizing GCC 4.9 x64,style=customasmx86]{patterns/13_arrays/5_multidimensional/2D_as_1D_GCC49_x64_O3_JA.s}
+

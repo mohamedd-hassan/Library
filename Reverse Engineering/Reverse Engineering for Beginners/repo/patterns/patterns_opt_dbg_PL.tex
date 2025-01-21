@@ -1,0 +1,41 @@
+\mysection{Metoda}
+
+Kiedy autor tej książki uczył się C, a później \Cpp, pisał niewielkie kawałki kodu, kompilował
+i patrzył jak wyglądają w asemblerze. Tak było o wiele łatwiej zrozumieć co się dzieje w programie.%
+\footnote{Szczerze mówiąc, dalej tak robi, kiedy nie rozumie jak jakiś kod działa.
+Ostatni przykład, z 2019 roku: \verb|p += p+(i&1)+2;| z ``SAT0W'', SAT-solvera autorstwa D. Knutha.}.
+Robił to wystarczająco dużo razy, żeby związek między kodem w \CCpp a tym co generuje kompilator wbił się w jego podświadomość bardzo głęboko.
+Dzięki temu łatwo mu określić zgrubną strukturę kodu w C, patrząc na kod asemblera.
+Możliwe, że ta metoda pomoże komuś jeszcze.
+
+%Tu jest dużo przykładów do x86/x64 zarówno jak i do ARM.
+%Ci, którzy są wystarczająco dobrze obeznani z jedną z architektur, mogą przekartkować te strony.
+
+Czasami wykorzystam stare kompilatory, żeby otrzymać bardzo krótki lub prosty kawałek kodu.
+
+Przy okazji, jest świetna strona, gdzie możesz zrobić to samo, używając różnych kompilatorów - bez konieczności instalowania ich u siebie: \url{http://godbolt.org/}.
+
+\section*{\Exercises}
+
+Kiedy autor tej książki uczył się asemblera, często kompilował krótkie funkcje w C i przepisywał
+je stopniowo na asemblera, starając się uzyskać jak najkrótszy kodu.
+Prawdopodobnie nie warto tego robić w praktycznych zastosowaniach,
+ponieważ trudno jest konkurować ze współczesnymi kompilatorami pod względem wydajności. Jest to jednak bardzo dobry sposób na zrozumienie asemblera.
+Możesz wziąć dowolny fragment kodu w asemblerze z tej książki i postarać się uczynić go krótszym.
+Ale nie zapomnij przetestować swojego rezultatu.
+
+\section*{Poziomy optymalizacji i debuggowanie}
+
+Kod źródłowy można kompilować różnymi kompilatorami z różnym poziomami optymalizacji.
+W typowym kompilatorze jest tych poziomów około trzech, gdzie poziom zerowy oznacza wyłączoną optymalizację.
+Optymalizować można rozmiar programu lub jego szybkość.
+Kompilator, który nie dokonuje optymalizacji, działa szybciej i generuje bardziej przejrzysty kod (choć i większy objętościowo).
+Kompilator, który dokonuje optymalizacji, działa wolniej i stara się wygenerować jak najszybszy kod (co nie zawsze znaczy, że kod będzie krótszy).
+Obok poziomów i kierunków optymalizacji kompilator może załączać do pliku wynikowego dodatkowe informacje dla debuggera,
+tworząc w ten sposób kod, który jest prostszy w debuggowaniu.
+Bardzo ważną cechą kodu debuggowanego jest to, że może on zawierać powiązanie
+między każdą linią kodu źródłowego a adresem w kodzie maszynowym.
+Kompilatory, dokonując optymalizacji, zwykle generują kod, gdzie całe linie kodu źródłowego mogą zostać pominięte nie będą nawet widoczne w kodzie maszynowym.
+Praktykujący reverse engineer z reguły ma styczność z obiema wersjami, jako że niektórzy developerzy włączają optymalizację, a niektórzy - nie.
+
+Dlatego będziemy pracować z przykładami kodu w obu wariantach.

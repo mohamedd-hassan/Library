@@ -1,0 +1,46 @@
+﻿\clearpage
+\myparagraph{MSVC + \olly}
+\myindex{\olly}
+
+\olly にサンプルをロードして、
+CPUIDの実行後にEAX/EBX/ECX/EDXにどのような値が設定されているかを見てみましょう。
+
+\begin{figure}[H]
+\centering
+\myincludegraphics{patterns/15_structs/6_bitfields/cpuid/olly.png}
+\caption{\olly: CPUID実行後}
+\label{fig:cpuid_olly_1}
+\end{figure}
+
+EAXは\TT{0x000206A7}（\ac{CPU}はIntel Xeon E3-1220）です。
+二進数では $0b0000 0000 0000 0010 0000 0110 1010 0111$ です。
+
+ビットがフィールドにどのように分配されるかは次のとおりです。
+
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\headercolor{} フィールド &
+\headercolor{} 二進数 &
+\headercolor{} 十進数 \\
+\hline
+reserved2		& 0000 & 0 \\
+\hline
+extended\_family\_id	& 00000000 & 0 \\
+\hline
+extended\_model\_id	& 0010 & 2 \\
+\hline
+reserved1		& 00 & 0 \\
+\hline
+processor\_id		& 00 & 0 \\
+\hline
+family\_id		& 0110 & 6 \\
+\hline
+model			& 1010 & 10 \\
+\hline
+stepping		& 0111 & 7 \\
+\hline
+\end{tabular}
+\end{center}
+
+\lstinputlisting[caption=Console output]{patterns/15_structs/6_bitfields/cpuid/console.txt}

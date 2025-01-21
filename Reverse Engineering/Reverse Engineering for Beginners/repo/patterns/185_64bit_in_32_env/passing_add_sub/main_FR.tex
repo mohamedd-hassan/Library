@@ -1,0 +1,63 @@
+﻿\subsection{Passage d'arguments, addition, soustraction}
+
+\lstinputlisting[style=customc]{patterns/185_64bit_in_32_env/passing_add_sub/1.c}
+
+\subsubsection{x86}
+
+\lstinputlisting[caption=MSVC 2012 /Ob1 \Optimizing,style=customasmx86]{patterns/185_64bit_in_32_env/passing_add_sub/1_MSVC.asm}
+
+Nous voyons dans la fonction \GTT{f\_add\_test()} que chaque valeur 64-bit est passée
+en utilisant deux valeurs 32-bit, partie haute d'abord, puis partie basse.
+
+L'addition et la soustraction se déroulent aussi par paire.
+
+\myindex{x86!\Instructions!ADC}
+Pour l'addition, la partie basse 32-bit est d'abord additionnée.
+Si il y a eu une retenue pendant l'addition, le flag \TT{CF} est mis.
+
+L'instruction suivante \INS{ADC} additionne les parties hautes, et ajoute aussi 1
+si $CF=1$.
+
+\myindex{x86!\Instructions!SBB}
+La soustraction est aussi effectuée par paire.
+Le premier \SUB peut aussi mettre le flag CF, qui doit être testé lors de l'instruction
+\INS{SBB} suivante:
+Si le flag de retenue est mis, alors 1 est soustrait du résultat.
+
+Il est facile de voir comment le résultat de la fonction \GTT{f\_add()} est passé
+à \printf{}.
+
+\lstinputlisting[caption=GCC 4.8.1 -O1 -fno-inline,style=customasmx86]{patterns/185_64bit_in_32_env/passing_add_sub/1_GCC.asm}
+
+Le code de GCC est le même.
+
+\subsubsection{ARM}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/185_64bit_in_32_env/passing_add_sub/Keil_ARM_O3.s}
+
+\myindex{ARM!\Instructions!ADDS}
+\myindex{ARM!\Instructions!SUBS}
+\myindex{ARM!\Instructions!ADC}
+\myindex{ARM!\Instructions!SBC}
+
+La première valeur 64-bit est passée par la paire de registres \Reg{0} et \Reg{1},
+la seconde dans la paire de registres \Reg{2} et \Reg{3}.
+ARM a aussi l'instruction \INS{ADC} (qui compte le flag de retenue) et \INS{SBC}
+(\q{soustraction avec retenue}).
+Chose importante: lorsque les parties basses sont ajoutées/soustraites, les instructions
+\INS{ADDS} et \INS{SUBS} avec le suffixe -S sont utilisées.
+Le suffixe -S signifie \q{mettre les flags}, et les flags (en particulier le flag
+de retenue) est ce dont les instructions suivantes \INS{ADC}/\INS{SBC} ont besoin.
+Autrement, les instructions sans le suffixe -S feraient le travail (\ADD et \SUB).
+
+\subsubsection{MIPS}
+
+\lstinputlisting[caption=GCC 4.4.5 \Optimizing (IDA),style=customasmMIPS]{patterns/185_64bit_in_32_env/passing_add_sub/MIPS_O3_IDA_FR.lst}
+
+MIPS n'a pas de registre de flags, donc il n'y a pas cette information après l'exécution
+des opérations arithmétiques.
+Donc il n'y a pas d'instructions comme \INS{ADC} et \INS{SBB} du x86.
+Pour savoir si le flag de retenue serait mis, une comparaison est faite (en utilisant
+l'instruction \INS{SLTU}), qui met le registre de destination à 1 ou 0.
+Ce 1 ou ce 0 est ensuite ajouté ou soustrait au/du résultat final.
+

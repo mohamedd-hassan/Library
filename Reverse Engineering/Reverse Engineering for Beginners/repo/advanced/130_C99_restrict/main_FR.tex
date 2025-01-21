@@ -1,0 +1,110 @@
+\mysection{C99 restrict}
+\myindex{\CLanguageElements!C99!restrict}
+\myindex{Fortran}
+
+Voici une raison pour laquelle les programmes en Fortran, dans certains cas, fonctionnent
+plus vite que ceux en \CCpp.
+
+\begin{lstlisting}[style=customc]
+void f1 (int* x, int* y, int* sum, int* product, int* sum_product, int* update_me, size_t s)
+{
+	for (int i=0; i<s; i++)
+	{
+		sum[i]=x[i]+y[i];
+		product[i]=x[i]*y[i];
+		update_me[i]=i*123; // some dummy value
+		sum_product[i]=sum[i]+product[i];	
+	};
+};
+\end{lstlisting}
+
+C'est un exemple très simple, qui contient une spécificité:
+le pointeur sur le tableau \TT{update\_me} peut-être un pointeur sur le tableau
+\TT{sum}, le tableau \TT{product} ou même le tableau \TT{sum\_product}---rien
+ne l'interdit, n'est-ce pas?
+
+Le compilateur est parfaitement conscient de ceci, donc il génère du code avec quatre
+étapes dans le corps de la boucle:
+\begin{itemize}
+\item calcule le \TT{sum[i]} suivant
+\item calcule le \TT{product[i]} suivant
+\item calcule le \TT{update\_me[i]} suivant
+\item calcule le \TT{sum\_product[i]} suivant---à cette étape, nous devons charger
+depuis la mémoire les valeurs \TT{sum[i]} et \TT{product[i]} déjà calculées
+\end{itemize}
+
+Et-il possible d'optimiser la dernière étape?
+Puisque nous avons déjà calculé \TT{sum[i]} et \TT{product[i]}, il n'est pas nécessaire
+de les charger à nouveau depuis la mémoire.
+
+Oui, mais le compilateurs n'est pas sûr que rien n'a été récris à la 3ème étape!
+Ceci est appelé \q{pointer aliasing},
+une situation dans laquelle le compilateur ne peut pas être sûr que la mémoire sur
+laquelle le pointeur pointe n'a pas été modifiée.
+
+\emph{restrict} dans le standard C99 \InSqBrackets{\CNineNineStd{} 6.7.3/1}
+est une promesse faite par le programmeur au compilateur que les arguments de la
+fonction marqués par ce mot-clef vont toujours pointer vers des case mémoire différentes
+et ne vont jamais se recouper.
+
+Pour être plus précis et décrire ceci formellement, \emph{restrict} indique que seul
+ce pointeur est utilisé pour accéder un objet, et qu'aucun autre pointeur ne sera
+utilisé pour ceci.
+
+On peut même dire que l'objet ne sera accéder que par un seul pointeur, si il est
+marqué comme \emph{restrict}.
+
+Ajoutons ce mot-clef à chaque argument pointeur:
+
+\begin{lstlisting}[style=customc]
+void f2 (int* restrict x, int* restrict y, int* restrict sum, int* restrict product, int* restrict sum_product, 
+	int* restrict update_me, size_t s)
+{
+	for (int i=0; i<s; i++)
+	{
+		sum[i]=x[i]+y[i];
+		product[i]=x[i]*y[i];
+		update_me[i]=i*123; // some dummy value
+		sum_product[i]=sum[i]+product[i];	
+	};
+};
+\end{lstlisting}
+
+Regardons le résultat:
+
+\lstinputlisting[caption=GCC x64: f1(),style=customasmx86]{\CURPATH/f1_FR.asm}
+
+\lstinputlisting[caption=GCC x64: f2(),style=customasmx86]{\CURPATH/f2_FR.asm}
+
+La différence entre les fonctions \TT{f1()} et \TT{f2()} compilées est la suivante:
+dans \TT{f1()}, \TT{sum[i]} et \TT{product[i]}
+sont rechargés au milieu de la boucle, et il n'y a rien de tel dans \TT{f2()}, les
+valeurs déjà calculées sont utilisées, puisque nous avons \q{promis} au compilateur
+que rien ni personne ne changera les valeurs pendant l'exécution du corps de la boucle,
+donc il est \q{certain} qu'il n'y a pas besoin de recharger la valeur depuis la mémoire.
+
+Étonnamment, le second exemple est plus rapide.
+
+Mais que se passe-t-il si les pointeurs dans les arguments de la fonction se
+modifient d'une manière ou d'une autre?
+
+Ceci est du ressort de la conscience du programmeur, et le résultat sera incorrect.
+
+Retournons au Fortran.
+
+Les compilateurs de ce langage traitent tous les pointeurs de cette façon, donc lorsqu'il
+n'est pas possible d'utiliser \emph{restrict} en C, Fortran peut générer du code plus
+rapide dans ces cas.
+
+À quel point est-ce pratique?
+
+Dans les cas où le fonction travaille avec des gros blocs en mémoire.
+
+C'est le cas en algèbre linéaire, par exemple.
+
+Les superordinateurs/\ac{HPC} utilisent beaucoup d'algèbre linéaire, c'est probablement
+pourquoi,\\
+traditionnellement, Fortran y est encore utilisé [Eugene Loh, \emph{The Ideal HPC Programming Language}, (2010)].
+
+Mais lorsque le nombre d'itérations n'est pas très important, certainement, le gain
+en vitesse ne doit pas être significatif.

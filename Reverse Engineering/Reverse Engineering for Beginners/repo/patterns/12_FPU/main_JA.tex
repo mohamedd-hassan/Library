@@ -1,0 +1,118 @@
+﻿\mysection{\FPUChapterName}
+\label{sec:FPU}
+
+\ac{FPU}はメイン\ac{CPU}内のデバイスで、特に浮動小数点数を扱うように設計されています。
+
+これは過去に\q{コプロセッサー}と呼ばれていましたが、メイン\ac{CPU}とは別の場所にとどまっています。
+
+\subsection{IEEE 754}
+
+IEEE 754形式の数字は、\emph{符号}、\emph{有効数字}（\emph{小数部}とも呼ばれます）、および\emph{指数}で構成されます。
+
+\subsection{x86}
+
+x86の\ac{FPU}を学ぶ前に、スタックマシン を調べたり、Forth言語 の基礎を学ぶことは価値があります。
+
+\myindex{Intel!80486}
+\myindex{Intel!FPU}
+過去（80486 CPUの前）のコプロセッサは別個のチップであり、いつもマザーボードにプリインストールされていなかった
+ことは興味深いことです。別に購入してインストールすることができました。
+\footnote{たとえば、John Carmackは、32ビット\ac{GPR}レジスタ（整数部分は16ビット、小数部分は16ビット）
+に格納されたDoomビデオゲームの固定小数点演算
+の値を使用しました。 DoomはFPUなしの32ビットコンピュータ、つまり80386と80486 SXで動作しました}
+
+\ac{FPU}は80486 DX CPUから\ac{CPU}に統合されています。
+
+\myindex{x86!\Instructions!FWAIT}
+\INS{FWAIT}命令は、\ac{CPU}を待機状態に切り替えるので、\ac{FPU}が処理を終了するまで待つことができるという事実を思い出させます。
+
+もう一つの基本は、\ac{FPU}命令オペコードが、いわゆる\q{エスケープ}オペコード（\GTT{D8..DF}）、
+すなわちオペコードが別個のコプロセッサに渡されることから始まるという事実です。
+
+\myindex{IEEE 754}
+\label{FPU_is_stack}
+
+FPUは8個の80ビットレジスタを保持できるスタックを持ち、各レジスタは
+IEEE 754 形式の番号を保持できます。
+
+それらは\ST{0}..\ST{7}です。 簡潔には、 \IDA と \olly は\ST{0}を\GTT{ST}と表示します。
+これは一部の教科書とマニュアルでは\q{スタックトップ}として表されています。
+
+\subsection{ARM, MIPS, x86/x64 SIMD}
+
+ARMおよびMIPSでは、FPUはスタックではなく、\ac{GPR}のようにランダムアクセスできるレジスタのセットです。
+
+同じ体系がx86/x64 CPUのSIMD拡張で使用されています。
+
+\subsection{\CCpp}
+
+\myindex{float}
+\myindex{double}
+
+標準の \CCpp 言語では、 \Tfloat （\emph{単精度}、32ビット）と 
+\footnote{単精度浮動小数点数形式も 
+\emph{\WorkingWithFloatAsWithStructSubSubSectionName}~(\myref{sec:floatasstruct}) セクションで扱います}
+\Tdouble （\emph{倍精度}、64ビット）の少なくとも2つの浮動小数点型が用意されています。
+
+\InSqBrackets{\TAOCPvolII 246}において、\emph{単精度}は、浮動小数点値を単一の[32ビット]マシンに入れることができることを意味するワード、
+\emph{倍精度}は、2ワード（64ビット）で格納できることを意味します。
+
+\myindex{long double}
+
+GCCはMSVCがサポートしない\emph{long double}型（\emph{拡張精度}、80ビット）もサポートしています。
+
+\Tfloat 型は、32ビット環境では \Tint 型と同じビット数が必要ですが、
+数値表現はまったく異なります。
+
+\input{patterns/12_FPU/1_simple/main}
+\input{patterns/12_FPU/2_passing_floats/main}
+\input{patterns/12_FPU/3_comparison/main}
+
+\subsection{いくつかの定数}
+
+IEEE 754でエンコードされた数のWikipediaでいくつかの定数の表現を見つけるのは簡単です。 
+IEEE 754の0.0は、32ビットのゼロビット（単精度の場合）または64ビットのゼロビット（倍精度の場合）として表されることは
+興味深いことです。
+したがって、浮動小数点変数をレジスタまたはメモリで0.0に設定するには、 \MOV または\TT{XOR reg, reg}命令を使用します。
+これは、さまざまなデータ型の多くの変数が存在する構造に適しています。
+通常のmemset()関数では、すべての整数変数を0に、すべてのブール変数を \emph{false}に、すべてのポインタをNULLに、
+すべての浮動小数点変数（任意の精度）を0.0に設定できます。
+
+\subsection{コピー}
+
+IEEE 754の値をロードして格納する（したがって、コピーする）には、\INS{FLD}/\INS{FST}命令を使用しないといけなと慣性でに考えるかもしれません。
+にもかかわらず、普通の \MOV 命令でも同じことがより簡単に実現できます。もちろん、ビット単位で値をコピーします。
+
+\subsection{スタック、計算機と逆ポーランド記法}
+
+\myindex{Reverse Polish notation}
+
+いくつかの古い計算機が逆ポーランド記法
+を使用する理由を理解しました。
+
+たとえば、12と34を追加するには12を入力し、34を入力してから\q{プラス}を押します。
+
+これは、古い電卓はスタックマシンの実装なので、複雑なカッコで囲まれた式を処理するより
+はるかに簡単だからです。
+
+% TBT
+% Such a calculator still present in many Unix distributions: \emph{dc}.
+
+\subsection{80ビット？}
+
+\myindex{パンチカード}
+FPUの内部数値表現は80ビットです。
+$2^n$形式ではないので、変わった数値です。
+おそらく歴史的な理由によるものだという仮説があります。IBMの標準的なパンチカードでは、12行の80ビットをエンコードできます。 
+$80\cdot 25$テキストモードの解像度も過去においてポピュラーでした。
+
+ウィキペディアには別の説明があります：\url{https://en.wikipedia.org/wiki/Extended_precision}
+
+もっと知っていたら、著者にメールを送ってください： \EMAILS{}
+
+\subsection{x64}
+
+浮動小数点数がx86-64でどのように処理されるかについては、これを読んでください：\myref{floating_SIMD}
+
+% sections
+\input{patterns/12_FPU/exercises}

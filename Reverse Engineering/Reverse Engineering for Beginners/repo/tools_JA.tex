@@ -1,0 +1,249 @@
+\chapter{ツール}
+
+\epigraph{Now that Dennis Yurichev has made this book free (libre), it is a
+contribution to the world of free knowledge and free education.
+However, for our freedom's sake, we need free (libre) reverse
+engineering tools to replace the proprietary tools described in this book.}{Richard M. Stallman}
+
+\mysection{バイナリ解析}
+
+プロセスを実行しないときに使用するツール。
+
+\myindex{Hiew}
+\myindex{GHex}
+\myindex{UNIX!strings}
+\myindex{UNIX!xxd}
+\myindex{UNIX!od}
+
+\begin{itemize}
+\item
+(フリー、オープンソース) \emph{ent}\footnote{\url{http://www.fourmilab.ch/random/}}: エントロピー分析ツール。
+エントロピーについての詳細: \myref{entropy}.
+
+\item
+\label{Hiew}
+\emph{Hiew}\footnote{\href{http://www.hiew.ru/}{hiew.ru}}:
+バイナリファイルでのコードの小さな変更を追う。
+アセンブラ／ディスアセンブラを内蔵。
+
+\item (フリー、オープンソース) \emph{GHex}\footnote{\url{https://wiki.gnome.org/Apps/Ghex}}: Linux用の単純な16進エディタ
+
+\item (フリー、オープンソース) \emph{xxd} and \emph{od}: ダンプするための標準的なUNIXユーティリティ
+
+\item (フリー、オープンソース) \emph{strings}: 実行可能ファイルを含むバイナリファイルでASCII文字列を検索するための*NIXツール
+Sysinternalsには、ワイド文字列をサポートする代替機能\footnote{\url{https://technet.microsoft.com/en-us/sysinternals/strings}}
+があります（Windowsで広く使用されているUTF-16）
+
+\item (フリー、オープンソース) \emph{Binwalk}\footnote{\url{http://binwalk.org/}}: ファームウェアイメージの分析
+
+\item
+\myindex{binary grep}
+(フリー、オープンソース) \emph{binary grep}:
+実行不可能なファイルを含む大きなファイルの中の
+バイトシーケンスを検索するための小さなユーティリティ：\BGREPURL
+\myindex{rafind2}
+同じ目的のためにrada.reにrafind2もあります。
+\end{itemize}
+
+\subsection{ディスアセンブラ}
+
+\myindex{IDA}
+\myindex{Binary Ninja}
+\myindex{BinNavi}
+\myindex{objdump}
+
+\begin{itemize}
+\item \emph{IDA}. 古いフリーウェアバージョンがダウンロード可能です
+\footnote{\href{http://www.hex-rays.com/idapro/idadownfreeware.htm}{hex-rays.com/products/ida/support/download\_freeware.shtml}}.
+\ShortHotKeyCheatsheet: \myref{sec:IDA_cheatsheet}
+
+% TBT \item \emph{Ghidra}\footnote{\url{https://ghidra-sre.org/}} --- free alternative to IDA from \ac{NSA}.
+
+\item \emph{Binary Ninja}\footnote{\url{http://binary.ninja/}}
+
+\item (フリー、オープンソース) \emph{zynamics BinNavi}\footnote{\url{https://www.zynamics.com/binnavi.html}}
+
+\item (フリー、オープンソース) \emph{objdump}: ダンプとディスアセンブルのための簡単なコマンドラインユーティリティ
+
+\item (フリー、オープンソース) \emph{readelf}\footnote{\url{https://sourceware.org/binutils/docs/binutils/readelf.html}}:
+ELFファイルに関するダンプ情報。
+\end{itemize}
+
+\subsection{デコンパイラ}
+
+公に利用可能な既知の高品質なCコードへのデコンパイラがたった1つだけあります：\emph{Hex-Rays}:\\
+\href{https://www.hex-rays.com/products/decompiler/}{hex-rays.com/products/decompiler/}
+
+詳細を読む: \myref{hex_rays}.
+% TBT: to be synced with EN version
+
+\subsection{パッチの比較/diffing}
+
+実行可能ファイルの一部を元のバージョンと比較し、パッチが適用されたものとその理由を調べるときに
+使用することをお勧めします。
+
+\begin{itemize}
+\item (フリー) \emph{zynamics BinDiff}\footnote{\url{https://www.zynamics.com/software.html}}
+
+\item (フリー、オープンソース) \emph{Diaphora}\footnote{\url{https://github.com/joxeankoret/diaphora}}
+\end{itemize}
+
+\mysection{ライブ解析}
+
+稼働中のシステム上またはプロセスの実行中に使用するツール。
+
+\subsection{デバッガ}
+
+\myindex{\olly}
+\myindex{Radare}
+\myindex{GDB}
+\myindex{tracer}
+\myindex{LLDB}
+\myindex{WinDbg}
+\myindex{IDA}
+
+\begin{itemize}
+\item (フリー) \emph{OllyDbg}.
+とても人気のあるユーザーモードのwin32デバッガ\footnote{\href{http://www.ollydbg.de/}{ollydbg.de}}.
+\ShortHotKeyCheatsheet: \myref{sec:Olly_cheatsheet}
+
+\item (フリー、オープンソース) \emph{GDB}.
+主にプログラマ向けなので、リバースエンジニアの間ではあまり一般的ではないデバッガ。
+いくつかのコマンド： \myref{sec:GDB_cheatsheet}.
+GDB用のビジュアルインターフェイスがあります、 ``GDB dashboard''\footnote{\url{https://github.com/cyrus-and/gdb-dashboard}}.
+
+\item (フリー、オープンソース) \emph{LLDB}\footnote{\url{http://lldb.llvm.org/}}.
+
+\item \emph{WinDbg}\footnote{\url{https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit}}:
+Windows用カーネルデバッガ。
+
+\item \emph{IDA} には内部デバッガがあります。
+
+\item (フリー、オープンソース) \emph{Radare} \ac{AKA} rada.re \ac{AKA} r2\footnote{\url{http://rada.re/r/}}.
+GUIも存在します: \emph{ragui}\footnote{\url{http://radare.org/ragui/}}.
+
+\item (フリー、オープンソース) \emph{tracer}.
+\label{tracer}
+著者はしばしばデバッガの代わりに
+\footnote{\href{http://yurichev.com/tracer-en.html}{yurichev.com}}
+IT{tracer}を使用します。
+
+著者は、最終的にデバッガの使用を中止しました。実行している間に関数の引数を見つけること、
+またはある時点でのレジスタの状態を特定するだけだったからです。
+毎回デバッガをロードするのは過剰で、\emph{tracer}という小さなユーティリティが生まれました。
+コマンドラインから機能し、関数の実行を傍受したり、
+任意の場所でブレークポイントを設定したり、レジスタの状態を読み込んだり変更したりすることができます。
+
+注意：\emph{tracer}はは進化していません。なぜなら、日常的なツールとしてではなく、この本のデモンストレーションツールとして開発されたからです
+\end{itemize}
+
+\subsection{ライブラリ コールトレース}
+
+\emph{ltrace}\footnote{\url{http://www.ltrace.org/}}.
+
+\subsection{システムコールトレース}
+
+\label{strace}
+\myindex{strace}
+\myindex{dtruss}
+\subsubsection{strace / dtruss}
+
+\myindex{syscall}
+これは、どのシステムコール（syscalls(\myref{syscalls})）が現在プロセスによって呼び出されているかを示します
+
+例えば：
+
+\begin{lstlisting}
+# strace df -h
+
+...
+
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+open("/lib/i386-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\1\1\1\0\0\0\0\0\0\0\0\0\3\0\3\0\1\0\0\0\220\232\1\0004\0\0\0"..., 512) = 512
+fstat64(3, {st_mode=S_IFREG|0755, st_size=1770984, ...}) = 0
+mmap2(NULL, 1780508, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xb75b3000
+\end{lstlisting}
+
+\myindex{\MacOSX}
+\MacOSX は同じことを行うために dtrussがあります。
+
+\myindex{Cygwin}
+Cygwinにはstraceもありますが、知る限り、cygwin環境用にコンパイルされた
+.exeファイルに対してのみ動作します。
+
+\subsection{ネットワーク傍受}
+
+\emph{Sniffing}は興味のある情報を傍受します。
+
+(フリー、オープンソース) \emph{Wireshark}\footnote{\url{https://www.wireshark.org/}} ネットワーク傍受のために。
+また、USBスニッフィング機能も備えています。\footnote{\url{https://wiki.wireshark.org/CaptureSetup/USB}}.
+
+Wiresharkには若い（または古い）兄弟がいます： \emph{tcpdump}\footnote{\url{http://www.tcpdump.org/}}、簡単なコマンドラインツールです。
+
+\subsection{Sysinternals}
+
+\myindex{Sysinternals}
+(フリー) Sysinternals (Mark Russinovichによって開発)
+\footnote{\url{https://technet.microsoft.com/en-us/sysinternals/bb842062}}.
+少なくともこれらツールは重要で、検討する価値があります：プロセスエクスプローラ、Handle、VMMap、TCPView、プロセスモニタ
+
+\subsection{Valgrind}
+
+(フリー、オープンソース) メモリリークを検出する強力なツール: \url{http://valgrind.org/}.
+強力な\ac{JIT}メカニズムのため、Valgrindは他のツールのフレームワークとして使用されています
+
+% TODO network fuzzing
+
+\subsection{エミュレータ}
+
+\begin{itemize}
+\item (フリー、オープンソース) \emph{QEMU}\footnote{\url{http://qemu.org}}: さまざまなCPUおよびアーキテクチャ用のエミュレータ
+
+\item (フリー、オープンソース) \emph{DosBox}\footnote{\url{https://www.dosbox.com/}}: MS-DOSエミュレータ、主にレトロゲームに使用されます。
+
+\item (フリー、オープンソース) \emph{SimH}\footnote{\url{http://simh.trailing-edge.com/}}: 大昔のコンピュータ、メインフレームなどのエミュレータ
+\end{itemize}
+
+\mysection{他のツール}
+
+\emph{Microsoft Visual Studio Express}
+\footnote{\href{http://www.microsoft.com/express/Downloads/}{visualstudio.com/en-US/products/visual-studio-express-vs}}:
+簡単な実験に便利な、Visual Studioの無償版。
+
+いくつかの便利なオプション: \myref{sec:MSVC_options}.
+
+``Compiler Explorer'' というWebサイトがあり、小さなコードスニペットをコンパイルし、
+さまざまなGCCのバージョンとアーキテクチャ（少なくともx86、ARM、MIPS）で
+出力を見ることができます：\url{http://godbolt.org/}---もし私がそれについて知っていたら、私は本のためにそれを使ったでしょう！
+
+% TBT
+%\subsection{SMT solvers}
+
+%From the reverse engineer's perspective, SMT solvers are used when dealing with
+%amateur cryptography,
+%symbolic/concolic execution,
+%ROP chains generation.
+
+%For more information, read: \url{https://yurichev.com/writings/SAT_SMT_by_example.pdf}.
+\subsection{電卓}
+
+リバースエンジニアのニーズに合った良い電卓は、少なくとも10進数、16進数、2進数ベース、
+XORやシフトなどの多くの重要な演算をサポートする必要があります。
+
+\begin{itemize}
+
+\item IDA にはビルトインの電卓があります (``?'').
+
+\item rada.re には \emph{rax2}があります。
+
+\item \ProgCalcURL
+
+\item 最後の手段として、Windowsの標準電卓にはプログラマモードがあります。
+
+\end{itemize}
+
+\mysection{何か足りないものは？}
+
+ここにリストされていない素晴らしいツールが知っている場合は：\\
+\TT{\EMAILS}

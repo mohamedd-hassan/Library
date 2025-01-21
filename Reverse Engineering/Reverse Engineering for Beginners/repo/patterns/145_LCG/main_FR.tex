@@ -1,0 +1,88 @@
+\mysection[Générateur congruentiel linéaire]{Générateur congruentiel linéaire comme générateur de nombres pseudo-aléatoires}
+\myindex{\CStandardLibrary!rand()}
+\label{LCG_simple}
+
+Peut-être que le générateur congruentiel linéaire est le moyen le plus simple possible
+de générer des nombres aléatoires.
+
+Ce n'est plus très utilisé aujourd'hui\footnote{Le twister de Mersenne est meilleur.},
+mais il est si simple (juste une multiplication, une addition et une opération AND)
+que nous pouvons l'utiliser comme un exemple.
+
+\lstinputlisting[style=customc]{patterns/145_LCG/rand_FR.c}
+
+Il y a deux fonctions: la première est utilisée pour initialiser l'état interne,
+et la seconde est appelée pour générer un nombre pseudo-aléatoire.
+
+Nous voyons que deux constantes sont utilisées dans l'algorithme.
+Elles proviennent de
+[William H. Press and Saul A. Teukolsky and William T. Vetterling and Brian P. Flannery, \emph{Numerical Recipes}, (2007)].
+
+Définissons-les en utilisant la déclaration \CCpp \TT{\#define}. C'est une macro.
+
+La différence entre une macro \CCpp et une constante est que toutes les macros sont
+remplacées par leur valeur par le pré-processeur \CCpp, et qu'elles n'utilisent pas
+de mémoire, contrairement aux variables.
+
+Par contre, une constante est une variable en lecture seule.
+
+Il est possible de prendre un pointeur (ou une adresse) d'une variable constante,
+mais c'est impossible de faire ça avec une macro.
+
+La dernière opération AND est nécessaire car d'après le standard C \TT{my\_rand()}
+doit renvoyer une valeur dans l'intervalle 0..32767.
+
+Si vous voulez obtenir des valeurs pseudo-aléatoires 32-bit, il suffit d'omettre
+la dernière opération AND.
+
+\subsection{x86}
+
+\lstinputlisting[caption=MSVC 2013 \Optimizing,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x86_Ox.asm}
+
+Nous les voyons ici: les deux constantes sont intégrées dans le code.
+Il n'y a pas de mémoire allouée pour elles.
+
+La fonction \TT{my\_srand()} copie juste sa valeur en entrée dans la variable \TT{rand\_state}
+interne.
+
+\TT{my\_rand()} la prend, calcule le \TT{rand\_state} suivant, le coupe et le laisse
+dans le registre \EAX.
+
+La version non optimisée est plus verbeuse:
+
+\lstinputlisting[caption=MSVC 2013 \NonOptimizing,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x86.asm}
+
+\subsection{x64}
+
+La version x64 est essentiellement la même et utilise des registres 32-bit au lieu
+de 64-bit (car nous travaillons avec des valeurs de type \Tint ici).
+
+Mais \TT{my\_srand()} prend son argument en entrée dans le registre \ECX plutôt que
+sur la pile:
+
+\lstinputlisting[caption=MSVC 2013 x64 \Optimizing,style=customasmx86]{patterns/145_LCG/rand_MSVC_2013_x64_Ox_FR.asm}
+
+Le compilateur GCC génère en grande partie le même code.
+
+\subsection{ARM 32-bit}
+
+\lstinputlisting[caption=\OptimizingKeilVI (\ARMMode),style=customasmARM]{patterns/145_LCG/rand.s_Keil_ARM_O3_FR.s}
+
+Il n'est pas possible d'intégrer une constante 32-bit dans des instructions ARM,
+donc Keil doit les stocker à l'extérieur et en outre les charger.
+Une chose intéressante est qu'il n'est pas possible non plus d'intégrer la constante
+0x7FFF.
+Donc ce que fait Keil est de décaler \TT{rand\_state} vers la gauche de 17 bits et
+ensuite la décale de 17 bits vers la droite.
+Ceci est analogue à la déclaration $(rand\_state \ll 17) \gg 17$ en \CCpp.
+Il semble que ça soit une opération inutile, mais ce qu'elle fait est de mettre à
+zéro les 17 bits hauts, laissant les 15 bits bas inchangés, et c'est notre but après
+tout.\\
+\\
+Keil \Optimizing pour le mode Thumb génère essentiellement le même code.
+
+\input{patterns/145_LCG/MIPS_FR}
+
+\subsection{Version thread-safe de l'exemple}
+
+La version thread-safe de l'exemple sera montrée plus tard: \myref{LCG_TLS}.

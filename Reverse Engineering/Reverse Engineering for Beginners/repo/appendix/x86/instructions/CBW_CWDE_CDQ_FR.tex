@@ -1,0 +1,35 @@
+\myindex{x86!\Instructions!CBW}
+\myindex{x86!\Instructions!CWD}
+\myindex{x86!\Instructions!CDQ}
+\myindex{x86!\Instructions!CWDE}
+\myindex{x86!\Instructions!CDQE}
+\label{ins:CBW_CWD_etc}
+\item[CBW/CWD/CWDE/CDQ/CDQE]
+
+Étendre le signe de la valeur:
+
+\begin{description}
+\item[CBW] Convertit l'octet dans AL en un mot dans AX
+\item[CWD] Convertit le mot dans AX en double-mot dans DX:AX
+\item[CWDE] Convertit le mot dans AX en double-mot dans EAX
+\item[CDQ] Convertit le double-mot dans EAX en quadruple-mot dans EDX:EAX
+\item[CDQE] (x64) Convertit le double-mot dans EAX en quadruple-mot dans RAX
+\end{description}
+
+Cette instruction examine le signe de la valeur, l'étend à la partie haute de la
+valeur nouvellement construite. Voir aussi: \myref{subsec:sign_extending_32_to_64}.
+
+\newcommand{\StephenMorse}{[Stephen P. Morse, \emph{The 8086 Primer}, (1980)]\footnote{\AlsoAvailableAs \url{https://archive.org/details/The8086Primer}}}
+
+Il est intéressant de savoir que ces instructions furent initialement appelées \TT{SEX}
+(\emph{Sign EXtend}), comme l'écrit Stephen P. Morse (un des concepteurs du CPU 8086)
+dans \StephenMorse:
+
+\begin{framed}
+\begin{quotation}
+The process of stretching numbers by extending the sign bit is called sign extension.
+The 8086 provides instructions (Fig. 3.29) to facilitate the task of sign extension.
+These instructions were initially named SEX (sign extend) but were later renamed to the more
+conservative CBW (convert byte to word) and CWD (convert word to double word).
+\end{quotation}
+\end{framed}

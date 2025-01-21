@@ -1,0 +1,18 @@
+﻿\subsubsection{MIPS}
+\label{MIPS_structure_big_endian}
+
+\lstinputlisting[caption=\Optimizing GCC 4.4.5 (IDA),numbers=left,style=customasmMIPS]{patterns/15_structs/4_packing/MIPS_O3_IDA_JA.lst}
+
+構造体フィールドはレジスタ \$A0..\$A3 に入ってから \printf のために \$A1..\$A3 に再整理され、
+4番目のフィールド（\$A3 から）は\INS{SW}を使ってローカルスタックを経由して渡されます。
+
+しかし、2つのSRA（\q{Shift Word Right Arithmetic}）命令があり、これは \Tchar フィールドを準備します。 
+なぜでしょうか？
+
+MIPSはデフォルトではビッグエンディアンアーキテクチャです\myref{sec:endianness}。私たちが動かすDebian Linuxもビッグエンディアンです。
+
+したがって、バイト変数が32ビット構造のスロットに格納されるとき、それらは高位31～24ビットを占有します。
+
+また、\Tchar 変数を32ビット値に拡張する必要がある場合は、それを24ビット右にシフトする必要があります。
+
+\Tchar は符号付き型なので、ここでは論理シフトの代わりに算術シフトが使用されます。

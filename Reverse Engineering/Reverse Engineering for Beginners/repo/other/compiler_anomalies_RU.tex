@@ -1,0 +1,57 @@
+\mysection{Аномалии компиляторов}
+\label{anomaly:Intel}
+\myindex{\CompilerAnomaly}
+
+\subsection{\oracle 11.2 and Intel C++ 10.1}
+
+\myindex{Intel C++}
+\myindex{\oracle}
+\myindex{x86!\Instructions!JZ}
+
+Intel C++ 10.1 которым скомпилирован \oracle 11.2 Linux86, может сгенерировать два \JZ идущих подряд, 
+причем на второй \JZ нет ссылки ниоткуда. Второй \JZ таким образом, не имеет никакого смысла.
+
+\lstinputlisting[caption=kdli.o from libserver11.a,style=customasmx86]{other/kdli.lst}
+
+\begin{lstlisting}[caption=оттуда же,style=customasmx86]
+.text:0811A2A5                   loc_811A2A5: ; CODE XREF: kdliSerLengths+11C
+.text:0811A2A5                                ; kdliSerLengths+1C1
+.text:0811A2A5 8B 7D 08              mov     edi, [ebp+arg_0]
+.text:0811A2A8 8B 7F 10              mov     edi, [edi+10h]
+.text:0811A2AB 0F B6 57 14           movzx   edx, byte ptr [edi+14h]
+.text:0811A2AF F6 C2 01              test    dl, 1
+.text:0811A2B2 75 3E                 jnz     short loc_811A2F2
+.text:0811A2B4 83 E0 01              and     eax, 1
+.text:0811A2B7 74 1F                 jz      short loc_811A2D8
+.text:0811A2B9 74 37                 jz      short loc_811A2F2
+.text:0811A2BB 6A 00                 push    0
+.text:0811A2BD FF 71 08              push    dword ptr [ecx+8]
+.text:0811A2C0 E8 5F FE FF FF        call    len2nbytes
+\end{lstlisting}
+
+Возможно, это ошибка его кодегенератора, не выявленная тестами 
+(ведь результирующий код и так работает нормально).
+
+Еще пример из \oracle 11.1.0.6.0 для win32.
+
+\begin{lstlisting}
+.text:0051FBF8 85 C0                             test    eax, eax
+.text:0051FBFA 0F 84 8F 00 00 00                 jz      loc_51FC8F
+.text:0051FC00 74 1D                             jz      short loc_51FC1F
+\end{lstlisting}
+
+\input{other/anomaly2_RU}
+\input{other/anomaly3_RU}
+
+\subsection{Итог}
+
+Еще подобные аномалии компиляторов в этой книге: 
+\myref{anomaly:LLVM}, \myref{loops_iterators_loop_anomaly}, \myref{Keil_anomaly},
+\myref{MSVC2013_anomaly},
+\myref{MSVC_double_JMP_anomaly},
+\myref{MSVC2012_anomaly}.
+
+В этой книге здесь приводятся подобные случаи для того, чтобы легче было понимать, 
+что подобные ошибки компиляторов 
+все же имеют место быть, и не следует ломать голову над тем, почему он сгенерировал такой странный код.
+

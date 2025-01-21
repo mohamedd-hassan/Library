@@ -1,0 +1,57 @@
+\subsubsection{Using indirect pointers}
+
+\begin{lstlisting}[style=customasmx86]
+dummy_data1	db	100h dup (0)
+message1	db	'hello world',0
+
+dummy_data2	db	200h dup (0)
+message2	db	'another message',0
+
+func		proc
+		...
+		mov	eax, offset dummy_data1 ; PE or ELF reloc here
+		add	eax, 100h
+		push	eax
+		call	dump_string
+		...
+		mov	eax, offset dummy_data2 ; PE or ELF reloc here
+		add	eax, 200h
+		push	eax
+		call	dump_string
+		...
+func		endp
+\end{lstlisting}
+
+\IDA{} will show references only to \TT{dummy\_data1} and \TT{dummy\_data2}, 
+but not to the text strings.
+
+Global variables and even functions may be accessed like that.
+
+Now something slightly more advanced.
+
+Honestly, I don't know its exact name, but I would call it \textit{shifted pointer}.
+This technique is quite common, at least in copy protection schemes.
+
+In short: while writing a value into global memory you use an address,
+but by reading you use a sum of (other) addresses, or maybe a difference.
+The goal is to hide a real address from a reverse engineer who debugs the code or exploring it in IDA
+(or another disassembler).
+
+This can be a nuisance.
+
+\lstinputlisting[style=customc]{\CURPATH/indirect.c}
+
+If compiled by non-optimizing MSVC 2015:
+
+\lstinputlisting[style=customasmx86]{\CURPATH/indirect.asm}
+
+You see, IDA can only get two addresses: \verb|secret_array[]| (start of the array) and \\
+\verb|point_passed_to_get_byte_at_0x6000|.
+
+How to deal with it: you can use hardware breakpoints on memory access operations
+\tracer has \TT{BPMx} options) or symbolic execution engine or maybe you can write a plugin for IDA...
+
+Surely, one array can be used for many values, not limited to boolean ones...
+
+N.B.: Optimizing MSVC 2015 is smart enough to optimize the \verb|get_byte_at_0x6000()| function out.
+

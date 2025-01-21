@@ -1,0 +1,49 @@
+﻿\subsubsection{ARM}
+
+\myparagraph{\NonOptimizingKeilVI (\ARMMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/1_simple/simple_Keil_ARM_O0_JA.asm}
+
+\Tint 型は32ビットのストレージを必要とします(または4バイト)。
+
+20個の \Tint 変数を保存するには80バイト(\TT{0x50})が必要です。
+だから、\INS{SUB SP, SP, \#0x50}のようになっています。
+
+関数プロローグの命令はスタックにちょうどその分の空間を確保しています。
+
+最初と次のループの両方で、ループイテレータ \var{i} は\Reg{4}レジスタに置かれています。
+
+\myindex{ARM!Optional operators!LSL}
+
+配列に書かれる数は $i*2$ として計算されます。これは1ビット左シフトすることと同じで、
+\INS{MOV R0, R4,LSL\#1}命令がこれをしています。
+
+\myindex{ARM!\Instructions!STR}
+\INS{STR R0, [SP,R4,LSL\#2]}は\Reg{0}の内容を配列に書き込んでいます。
+
+配列の要素へのポインタがどのように計算されるかを示しています。\ac{SP}は配列の先頭を示しています。\Reg{4}は $i$ です。
+
+$i$ を2ビット左シフトすると、4倍することに等しいです。
+（各配列の要素は4バイトです）そして配列の先頭アドレスに追加されます。
+
+\myindex{ARM!\Instructions!LDR}
+
+次のループは\INS{LDR R2, [SP,R4,LSL\#2]}命令の逆です。
+配列から必要とする値をロードし、ポインタもまた同様に計算されます。
+
+\myparagraph{\OptimizingKeilVI (\ThumbMode)}
+
+\lstinputlisting[style=customasmARM]{patterns/13_arrays/1_simple/simple_Keil_thumb_O3_JA.asm}
+
+Thumbコードも大変似ています。
+\myindex{ARM!\Instructions!LSLS}
+
+Thumbコードはビットシフト用の特別な命令を持っています（\TT{LSLS}のような）。
+これは配列に書き込まれる値を計算し、また配列の各要素のアドレスも同様に計算します。
+
+コンパイラはもう少し余分な空間をローカルスタックに確保します。しかし、最後の4バイトは使用されません。
+
+\myparagraph{\NonOptimizing GCC 4.9.1 (ARM64)}
+
+\lstinputlisting[caption=\NonOptimizing GCC 4.9.1 (ARM64),style=customasmARM]{patterns/13_arrays/1_simple/ARM64_GCC491_O0_JA.s}
+

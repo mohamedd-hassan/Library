@@ -1,0 +1,134 @@
+\subsection{Renvoyer une chaîne}
+
+Ceci est un bug classique tiré de \RobPikePractice{}:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+char* amsg(int n, char* s)
+{
+        char buf[100];
+
+        sprintf (buf, "error %d: %s\n", n, s) ;
+
+        return buf;
+};
+
+int main()
+{
+        printf ("%s\n", amsg (1234, "something wrong!"));
+};
+\end{lstlisting}
+
+Il va planter.
+Tout d'abord essayons de comprendre pourquoi.
+
+Ceci est l'état de la pile avant le retour de amsg():
+
+\begin{lstlisting}
+(lower addresses)
+
+...
+
+[amsg(): 100 bytes]
+[RA]                   <- current SP
+[two amsg arguments]
+[something else]
+[main() local variables]
+
+...
+
+(upper addresses)
+\end{lstlisting}
+
+Ensuite amsg() rend le contrôle du flux à \main, jusqu'ici, tout va bien.
+Mais \printf est appelée depuis \main, qui, en fait, utilise la pile pour ses propres
+besoin, zappant le buffer de 100-octet.
+Au mieux, du contenu indéterminé sera affiché.
+
+Difficile à croire, mais je sais comment résoudre ce problème:
+
+\begin{lstlisting}[style=customc]
+#include <stdio.h>
+
+char* amsg(int n, char* s)
+{
+        char buf[100];
+
+        sprintf (buf, "error %d: %s\n", n, s) ;
+
+        return buf;
+};
+
+char* interim (int n, char* s)
+{
+        char large_buf[8000];
+        // make use of local array.
+        // it will be optimized away otherwise, as useless.
+        large_buf[0]=0;
+        return amsg (n, s);
+};
+
+int main()
+{
+        printf ("%s\n", interim (1234, "something wrong!"));
+};
+\end{lstlisting}
+
+Cela va fonctionner si il est compilé avec MSVC 2013 sans optimisation et avec l'option
+\TT{/GS-} option\footnote{Supprimer la vérification de sécurité du buffer}.
+MSVC avertira: ``warning C4172: returning address of local variable or temporary'',
+mais le code s'exécutera et le message sera affiché.
+Regardons l'état de la pile au moment où amsg() renvoie le contrôle à interim():
+
+\begin{lstlisting}
+(lower addresses)
+
+...
+
+[amsg(): 100 bytes]
+[RA]                                     <- current SP
+[two amsg() arguments]
+[interim() stuff, incl. 8000 bytes]
+[something else]
+[main() local variables]
+
+...
+
+(upper addresses)
+\end{lstlisting}
+
+Maintenant, l'état de la pile au moment où interim() rend le contrôle à \main{}:
+
+\begin{lstlisting}
+(lower addresses)
+
+...
+
+[amsg(): 100 bytes]
+[RA]
+[two amsg() arguments]
+[interim() stuff, incl. 8000 bytes]
+[something else]                         <- current SP
+[main() local variables]
+
+...
+
+(upper addresses)
+\end{lstlisting}
+
+Donc lorsque \main appelle \printf, elle utilise l'espace de pile où le buffer d'interim()
+était alloué, et ne zappe pas les 100 octets contenant le message d'erreur, car 8000
+octets (ou peut-être bien moins) sont suffisants pour tout ce que \printf et les autres
+fonctions font!
+
+Ça pourrait aussi fonctionner si il y a plusieurs fonctions entre, comme:
+\main $\rightarrow$ f1() $\rightarrow$ f2() $\rightarrow$ f3() ... $\rightarrow$ amsg(),
+et alors le résultat de amsg() est utilisé dans \main.
+La distance entre \ac{SP} dans \main et l'adresse de \TT{buf[]} doit être assez grande.
+
+C'est pourquoi les bugs de ce genre sont dangereux: parfois votre code fonctionne
+(et le bug ne se produit pas), parfois non.
+\label{heisenbug}
+\myindex{Heisenbug}
+Ces genres de bug sont par humour appelés \emph{heisenbugs} ou \emph{schrödinbugs}.
