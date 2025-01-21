@@ -1,0 +1,37 @@
+This is a software that protected by license file.
+As you can see, it's lame --- license.dat only contains user's name and CRC64 of it.
+Let's pretend, a software cracker is too lazy to program a (simple) keygen.
+He/she will quickly find that the important function is: check_license(), and will patch it, so that it will always return 1.
+(It's possible to set there 2 instructions: "MOV EAX 1 / RETN".)
+
+(Another his/her option is patching all JMPs after call to check_license(),
+but there are at least 3 such checks, because license file is to be checked time from time.
+It is quite popular for software developers to spread license checks across all software.
+So it's easier to patch the executable in one single place.)
+
+As a software developer, you are well aware about cracker's style of work.
+And you want to protect your executable from patching.
+
+There are couple of options.
+First is: calculate a hash (maybe even CRC32/64) of the whole executable and stash the value somewhere, maybe in hidden file,
+then check integrity during run, after reading that value from (hidden) stash.
+That value is to be recalculated after each compilation, of course.
+
+But there is a simpler way.
+Can you find a method of protecting this function from patching, that will not rely on additional files at all?
+
+In one sentence: a single file pure C program after compilation can check if the function was patched or not and exit (if it is patched).
+And that would work for any OS.
+Only standard pure C language features are to be used (that are supported by any C compiler). No C++ features required.
+No assembly code is to be used.
+No additional binary modification (after compilation) is required.
+Maybe up to 5 lines of pure C is enough.
+My book has the solution.
+
+How to do it?
+
+(However, you'll need to tune it a bit for each C compiler and maybe after a major C compiler's upgrade.)
+
+Additional question: what is the best way today of protecting executable file from patching, in Windows?
+(It's endorsed by Microsoft in their manuals.)
+

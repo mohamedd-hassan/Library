@@ -1,0 +1,6 @@
+Reverse Engineering Challenge #100 by dennis(a)yurichev.com
+
+How do you think, what does this program do?
+
+Also, this program has a subtle bug. Try to find it.
+
